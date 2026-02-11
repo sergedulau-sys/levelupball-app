@@ -6,6 +6,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const SUPABASE_URL = "https://wvbzifqbugjusthwlfzl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2YnppZnFidWdqdXN0aHdsZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTkxMTAsImV4cCI6MjA4NjMzNTExMH0._p8Firq7U6oiHsvvSwNxZT2WJ0MNMQEOze_mjt4xE7w";
 
+const SUBMISSION_EMAIL = "levelupball24@gmail.com";
+
 const supabase = {
   headers: (token) => ({
     "apikey": SUPABASE_ANON_KEY,
@@ -268,10 +270,70 @@ function WorkoutView({ workout, onBack, completedIds, onToggle }) {
   );
 }
 
+
 // ============================================================
-// PLAYER DASHBOARD
+// STUDENT: RESOURCES TAB
 // ============================================================
-function Dashboard({ profile, workoutsData, onSelect, completedIds }) {
+function StudentResources({ token }) {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(null);
+  useEffect(() => { (async () => { try { setArticles(await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc")); } catch(e){} setLoading(false); })(); }, [token]);
+  if (loading) return <p style={{ color: "#555", textAlign: "center", padding: 40 }}>Loading resources...</p>;
+  return (
+    <div>
+      {articles.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 36, marginBottom: 10 }}>📖</div><p style={{ color: "#555", fontSize: 14 }}>No resources yet. Check back soon!</p></div>
+      ) : articles.map(a => (
+        <div key={a.id} style={{ background: "#141414", borderRadius: 14, border: "1px solid #222", marginBottom: 10, overflow: "hidden" }}>
+          <div onClick={() => setExpanded(expanded === a.id ? null : a.id)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FF6D0022", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>📖</div>
+              <div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{new Date(a.created_at).toLocaleDateString()}</p></div>
+            </div>
+            <span style={{ color: "#444", fontSize: 16, transform: expanded === a.id ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }}>▾</span>
+          </div>
+          {expanded === a.id && (<div style={{ padding: "0 20px 20px" }}><div style={{ background: "#0a0a0a", borderRadius: 10, padding: 18, border: "1px solid #1a1a1a", color: "#ccc", fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{a.content}</div></div>)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// STUDENT: CHALLENGES TAB
+// ============================================================
+function StudentChallenges({ token, studentName }) {
+  const [challenge, setChallenge] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { (async () => { try { const c = await supabase.from("challenges")._token(token).select("*", "&active=eq.true&limit=1"); if (c.length > 0) setChallenge(c[0]); } catch(e){} setLoading(false); })(); }, [token]);
+  if (loading) return <p style={{ color: "#555", textAlign: "center", padding: 40 }}>Loading challenge...</p>;
+  if (!challenge) return (<div style={{ textAlign: "center", padding: 40 }}><div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div><p style={{ color: "#555", fontSize: 15 }}>No active challenge right now.</p><p style={{ color: "#444", fontSize: 13, marginTop: 4 }}>Check back soon for the next weekly challenge!</p></div>);
+  const deadlineStr = challenge.deadline ? new Date(challenge.deadline + "T23:59:59").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : null;
+  const isExpired = challenge.deadline ? new Date(challenge.deadline + "T23:59:59") < new Date() : false;
+  const mailSubject = encodeURIComponent("Challenge Submission - " + studentName);
+  const mailBody = encodeURIComponent("Hi Coach!\n\nHere is my video for the \"" + challenge.title + "\" challenge.\n\nPlayer: " + studentName + "\n\n[Attach your video]");
+  const mailLink = "mailto:" + (challenge.submission_email || SUBMISSION_EMAIL) + "?subject=" + mailSubject + "&body=" + mailBody;
+  return (
+    <div>
+      <div style={{ background: "linear-gradient(135deg, #FF6D00, #FF8F00)", borderRadius: 16, padding: 24, marginBottom: 20, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -30, right: -20, fontSize: 80, opacity: 0.15 }}>🏆</div>
+        <p style={{ fontFamily: F, fontSize: 11, color: "rgba(255,255,255,0.7)", letterSpacing: 2, marginBottom: 8 }}>WEEKLY CHALLENGE</p>
+        <h2 style={{ fontFamily: F, fontSize: 24, color: "#fff", fontWeight: 700, letterSpacing: 1 }}>{challenge.title}</h2>
+        {deadlineStr && (<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.2)", borderRadius: 6, padding: "4px 12px", marginTop: 10 }}><span style={{ fontSize: 12 }}>⏰</span><span style={{ fontFamily: F, fontSize: 11, color: "#fff", letterSpacing: 1 }}>{isExpired ? "ENDED" : "DUE " + deadlineStr.toUpperCase()}</span></div>)}
+      </div>
+      {challenge.description && (<div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 16 }}><p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 8 }}>CHALLENGE DETAILS</p><p style={{ color: "#ccc", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{challenge.description}</p></div>)}
+      {challenge.video_url && (<div style={{ marginBottom: 16 }}><p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 8 }}>DEMO VIDEO</p><VideoPlayer url={challenge.video_url} /></div>)}
+      {!isExpired && (<a href={mailLink} style={{ display: "block", background: "linear-gradient(135deg, #00C853, #00E676)", borderRadius: 12, padding: 18, textAlign: "center", textDecoration: "none", marginTop: 8 }}><p style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 700, letterSpacing: 1 }}>📧 SUBMIT YOUR VIDEO</p><p style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 4 }}>Send a video of you completing this challenge</p></a>)}
+    </div>
+  );
+}
+
+// ============================================================
+// PLAYER DASHBOARD (with tabs)
+// ============================================================
+function Dashboard({ profile, workoutsData, onSelect, completedIds, token }) {
+  const [playerTab, setPlayerTab] = useState("workouts");
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id);
   const bw = workoutsData || [];
   const today = new Date();
@@ -457,7 +519,17 @@ function Admin({ token }) {
   const [libForm, setLibForm] = useState({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
   const [libSearch, setLibSearch] = useState("");
   // Library search modal for workout editor
-  const [showLibSearch, setShowLibSearch] = useState(null); // { catId, workoutId }
+  const [showLibSearch, setShowLibSearch] = useState(null);
+  // Articles
+  const [articles, setArticles] = useState([]);
+  const [artEditing, setArtEditing] = useState(null);
+  const [artNew, setArtNew] = useState(false);
+  const [artForm, setArtForm] = useState({ title: "", content: "", published: true });
+  // Challenges
+  const [challenges, setChallenges] = useState([]);
+  const [chalEditing, setChalEditing] = useState(null);
+  const [chalNew, setChalNew] = useState(false);
+  const [chalForm, setChalForm] = useState({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); // { catId, workoutId }
 
   const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, outline: "none" };
   const sinp = { ...inp, width: 80, textAlign: "center", padding: "8px" };
@@ -489,9 +561,11 @@ function Admin({ token }) {
     setLibLoading(false);
   }, [token]);
 
+  const loadArticles = useCallback(async () => { try { setArticles(await supabase.from("articles")._token(token).select("*", "&order=sort_order,created_at.desc")); } catch(e){} }, [token]);
+  const loadChallenges = useCallback(async () => { try { setChallenges(await supabase.from("challenges")._token(token).select("*", "&order=created_at.desc")); } catch(e){} }, [token]);
+
   useEffect(() => { loadWorkouts(); }, [loadWorkouts]);
-  useEffect(() => { if (tab === "students") loadStudents(); }, [tab, loadStudents]);
-  useEffect(() => { if (tab === "library") loadLibrary(); }, [tab, loadLibrary]);
+  useEffect(() => { if (tab === "students") loadStudents(); if (tab === "library") loadLibrary(); if (tab === "articles") loadArticles(); if (tab === "challenges") loadChallenges(); }, [tab]);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 2000); };
 
@@ -589,6 +663,19 @@ function Admin({ token }) {
   libFiltered.forEach(ex => { if (!libGrouped[ex.category]) libGrouped[ex.category] = []; libGrouped[ex.category].push(ex); });
   const existingCategories = [...new Set(library.map(e => e.category))].sort();
 
+
+  // Articles CRUD
+  const saveArticle = async () => { if(!artForm.title){ flash("Title required."); return; } setSaving(true); try { if(artEditing){ await supabase.from("articles")._token(token).update(artForm, { id: artEditing.id }); } else { await supabase.from("articles")._token(token).insert({ ...artForm, sort_order: articles.length }); } setArtEditing(null); setArtNew(false); setArtForm({ title: "", content: "", published: true }); await loadArticles(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+  const deleteArticle = async (id) => { setSaving(true); try { await supabase.from("articles")._token(token).delete({ id }); await loadArticles(); flash("Removed."); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+  const startEditArt = (a) => { setArtEditing(a); setArtNew(false); setArtForm({ title: a.title, content: a.content, published: a.published }); };
+  const startNewArt = () => { setArtNew(true); setArtEditing(null); setArtForm({ title: "", content: "", published: true }); };
+
+  // Challenges CRUD
+  const saveChallenge = async () => { if(!chalForm.title){ flash("Title required."); return; } setSaving(true); try { if(chalForm.active){ try { await supabase.from("challenges")._token(token).update({ active: false }, { active: true }); } catch(e){} } if(chalEditing){ await supabase.from("challenges")._token(token).update(chalForm, { id: chalEditing.id }); } else { await supabase.from("challenges")._token(token).insert(chalForm); } setChalEditing(null); setChalNew(false); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); await loadChallenges(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+  const deleteChallenge = async (id) => { setSaving(true); try { await supabase.from("challenges")._token(token).delete({ id }); await loadChallenges(); flash("Removed."); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+  const startEditChal = (c) => { setChalEditing(c); setChalNew(false); setChalForm({ title: c.title, description: c.description||"", video_url: c.video_url||"", submission_email: c.submission_email||SUBMISSION_EMAIL, deadline: c.deadline||"", active: c.active }); };
+  const startNewChal = () => { setChalNew(true); setChalEditing(null); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); };
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
       {msg && <div style={{ position: "fixed", top: 70, right: 20, background: msg.startsWith("Error") ? "#ff4444" : "#00C853", color: "#fff", padding: "10px 20px", borderRadius: 8, fontFamily: F, fontSize: 13, letterSpacing: 1, zIndex: 200 }}>{msg}</div>}
@@ -597,7 +684,7 @@ function Admin({ token }) {
 
       {/* TABS */}
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
-        {["workouts", "library", "students"].map(t => (
+        {["workouts", "library", "articles", "challenges", "students"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#FF6D00" : "#666", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
         ))}
       </div>
@@ -761,6 +848,38 @@ function Admin({ token }) {
         ))}
       </>}
 
+
+      {/* ===== ARTICLES ===== */}
+      {tab === "articles" && <>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>RESOURCES / ARTICLES</h2><button onClick={startNewArt} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW ARTICLE</button></div>
+        {(artNew||artEditing) && (
+          <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{artEditing ? "EDIT" : "NEW"} ARTICLE</h3>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={artForm.title} onChange={e=>setArtForm({...artForm,title:e.target.value})} style={inp} placeholder="Article title..." /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label><textarea value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." /></div>
+            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>PUBLISHED</label><input type="checkbox" checked={artForm.published} onChange={e=>setArtForm({...artForm,published:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /></div>
+            <div style={{ display: "flex", gap: 6 }}><button onClick={saveArticle} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setArtEditing(null);setArtNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
+          </div>
+        )}
+        {articles.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#555" }}><p style={{ fontSize: 36, marginBottom: 10 }}>📖</p><p>No articles yet.</p></div>) : articles.map(a=>(<div key={a.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{a.published ? "Published" : "Draft"} · {new Date(a.created_at).toLocaleDateString()}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditArt(a)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteArticle(a.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
+      </>}
+
+      {/* ===== CHALLENGES ===== */}
+      {tab === "challenges" && <>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>WEEKLY CHALLENGES</h2><button onClick={startNewChal} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW CHALLENGE</button></div>
+        {(chalNew||chalEditing) && (
+          <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{chalEditing ? "EDIT" : "NEW"} CHALLENGE</h3>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={chalForm.title} onChange={e=>setChalForm({...chalForm,title:e.target.value})} style={inp} placeholder="e.g. 50 Made Free Throws" /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea value={chalForm.description} onChange={e=>setChalForm({...chalForm,description:e.target.value})} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Explain the challenge..." /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input value={chalForm.video_url} onChange={e=>setChalForm({...chalForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/..." /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEADLINE</label><input type="date" value={chalForm.deadline} onChange={e=>setChalForm({...chalForm,deadline:e.target.value})} style={inp} /></div></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUBMISSION EMAIL</label><input value={chalForm.submission_email} onChange={e=>setChalForm({...chalForm,submission_email:e.target.value})} style={inp} /></div><div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 18 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>ACTIVE</label><input type="checkbox" checked={chalForm.active} onChange={e=>setChalForm({...chalForm,active:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /><span style={{ fontSize: 10, color: "#FF6D00" }}>{chalForm.active ? "Students see this" : "Hidden"}</span></div></div>
+            <div style={{ display: "flex", gap: 6 }}><button onClick={saveChallenge} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setChalEditing(null);setChalNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
+          </div>
+        )}
+        {challenges.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#555" }}><p style={{ fontSize: 36, marginBottom: 10 }}>🏆</p><p>No challenges yet.</p></div>) : challenges.map(c=>(<div key={c.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: c.active ? "2px solid #FF6D00" : "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{c.title}</p>{c.active && <span style={{ background: "#FF6D00", color: "#fff", fontFamily: F, fontSize: 9, padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>ACTIVE</span>}</div><p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{c.deadline ? "Due " + new Date(c.deadline+"T12:00:00").toLocaleDateString() : "No deadline"}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditChal(c)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteChallenge(c.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
+      </>}
+
       {/* ========== STUDENTS TAB ========== */}
       {tab === "students" && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
@@ -859,7 +978,7 @@ export default function LevelUpBallApp() {
       <style>{`* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; } input::placeholder, textarea::placeholder { color: #444; } ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0a; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       {!session && <Login onLogin={handleLogin} />}
       {session && profile?.role === "admin" && <><Header admin onLogout={logout} /><Admin token={token} /></>}
-      {session && profile?.role === "student" && !activeW && <><Header belt={belt} onLogout={logout} /><Dashboard profile={profile} workoutsData={workoutsData} onSelect={setActiveW} completedIds={completedIds} /></>}
+      {session && profile?.role === "student" && !activeW && <><Header belt={belt} onLogout={logout} /><Dashboard profile={profile} workoutsData={workoutsData} onSelect={setActiveW} completedIds={completedIds} token={token} /></>}
       {session && profile?.role === "student" && activeW && <><Header belt={belt} onLogout={logout} /><WorkoutView workout={activeW} onBack={() => setActiveW(null)} completedIds={completedIds} onToggle={toggleComplete} /></>}
     </div>
   );
