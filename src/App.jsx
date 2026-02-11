@@ -6,7 +6,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const SUPABASE_URL = "https://wvbzifqbugjusthwlfzl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2YnppZnFidWdqdXN0aHdsZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTkxMTAsImV4cCI6MjA4NjMzNTExMH0._p8Firq7U6oiHsvvSwNxZT2WJ0MNMQEOze_mjt4xE7w";
 
-// Simple Supabase client
 const supabase = {
   headers: (token) => ({
     "apikey": SUPABASE_ANON_KEY,
@@ -38,46 +37,24 @@ const supabase = {
     token: null,
     _token(t) { this.token = t; return this; },
     async select(columns = "*", params = "") {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${columns}${params}`, {
-        headers: supabase.headers(this.token),
-      });
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${columns}${params}`, { headers: supabase.headers(this.token) });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
     async insert(data) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-        method: "POST",
-        headers: supabase.headers(this.token),
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method: "POST", headers: supabase.headers(this.token), body: JSON.stringify(data) });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
     async update(data, match) {
       const params = Object.entries(match).map(([k, v]) => `${k}=eq.${v}`).join("&");
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
-        method: "PATCH",
-        headers: supabase.headers(this.token),
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { method: "PATCH", headers: supabase.headers(this.token), body: JSON.stringify(data) });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
     async delete(match) {
       const params = Object.entries(match).map(([k, v]) => `${k}=eq.${v}`).join("&");
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
-        method: "DELETE",
-        headers: supabase.headers(this.token),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    },
-    async upsert(data) {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-        method: "POST",
-        headers: { ...supabase.headers(this.token), "Prefer": "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify(data),
-      });
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { method: "DELETE", headers: supabase.headers(this.token) });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
@@ -118,9 +95,7 @@ function RestTimer({ seconds }) {
   const ref = useRef(null);
   useEffect(() => { setRem(seconds); setOn(false); if (ref.current) clearInterval(ref.current); }, [seconds]);
   useEffect(() => {
-    if (on && rem > 0) {
-      ref.current = setInterval(() => setRem(r => { if (r <= 1) { clearInterval(ref.current); setOn(false); return 0; } return r - 1; }), 1000);
-    }
+    if (on && rem > 0) { ref.current = setInterval(() => setRem(r => { if (r <= 1) { clearInterval(ref.current); setOn(false); return 0; } return r - 1; }), 1000); }
     return () => clearInterval(ref.current);
   }, [on, rem]);
   const pct = ((seconds - rem) / seconds) * 100;
@@ -154,7 +129,7 @@ function VideoPlayer({ url }) {
   return <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: 10, overflow: "hidden", background: "#000" }}><iframe src={eu} style={{ width: "100%", height: "100%", border: "none" }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>;
 }
 
-function Header({ admin, belt, onLogout, userName }) {
+function Header({ admin, belt, onLogout }) {
   return (
     <div style={{ background: "#111", borderBottom: "1px solid #222", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -194,21 +169,13 @@ function Login({ onLogin }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
-
   const go = async () => {
-    setErr("");
-    setLoading(true);
-    try {
-      const data = await supabase.auth.signIn(email, pw);
-      onLogin(data);
-    } catch (e) {
-      setErr(e.message || "Login failed. Check your email and password.");
-    }
+    setErr(""); setLoading(true);
+    try { const data = await supabase.auth.signIn(email, pw); onLogin(data); }
+    catch (e) { setErr(e.message || "Login failed."); }
     setLoading(false);
   };
-
   const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "12px 16px", color: "#fff", fontSize: 15, outline: "none" };
-
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(145deg, #0a0a0a, #1a1a1a, #0d0d0d)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
@@ -244,7 +211,7 @@ function Login({ onLogin }) {
 // ============================================================
 // WORKOUT VIEW (Player)
 // ============================================================
-function WorkoutView({ workout, onBack, completedIds, onToggle, token }) {
+function WorkoutView({ workout, onBack, completedIds, onToggle }) {
   const [expanded, setExpanded] = useState(null);
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 24 }}>
@@ -264,9 +231,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token }) {
               <div key={ex.id} style={{ background: "#141414", borderRadius: 12, border: done ? "1px solid #00C85344" : "1px solid #222", marginBottom: 8, overflow: "hidden" }}>
                 <div onClick={() => setExpanded(open ? null : ex.id)} style={{ padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <button onClick={e => { e.stopPropagation(); onToggle(ex.id); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : "2px solid #333", background: done ? "#00C853" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 13, fontWeight: 700 }}>
-                      {done && "✓"}
-                    </button>
+                    <button onClick={e => { e.stopPropagation(); onToggle(ex.id); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : "2px solid #333", background: done ? "#00C853" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 13, fontWeight: 700 }}>{done && "✓"}</button>
                     <div>
                       <p style={{ fontFamily: F, fontSize: 14, color: done ? "#00C853" : "#fff", fontWeight: 500, letterSpacing: 0.5, textDecoration: done ? "line-through" : "none" }}>{ex.name}</p>
                       <p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{ex.sets} sets × {ex.reps} reps · {ex.rest_seconds}s rest</p>
@@ -306,17 +271,15 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token }) {
 // ============================================================
 // PLAYER DASHBOARD
 // ============================================================
-function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, token }) {
+function Dashboard({ profile, workoutsData, onSelect, completedIds }) {
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id);
   const bw = workoutsData || [];
   const today = new Date();
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
   let total = 0, done = 0;
   bw.forEach(w => (w.cats || []).forEach(c => (c.exercises || []).forEach(e => { total++; if (completedIds.has(e.id)) done++; })));
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const suggested = bw.length > 0 ? Math.floor((today.getTime() / (7 * 24 * 60 * 60 * 1000))) % bw.length : 0;
-
   const sow = new Date(today); sow.setDate(today.getDate() - today.getDay());
   const week = Array.from({ length: 7 }, (_, i) => { const d = new Date(sow); d.setDate(sow.getDate() + i); return d; });
 
@@ -326,7 +289,6 @@ function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, to
         <h1 style={{ fontFamily: F, fontSize: 28, color: "#fff", fontWeight: 700, letterSpacing: 1 }}>What's up, {profile.full_name.split(" ")[0]}! 👊</h1>
         <p style={{ color: "#666", fontSize: 14, marginTop: 4 }}>{dayNames[today.getDay()]} — Let's get to work.</p>
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 28 }}>
         <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222" }}>
           <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 10 }}>CURRENT BELT</p>
@@ -343,9 +305,7 @@ function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, to
         <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222" }}>
           <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 10 }}>PROGRESS</p>
           <p style={{ fontFamily: F, fontSize: 28, color: "#FF6D00", fontWeight: 700 }}>{pct}%</p>
-          <div style={{ width: "100%", height: 5, background: "#222", borderRadius: 3, marginTop: 6 }}>
-            <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #FF6D00, #FFD600)", borderRadius: 3, transition: "width 0.5s" }} />
-          </div>
+          <div style={{ width: "100%", height: 5, background: "#222", borderRadius: 3, marginTop: 6 }}><div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #FF6D00, #FFD600)", borderRadius: 3, transition: "width 0.5s" }} /></div>
           <p style={{ fontSize: 11, color: "#555", marginTop: 5 }}>{done}/{total} exercises done</p>
         </div>
         <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222" }}>
@@ -354,8 +314,6 @@ function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, to
           <p style={{ fontSize: 11, color: "#555", marginTop: 5 }}>for {belt.name}</p>
         </div>
       </div>
-
-      {/* Calendar */}
       <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222", marginBottom: 28 }}>
         <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 14 }}>THIS WEEK</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
@@ -374,7 +332,6 @@ function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, to
           })}
         </div>
       </div>
-
       <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 14 }}>YOUR WORKOUTS</p>
       {bw.length === 0 ? (
         <div style={{ background: "#141414", borderRadius: 14, padding: 36, border: "1px solid #222", textAlign: "center" }}>
@@ -392,9 +349,7 @@ function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, to
               <button key={w.id} onClick={() => onSelect(w)} style={{ background: "#141414", border: sug ? "2px solid #FF6D00" : "1px solid #222", borderRadius: 14, padding: 18, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", width: "100%" }}>
                 {sug && <div style={{ position: "absolute", top: 8, right: 12, background: "#FF6D00", borderRadius: 5, padding: "2px 8px" }}><span style={{ fontFamily: F, fontSize: 9, color: "#fff", letterSpacing: 1 }}>TODAY</span></div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: sug ? "linear-gradient(135deg, #FF6D00, #FF8F00)" : "#222", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F, fontSize: 18, fontWeight: 700, color: sug ? "#fff" : "#666" }}>
-                    {w.name.replace("Workout ", "")}
-                  </div>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: sug ? "linear-gradient(135deg, #FF6D00, #FF8F00)" : "#222", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: F, fontSize: 18, fontWeight: 700, color: sug ? "#fff" : "#666" }}>{w.name.replace("Workout ", "")}</div>
                   <div>
                     <p style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 0.5 }}>{w.name}</p>
                     <p style={{ color: "#555", fontSize: 12, marginTop: 2 }}>{(w.cats || []).length} categories · {ec} exercises</p>
@@ -414,9 +369,76 @@ function Dashboard({ profile, workoutsData, onSelect, onLogout, completedIds, to
 }
 
 // ============================================================
+// EXERCISE LIBRARY SEARCH (used inside workout editor)
+// ============================================================
+function LibrarySearch({ token, onAdd, onClose }) {
+  const [library, setLibrary] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const items = await supabase.from("exercise_library")._token(token).select("*", "&order=category,name");
+        setLibrary(items);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    })();
+  }, [token]);
+
+  const filtered = library.filter(ex =>
+    ex.name.toLowerCase().includes(search.toLowerCase()) ||
+    ex.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Group by category
+  const grouped = {};
+  filtered.forEach(ex => {
+    if (!grouped[ex.category]) grouped[ex.category] = [];
+    grouped[ex.category].push(ex);
+  });
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ background: "#141414", borderRadius: 16, border: "1px solid #333", width: "100%", maxWidth: 600, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "18px 20px", borderBottom: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", letterSpacing: 1 }}>ADD FROM LIBRARY</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#888", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid #1a1a1a" }}>
+          <input
+            value={search} onChange={e => setSearch(e.target.value)} autoFocus
+            placeholder="Search exercises..."
+            style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, outline: "none" }}
+          />
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "12px 20px" }}>
+          {loading ? <p style={{ color: "#555", textAlign: "center", padding: 20 }}>Loading library...</p> :
+           filtered.length === 0 ? <p style={{ color: "#555", textAlign: "center", padding: 20 }}>No exercises found. Add some in the Library tab first!</p> :
+           Object.entries(grouped).map(([category, exercises]) => (
+            <div key={category} style={{ marginBottom: 20 }}>
+              <p style={{ fontFamily: F, fontSize: 11, color: "#FF6D00", letterSpacing: 2, marginBottom: 8 }}>{category.toUpperCase()}</p>
+              {exercises.map(ex => (
+                <div key={ex.id} style={{ background: "#0a0a0a", borderRadius: 10, padding: "12px 14px", marginBottom: 6, border: "1px solid #1a1a1a", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <p style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 500 }}>{ex.name}</p>
+                    <p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{ex.default_sets}×{ex.default_reps} · {ex.default_rest_seconds}s rest</p>
+                  </div>
+                  <button onClick={() => onAdd(ex)} style={{ background: "#FF6D00", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>+ ADD</button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // ADMIN PANEL
 // ============================================================
-function Admin({ token, onLogout }) {
+function Admin({ token }) {
   const [tab, setTab] = useState("workouts");
   const [belt, setBelt] = useState("white");
   const [workouts, setWorkouts] = useState([]);
@@ -427,11 +449,20 @@ function Admin({ token, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  // Library state
+  const [library, setLibrary] = useState([]);
+  const [libLoading, setLibLoading] = useState(true);
+  const [libEditing, setLibEditing] = useState(null);
+  const [libNew, setLibNew] = useState(false);
+  const [libForm, setLibForm] = useState({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
+  const [libSearch, setLibSearch] = useState("");
+  // Library search modal for workout editor
+  const [showLibSearch, setShowLibSearch] = useState(null); // { catId, workoutId }
 
   const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, outline: "none" };
   const sinp = { ...inp, width: 80, textAlign: "center", padding: "8px" };
 
-  // Load workouts for selected belt
+  // Load workouts
   const loadWorkouts = useCallback(async () => {
     setLoading(true);
     try {
@@ -439,191 +470,145 @@ function Admin({ token, onLogout }) {
       const full = [];
       for (const w of wks) {
         const cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`);
-        for (const c of cats) {
-          c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`);
-        }
+        for (const c of cats) { c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`); }
         w.cats = cats;
         full.push(w);
       }
       setWorkouts(full);
-    } catch (e) { console.error("Load workouts error:", e); }
+    } catch (e) { console.error(e); }
     setLoading(false);
   }, [belt, token]);
 
   const loadStudents = useCallback(async () => {
-    try {
-      const s = await supabase.from("profiles")._token(token).select("*", `&role=eq.student&order=created_at`);
-      setStudents(s);
-    } catch (e) { console.error("Load students error:", e); }
+    try { setStudents(await supabase.from("profiles")._token(token).select("*", `&role=eq.student&order=created_at`)); } catch (e) { console.error(e); }
+  }, [token]);
+
+  const loadLibrary = useCallback(async () => {
+    setLibLoading(true);
+    try { setLibrary(await supabase.from("exercise_library")._token(token).select("*", "&order=category,name")); } catch (e) { console.error(e); }
+    setLibLoading(false);
   }, [token]);
 
   useEffect(() => { loadWorkouts(); }, [loadWorkouts]);
   useEffect(() => { if (tab === "students") loadStudents(); }, [tab, loadStudents]);
+  useEffect(() => { if (tab === "library") loadLibrary(); }, [tab, loadLibrary]);
 
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 2000); };
 
-  // CRUD operations
-  const addWorkout = async () => {
-    setSaving(true);
-    try {
-      await supabase.from("workouts")._token(token).insert({ belt_id: belt, name: `Workout ${String.fromCharCode(65 + workouts.length)}`, sort_order: workouts.length });
-      await loadWorkouts();
-      flash("Workout added!");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const deleteWorkout = async (id) => {
-    setSaving(true);
-    try {
-      await supabase.from("workouts")._token(token).delete({ id });
-      if (editing?.id === id) setEditing(null);
-      await loadWorkouts();
-      flash("Workout deleted.");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const saveWorkoutName = async (id, name) => {
-    try {
-      await supabase.from("workouts")._token(token).update({ name }, { id });
-    } catch (e) { console.error(e); }
-  };
-
-  const addCategory = async (workoutId) => {
-    setSaving(true);
-    try {
-      const cats = editing?.cats || [];
-      await supabase.from("categories")._token(token).insert({ workout_id: workoutId, name: "New Category", sort_order: cats.length });
-      await loadWorkouts();
-      // Re-select editing workout
-      const updated = (await supabase.from("workouts")._token(token).select("*", `&id=eq.${workoutId}`))[0];
-      if (updated) {
-        updated.cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${workoutId}&order=sort_order`);
-        for (const c of updated.cats) {
-          c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`);
-        }
-        setEditing(updated);
-      }
-      flash("Category added!");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const deleteCategory = async (catId, workoutId) => {
-    setSaving(true);
-    try {
-      await supabase.from("categories")._token(token).delete({ id: catId });
-      await reloadEditing(workoutId);
-      flash("Category removed.");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const saveCategoryName = async (catId, name) => {
-    try { await supabase.from("categories")._token(token).update({ name }, { id: catId }); } catch (e) { console.error(e); }
-  };
-
-  const addExercise = async (catId, workoutId) => {
-    setSaving(true);
-    try {
-      const cat = editing?.cats?.find(c => c.id === catId);
-      await supabase.from("exercises")._token(token).insert({ category_id: catId, name: "New Exercise", sets: 3, reps: 10, rest_seconds: 30, sort_order: (cat?.exercises || []).length });
-      await reloadEditing(workoutId);
-      flash("Exercise added!");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const deleteExercise = async (exId, workoutId) => {
-    setSaving(true);
-    try {
-      await supabase.from("exercises")._token(token).delete({ id: exId });
-      await reloadEditing(workoutId);
-      flash("Exercise removed.");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const saveExercise = async (exId, field, value) => {
-    try { await supabase.from("exercises")._token(token).update({ [field]: value }, { id: exId }); } catch (e) { console.error(e); }
-  };
-
-  const reloadEditing = async (workoutId) => {
-    try {
-      const w = (await supabase.from("workouts")._token(token).select("*", `&id=eq.${workoutId}`))[0];
-      if (w) {
-        w.cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${workoutId}&order=sort_order`);
-        for (const c of w.cats) {
-          c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`);
-        }
-        setEditing(w);
-      }
-      await loadWorkouts();
-    } catch (e) { console.error(e); }
-  };
-
-  // Student management
-  const addStudent = async () => {
-    if (!ns.name || !ns.email || !ns.password) return;
-    setSaving(true);
-    try {
-      await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId });
-      setNs({ name: "", email: "", password: "", beltId: "white" });
-      setShowAdd(false);
-      await loadStudents();
-      flash("Student added!");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const promoteStudent = async (student) => {
-    const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id);
-    if (ci >= BELT_LEVELS.length - 1) return;
-    setSaving(true);
-    try {
-      await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci + 1].id }, { id: student.id });
-      await loadStudents();
-      flash("Student promoted!");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  const deleteStudent = async (id) => {
-    setSaving(true);
-    try {
-      await supabase.from("profiles")._token(token).delete({ id });
-      await loadStudents();
-      flash("Student removed.");
-    } catch (e) { flash("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  // Debounced save for text inputs
   const debounceRef = useRef({});
   const debouncedSave = (key, fn, delay = 600) => {
     if (debounceRef.current[key]) clearTimeout(debounceRef.current[key]);
     debounceRef.current[key] = setTimeout(fn, delay);
   };
 
+  // -- Workout CRUD --
+  const addWorkout = async () => { setSaving(true); try { await supabase.from("workouts")._token(token).insert({ belt_id: belt, name: `Workout ${String.fromCharCode(65 + workouts.length)}`, sort_order: workouts.length }); await loadWorkouts(); flash("Workout added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const deleteWorkout = async (id) => { setSaving(true); try { await supabase.from("workouts")._token(token).delete({ id }); if (editing?.id === id) setEditing(null); await loadWorkouts(); flash("Workout deleted."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const saveWorkoutName = async (id, name) => { try { await supabase.from("workouts")._token(token).update({ name }, { id }); } catch (e) { console.error(e); } };
+
+  const addCategory = async (workoutId) => { setSaving(true); try { await supabase.from("categories")._token(token).insert({ workout_id: workoutId, name: "New Category", sort_order: (editing?.cats || []).length }); await reloadEditing(workoutId); flash("Category added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const deleteCategory = async (catId, workoutId) => { setSaving(true); try { await supabase.from("categories")._token(token).delete({ id: catId }); await reloadEditing(workoutId); flash("Category removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const saveCategoryName = async (catId, name) => { try { await supabase.from("categories")._token(token).update({ name }, { id: catId }); } catch (e) { console.error(e); } };
+
+  const addExercise = async (catId, workoutId) => { setSaving(true); try { const cat = editing?.cats?.find(c => c.id === catId); await supabase.from("exercises")._token(token).insert({ category_id: catId, name: "New Exercise", sets: 3, reps: 10, rest_seconds: 30, sort_order: (cat?.exercises || []).length }); await reloadEditing(workoutId); flash("Exercise added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+
+  // Add from library
+  const addExerciseFromLibrary = async (libEx) => {
+    if (!showLibSearch) return;
+    const { catId, workoutId } = showLibSearch;
+    setSaving(true);
+    try {
+      const cat = editing?.cats?.find(c => c.id === catId);
+      await supabase.from("exercises")._token(token).insert({
+        category_id: catId,
+        name: libEx.name,
+        video_url: libEx.video_url || "",
+        sets: libEx.default_sets,
+        reps: libEx.default_reps,
+        rest_seconds: libEx.default_rest_seconds,
+        instructions: libEx.instructions || "",
+        sort_order: (cat?.exercises || []).length,
+      });
+      await reloadEditing(workoutId);
+      flash(`Added "${libEx.name}"!`);
+    } catch (e) { flash("Error: " + e.message); }
+    setSaving(false);
+    setShowLibSearch(null);
+  };
+
+  const deleteExercise = async (exId, workoutId) => { setSaving(true); try { await supabase.from("exercises")._token(token).delete({ id: exId }); await reloadEditing(workoutId); flash("Exercise removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const saveExercise = async (exId, field, value) => { try { await supabase.from("exercises")._token(token).update({ [field]: value }, { id: exId }); } catch (e) { console.error(e); } };
+
+  const reloadEditing = async (workoutId) => {
+    try {
+      const w = (await supabase.from("workouts")._token(token).select("*", `&id=eq.${workoutId}`))[0];
+      if (w) { w.cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${workoutId}&order=sort_order`); for (const c of w.cats) { c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`); } setEditing(w); }
+      await loadWorkouts();
+    } catch (e) { console.error(e); }
+  };
+
+  // -- Student CRUD --
+  const addStudent = async () => { if (!ns.name || !ns.email || !ns.password) return; setSaving(true); try { await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId }); setNs({ name: "", email: "", password: "", beltId: "white" }); setShowAdd(false); await loadStudents(); flash("Student added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const promoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci >= BELT_LEVELS.length - 1) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci + 1].id }, { id: student.id }); await loadStudents(); flash("Student promoted!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const deleteStudent = async (id) => { setSaving(true); try { await supabase.from("profiles")._token(token).delete({ id }); await loadStudents(); flash("Student removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+
+  // -- Library CRUD --
+  const saveLibItem = async () => {
+    if (!libForm.name || !libForm.category) { flash("Name and category required."); return; }
+    setSaving(true);
+    try {
+      if (libEditing) {
+        await supabase.from("exercise_library")._token(token).update(libForm, { id: libEditing.id });
+        flash("Exercise updated!");
+      } else {
+        await supabase.from("exercise_library")._token(token).insert(libForm);
+        flash("Exercise added to library!");
+      }
+      setLibEditing(null); setLibNew(false);
+      setLibForm({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
+      await loadLibrary();
+    } catch (e) { flash("Error: " + e.message); }
+    setSaving(false);
+  };
+
+  const deleteLibItem = async (id) => { setSaving(true); try { await supabase.from("exercise_library")._token(token).delete({ id }); await loadLibrary(); flash("Removed from library."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+
+  const startEditLib = (item) => {
+    setLibEditing(item); setLibNew(false);
+    setLibForm({ name: item.name, category: item.category, video_url: item.video_url || "", default_sets: item.default_sets, default_reps: item.default_reps, default_rest_seconds: item.default_rest_seconds, instructions: item.instructions || "" });
+  };
+
+  const startNewLib = () => {
+    setLibNew(true); setLibEditing(null);
+    setLibForm({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
+  };
+
+  // Library grouped + filtered
+  const libFiltered = library.filter(ex => ex.name.toLowerCase().includes(libSearch.toLowerCase()) || ex.category.toLowerCase().includes(libSearch.toLowerCase()));
+  const libGrouped = {};
+  libFiltered.forEach(ex => { if (!libGrouped[ex.category]) libGrouped[ex.category] = []; libGrouped[ex.category].push(ex); });
+  const existingCategories = [...new Set(library.map(e => e.category))].sort();
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
       {msg && <div style={{ position: "fixed", top: 70, right: 20, background: msg.startsWith("Error") ? "#ff4444" : "#00C853", color: "#fff", padding: "10px 20px", borderRadius: 8, fontFamily: F, fontSize: 13, letterSpacing: 1, zIndex: 200 }}>{msg}</div>}
       {saving && <div style={{ position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", background: "#FF6D00", color: "#fff", padding: "6px 16px", borderRadius: 6, fontFamily: F, fontSize: 11, letterSpacing: 1, zIndex: 200 }}>SAVING...</div>}
+      {showLibSearch && <LibrarySearch token={token} onAdd={addExerciseFromLibrary} onClose={() => setShowLibSearch(null)} />}
 
+      {/* TABS */}
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
-        {["workouts", "students"].map(t => (
+        {["workouts", "library", "students"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#FF6D00" : "#666", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
         ))}
       </div>
 
+      {/* ========== WORKOUTS TAB ========== */}
       {tab === "workouts" && <>
         <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
           {BELT_LEVELS.map(b => (
             <button key={b.id} onClick={() => { setBelt(b.id); setEditing(null); }} style={{ background: belt === b.id ? b.color : "#141414", color: belt === b.id ? b.tc : "#888", border: belt === b.id ? "none" : "1px solid #333", borderRadius: 8, padding: "7px 16px", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{b.name.toUpperCase()}</button>
           ))}
         </div>
-
         {loading ? <LoadingScreen message="Loading workouts..." /> : !editing ? <>
           {workouts.map(w => {
             const ec = (w.cats || []).reduce((s, c) => s + (c.exercises || []).length, 0);
@@ -677,35 +662,119 @@ function Admin({ token, onLogout }) {
                   </div>
                 </div>
               ))}
-              <button onClick={() => addExercise(cat.id, editing.id)} disabled={saving} style={{ background: "none", border: "1px dashed #333", borderRadius: 8, padding: 9, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>+ ADD EXERCISE</button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setShowLibSearch({ catId: cat.id, workoutId: editing.id })} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: 9, flex: 1, color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>📚 ADD FROM LIBRARY</button>
+                <button onClick={() => addExercise(cat.id, editing.id)} disabled={saving} style={{ background: "none", border: "1px dashed #333", borderRadius: 8, padding: 9, flex: 1, color: "#666", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>+ ADD CUSTOM</button>
+              </div>
             </div>
           ))}
           <button onClick={() => addCategory(editing.id)} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 12, padding: 14, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD CATEGORY</button>
         </>}
       </>}
 
+      {/* ========== LIBRARY TAB ========== */}
+      {tab === "library" && <>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
+          <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>EXERCISE LIBRARY</h2>
+          <button onClick={startNewLib} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW EXERCISE</button>
+        </div>
+
+        {/* Search */}
+        <div style={{ marginBottom: 18 }}>
+          <input value={libSearch} onChange={e => setLibSearch(e.target.value)} placeholder="Search exercises..." style={{ ...inp, maxWidth: 400 }} />
+        </div>
+
+        {/* Add/Edit Form */}
+        {(libNew || libEditing) && (
+          <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{libEditing ? "EDIT EXERCISE" : "NEW EXERCISE"}</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>NAME *</label>
+                <input value={libForm.name} onChange={e => setLibForm({ ...libForm, name: e.target.value })} style={inp} placeholder="e.g. Crossover Dribble" />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CATEGORY *</label>
+                <input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} style={inp} placeholder="e.g. Ball Handling" list="cat-suggestions" />
+                <datalist id="cat-suggestions">
+                  {existingCategories.map(c => <option key={c} value={c} />)}
+                </datalist>
+              </div>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL</label>
+              <input value={libForm.video_url} onChange={e => setLibForm({ ...libForm, video_url: e.target.value })} style={inp} placeholder="https://youtube.com/watch?v=..." />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT SETS</label>
+                <input type="number" min="1" value={libForm.default_sets} onChange={e => setLibForm({ ...libForm, default_sets: parseInt(e.target.value) || 1 })} style={sinp} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT REPS</label>
+                <input type="number" min="1" value={libForm.default_reps} onChange={e => setLibForm({ ...libForm, default_reps: parseInt(e.target.value) || 1 })} style={sinp} />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT REST (sec)</label>
+                <input type="number" min="0" value={libForm.default_rest_seconds} onChange={e => setLibForm({ ...libForm, default_rest_seconds: parseInt(e.target.value) || 0 })} style={sinp} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
+              <textarea value={libForm.instructions} onChange={e => setLibForm({ ...libForm, instructions: e.target.value })} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="How to perform this exercise..." />
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={saveLibItem} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
+              <button onClick={() => { setLibEditing(null); setLibNew(false); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button>
+            </div>
+          </div>
+        )}
+
+        {/* Library List */}
+        {libLoading ? <p style={{ color: "#555", padding: 20, textAlign: "center" }}>Loading...</p> :
+         Object.keys(libGrouped).length === 0 ? (
+          <div style={{ textAlign: "center", padding: 40, color: "#555" }}>
+            <p style={{ fontSize: 36, marginBottom: 10 }}>📚</p>
+            <p style={{ fontSize: 14 }}>{libSearch ? "No exercises match your search." : "Your exercise library is empty."}</p>
+            <p style={{ fontSize: 12, marginTop: 4, color: "#444" }}>Add your first exercise above!</p>
+          </div>
+        ) : Object.entries(libGrouped).map(([category, exercises]) => (
+          <div key={category} style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 4, height: 20, borderRadius: 2, background: "#FF6D00" }} />
+              <p style={{ fontFamily: F, fontSize: 14, color: "#FF6D00", letterSpacing: 2, fontWeight: 600 }}>{category.toUpperCase()}</p>
+              <span style={{ fontSize: 11, color: "#555" }}>{exercises.length}</span>
+            </div>
+            {exercises.map(ex => (
+              <div key={ex.id} style={{ background: "#141414", borderRadius: 10, padding: "14px 16px", marginBottom: 6, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 500 }}>{ex.name}</p>
+                  <p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{ex.default_sets}×{ex.default_reps} · {ex.default_rest_seconds}s rest {ex.video_url ? "· 🎬" : ""}</p>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => startEditLib(ex)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button>
+                  <button onClick={() => deleteLibItem(ex.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </>}
+
+      {/* ========== STUDENTS TAB ========== */}
       {tab === "students" && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MANAGE STUDENTS</h2>
           <button onClick={() => setShowAdd(!showAdd)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD STUDENT</button>
         </div>
-
         {showAdd && (
           <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222", marginBottom: 18 }}>
             <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>NEW STUDENT</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               {[["NAME", "name", "Player name"], ["EMAIL", "email", "email@example.com"], ["PASSWORD", "password", "Temp password"]].map(([l, k, ph]) => (
-                <div key={k}>
-                  <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label>
-                  <input value={ns[k]} onChange={e => setNs({ ...ns, [k]: e.target.value })} style={inp} placeholder={ph} />
-                </div>
+                <div key={k}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label><input value={ns[k]} onChange={e => setNs({ ...ns, [k]: e.target.value })} style={inp} placeholder={ph} /></div>
               ))}
-              <div>
-                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>STARTING BELT</label>
-                <select value={ns.beltId} onChange={e => setNs({ ...ns, beltId: e.target.value })} style={{ ...inp, cursor: "pointer" }}>
-                  {BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
+              <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>STARTING BELT</label><select value={ns.beltId} onChange={e => setNs({ ...ns, beltId: e.target.value })} style={{ ...inp, cursor: "pointer" }}>{BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={addStudent} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
@@ -713,17 +782,13 @@ function Admin({ token, onLogout }) {
             </div>
           </div>
         )}
-
         {students.map(s => {
           const sb = BELT_LEVELS.find(b => b.id === s.belt_id);
           return (
             <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: `${sb.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: `2px solid ${sb.color}` }}>🏀</div>
-                <div>
-                  <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{s.full_name}</p>
-                  <p style={{ fontSize: 11, color: "#555" }}>{s.email}</p>
-                </div>
+                <div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{s.full_name}</p><p style={{ fontSize: 11, color: "#555" }}>{s.email}</p></div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, background: `${sb.color}18`, padding: "4px 12px", borderRadius: 20, border: `1px solid ${sb.color}33` }}>
@@ -736,7 +801,7 @@ function Admin({ token, onLogout }) {
             </div>
           );
         })}
-        {students.length === 0 && !loading && <div style={{ textAlign: "center", padding: 36, color: "#555" }}><p style={{ fontSize: 28, marginBottom: 8 }}>👥</p><p>No students yet.</p></div>}
+        {students.length === 0 && <div style={{ textAlign: "center", padding: 36, color: "#555" }}><p style={{ fontSize: 28, marginBottom: 8 }}>👥</p><p>No students yet.</p></div>}
       </>}
     </div>
   );
@@ -746,73 +811,42 @@ function Admin({ token, onLogout }) {
 // MAIN APP
 // ============================================================
 export default function LevelUpBallApp() {
-  const [session, setSession] = useState(null); // { access_token, user }
+  const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [workoutsData, setWorkoutsData] = useState([]);
   const [completedIds, setCompletedIds] = useState(new Set());
   const [activeW, setActiveW] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const token = session?.access_token;
 
-  // After login, load profile
   const handleLogin = async (data) => {
-    setSession(data);
-    setLoading(true);
+    setSession(data); setLoading(true);
     try {
       const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
-      if (profiles.length > 0) {
-        setProfile(profiles[0]);
-        if (profiles[0].role === "student") {
-          await loadStudentData(data.access_token, profiles[0]);
-        }
-      }
-    } catch (e) { console.error("Profile load error:", e); }
+      if (profiles.length > 0) { setProfile(profiles[0]); if (profiles[0].role === "student") await loadStudentData(data.access_token, profiles[0]); }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const loadStudentData = async (tok, prof) => {
     try {
-      // Load workouts for student's belt
       const wks = await supabase.from("workouts")._token(tok).select("*", `&belt_id=eq.${prof.belt_id}&order=sort_order`);
       const full = [];
-      for (const w of wks) {
-        const cats = await supabase.from("categories")._token(tok).select("*", `&workout_id=eq.${w.id}&order=sort_order`);
-        for (const c of cats) {
-          c.exercises = await supabase.from("exercises")._token(tok).select("*", `&category_id=eq.${c.id}&order=sort_order`);
-        }
-        w.cats = cats;
-        full.push(w);
-      }
+      for (const w of wks) { const cats = await supabase.from("categories")._token(tok).select("*", `&workout_id=eq.${w.id}&order=sort_order`); for (const c of cats) { c.exercises = await supabase.from("exercises")._token(tok).select("*", `&category_id=eq.${c.id}&order=sort_order`); } w.cats = cats; full.push(w); }
       setWorkoutsData(full);
-
-      // Load completions
       const comps = await supabase.from("completed_exercises")._token(tok).select("exercise_id", `&student_id=eq.${prof.id}`);
       setCompletedIds(new Set(comps.map(c => c.exercise_id)));
-    } catch (e) { console.error("Student data load error:", e); }
+    } catch (e) { console.error(e); }
   };
 
   const toggleComplete = async (exerciseId) => {
     if (!token || !profile) return;
     const newSet = new Set(completedIds);
-    if (newSet.has(exerciseId)) {
-      newSet.delete(exerciseId);
-      setCompletedIds(newSet);
-      try { await supabase.from("completed_exercises")._token(token).delete({ student_id: profile.id, exercise_id: exerciseId }); } catch (e) { console.error(e); }
-    } else {
-      newSet.add(exerciseId);
-      setCompletedIds(newSet);
-      try { await supabase.from("completed_exercises")._token(token).insert({ student_id: profile.id, exercise_id: exerciseId }); } catch (e) { console.error(e); }
-    }
+    if (newSet.has(exerciseId)) { newSet.delete(exerciseId); setCompletedIds(newSet); try { await supabase.from("completed_exercises")._token(token).delete({ student_id: profile.id, exercise_id: exerciseId }); } catch (e) { console.error(e); } }
+    else { newSet.add(exerciseId); setCompletedIds(newSet); try { await supabase.from("completed_exercises")._token(token).insert({ student_id: profile.id, exercise_id: exerciseId }); } catch (e) { console.error(e); } }
   };
 
-  const logout = () => {
-    setSession(null);
-    setProfile(null);
-    setWorkoutsData([]);
-    setCompletedIds(new Set());
-    setActiveW(null);
-  };
+  const logout = () => { setSession(null); setProfile(null); setWorkoutsData([]); setCompletedIds(new Set()); setActiveW(null); };
 
   const fontLink = "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap";
   const belt = profile ? BELT_LEVELS.find(b => b.id === profile.belt_id) : null;
@@ -823,20 +857,10 @@ export default function LevelUpBallApp() {
     <div style={{ fontFamily: "'Source Sans 3', sans-serif", minHeight: "100vh", background: "#0a0a0a" }}>
       <link href={fontLink} rel="stylesheet" />
       <style>{`* { margin: 0; padding: 0; box-sizing: border-box; } body { background: #0a0a0a; } input::placeholder, textarea::placeholder { color: #444; } ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0a0a0a; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-
       {!session && <Login onLogin={handleLogin} />}
-
-      {session && profile?.role === "admin" && (
-        <><Header admin onLogout={logout} /><Admin token={token} onLogout={logout} /></>
-      )}
-
-      {session && profile?.role === "student" && !activeW && (
-        <><Header belt={belt} onLogout={logout} /><Dashboard profile={profile} workoutsData={workoutsData} onSelect={setActiveW} onLogout={logout} completedIds={completedIds} token={token} /></>
-      )}
-
-      {session && profile?.role === "student" && activeW && (
-        <><Header belt={belt} onLogout={logout} /><WorkoutView workout={activeW} onBack={() => setActiveW(null)} completedIds={completedIds} onToggle={toggleComplete} token={token} /></>
-      )}
+      {session && profile?.role === "admin" && <><Header admin onLogout={logout} /><Admin token={token} /></>}
+      {session && profile?.role === "student" && !activeW && <><Header belt={belt} onLogout={logout} /><Dashboard profile={profile} workoutsData={workoutsData} onSelect={setActiveW} completedIds={completedIds} /></>}
+      {session && profile?.role === "student" && activeW && <><Header belt={belt} onLogout={logout} /><WorkoutView workout={activeW} onBack={() => setActiveW(null)} completedIds={completedIds} onToggle={toggleComplete} /></>}
     </div>
   );
 }
