@@ -351,6 +351,15 @@ function Dashboard({ profile, workoutsData, onSelect, completedIds, token }) {
         <h1 style={{ fontFamily: F, fontSize: 28, color: "#fff", fontWeight: 700, letterSpacing: 1 }}>What's up, {profile.full_name.split(" ")[0]}! 👊</h1>
         <p style={{ color: "#666", fontSize: 14, marginTop: 4 }}>{dayNames[today.getDay()]} — Let's get to work.</p>
       </div>
+
+      {/* Player Tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
+        {[["workouts", "🏀 WORKOUTS"], ["challenges", "🏆 CHALLENGE"], ["resources", "📖 RESOURCES"]].map(([id, label]) => (
+          <button key={id} onClick={() => setPlayerTab(id)} style={{ background: "none", border: "none", borderBottom: playerTab === id ? "2px solid #FF6D00" : "2px solid transparent", padding: "10px 16px", color: playerTab === id ? "#FF6D00" : "#666", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{label}</button>
+        ))}
+      </div>
+
+      {playerTab === "workouts" && <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 28 }}>
         <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222" }}>
           <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2, marginBottom: 10 }}>CURRENT BELT</p>
@@ -426,6 +435,10 @@ function Dashboard({ profile, workoutsData, onSelect, completedIds, token }) {
           })}
         </div>
       )}
+      </>}
+
+      {playerTab === "challenges" && <StudentChallenges token={token} studentName={profile.full_name} />}
+      {playerTab === "resources" && <StudentResources token={token} />}
     </div>
   );
 }
