@@ -365,19 +365,19 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: xpUnlocked ? C.successGlow : C.accentGlow, filter: "blur(30px)" }} />
           <div style={{ position: "relative" }}>
-            <p style={{ fontSize: 12, fontWeight: 500, color: C.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>XP to Level Up</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>XP to Level Up Submission</p>
             {xpUnlocked ? (
               <div><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.success, lineHeight: 1.2 }}>UNLOCKED! 🔥</p><p style={{ fontSize: 11, color: C.success, marginTop: 4 }}>You can now apply to level up</p></div>
             ) : (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
-                  <p style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{currentXp}<span style={{ fontSize: 14, color: C.textDim }}>/{xpGoal} XP</span></p>
-                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{xpGoal - currentXp} XP until Level Up</p>
+                  <p style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, lineHeight: 1, color: "#22C55E" }}>{currentXp}<span style={{ fontSize: 14, color: "#22C55E" }}>/{xpGoal} XP</span></p>
+                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}><span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal - currentXp} XP</span> until Level Up Submission</p>
                 </div>
-                <ProgressRing percent={xpPct} size={52} color={xpPct >= 100 ? C.success : C.accent} />
+                <ProgressRing percent={xpPct} size={52} color="#22C55E" />
               </div>
             )}
-            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 14 }}><div style={{ height: "100%", width: `${xpPct}%`, background: xpUnlocked ? `linear-gradient(90deg, ${C.success}, #4ADE80)` : `linear-gradient(90deg, ${C.accent}, ${C.accentLight})`, borderRadius: 3, transition: "width 0.8s" }} /></div>
+            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 14 }}><div style={{ height: "100%", width: `${xpPct}%`, background: `linear-gradient(90deg, #22C55E, #4ADE80)`, borderRadius: 3, transition: "width 0.8s" }} /></div>
             <p style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>{wDone} workouts completed · {xpPerWorkout} XP each</p>
           </div>
         </div>
@@ -395,7 +395,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
           <p style={{ fontSize: 12, fontWeight: 500, color: C.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Workouts</p>
           <p style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{wDone}<span style={{ fontSize: 16, color: C.textDim }}>/{bw.length}</span></p>
-          <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>+{currentXp} XP earned</p>
+          <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>+<span style={{ color: "#22C55E", fontWeight: 700 }}>{currentXp} XP</span> earned</p>
         </div>
       </div>
 
@@ -684,11 +684,11 @@ function StudentChallenges({ token, profile }) {
 // ============================================================
 // RESOURCES — #2 with video support
 // ============================================================
-function StudentResources({ token }) {
+function StudentResources({ token, profile }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
-  useEffect(() => { (async () => { try { setArticles(await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc")); } catch(e){} setLoading(false); })(); }, [token]);
+  useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); setArticles(allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id)); } catch(e){} setLoading(false); })(); }, [token]);
   if (loading) return <div style={{ textAlign: "center", padding: 40, color: C.textDim }}>Loading...</div>;
   return (
     <div className="fade-in">
@@ -958,7 +958,7 @@ function Admin({ token }) {
   const [libLoading, setLibLoading] = useState(true);
   const [libEditing, setLibEditing] = useState(null);
   const [libNew, setLibNew] = useState(false);
-  const [libForm, setLibForm] = useState({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
+  const [libForm, setLibForm] = useState({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "" });
   const [libSearch, setLibSearch] = useState("");
   // Library search modal for workout editor
   const [showLibSearch, setShowLibSearch] = useState(null);
@@ -966,7 +966,7 @@ function Admin({ token }) {
   const [articles, setArticles] = useState([]);
   const [artEditing, setArtEditing] = useState(null);
   const [artNew, setArtNew] = useState(false);
-  const [artForm, setArtForm] = useState({ title: "", content: "", video_url: "", published: true });
+  const [artForm, setArtForm] = useState({ title: "", content: "", video_url: "", belt_id: "all", published: true });
   // Challenges
   const [challenges, setChallenges] = useState([]);
   const [chalEditing, setChalEditing] = useState(null);
@@ -1094,7 +1094,7 @@ function Admin({ token }) {
         flash("Exercise added to library!");
       }
       setLibEditing(null); setLibNew(false);
-      setLibForm({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
+      setLibForm({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "" });
       await loadLibrary();
     } catch (e) { flash("Error: " + e.message); }
     setSaving(false);
@@ -1109,7 +1109,7 @@ function Admin({ token }) {
 
   const startNewLib = () => {
     setLibNew(true); setLibEditing(null);
-    setLibForm({ name: "", category: "", video_url: "", default_sets: 3, default_reps: 10, default_rest_seconds: 30, instructions: "" });
+    setLibForm({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "" });
   };
 
   // Library grouped + filtered
@@ -1120,13 +1120,14 @@ function Admin({ token }) {
 
 
   // Articles CRUD
-  const saveArticle = async () => { if(!artForm.title){ flash("Title required."); return; } setSaving(true); try { if(artEditing){ await supabase.from("articles")._token(token).update(artForm, { id: artEditing.id }); } else { await supabase.from("articles")._token(token).insert({ ...artForm, sort_order: articles.length }); } setArtEditing(null); setArtNew(false); setArtForm({ title: "", content: "", video_url: "", published: true }); await loadArticles(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+  const saveArticle = async () => { if(!artForm.title){ flash("Title required."); return; } setSaving(true); try { if(artEditing){ await supabase.from("articles")._token(token).update(artForm, { id: artEditing.id }); } else { await supabase.from("articles")._token(token).insert({ ...artForm, sort_order: articles.length }); } setArtEditing(null); setArtNew(false); setArtForm({ title: "", content: "", video_url: "", belt_id: "all", published: true }); await loadArticles(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
   const deleteArticle = async (id) => { setSaving(true); try { await supabase.from("articles")._token(token).delete({ id }); await loadArticles(); flash("Removed."); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
-  const startEditArt = (a) => { setArtEditing(a); setArtNew(false); setArtForm({ title: a.title, content: a.content, video_url: a.video_url || "", published: a.published }); };
-  const startNewArt = () => { setArtNew(true); setArtEditing(null); setArtForm({ title: "", content: "", video_url: "", published: true }); };
+  const startEditArt = (a) => { setArtEditing(a); setArtNew(false); setArtForm({ title: a.title, content: a.content, video_url: a.video_url || "", belt_id: a.belt_id || "all", published: a.published }); };
+  const startNewArt = () => { setArtNew(true); setArtEditing(null); setArtForm({ title: "", content: "", video_url: "", belt_id: "all", published: true }); };
 
   // Challenges CRUD
-  const saveChallenge = async () => { if(!chalForm.title){ flash("Title required."); return; } setSaving(true); try { if(chalForm.active){ try { await supabase.from("challenges")._token(token).update({ active: false }, { active: true }); } catch(e){} } if(chalEditing){ await supabase.from("challenges")._token(token).update(chalForm, { id: chalEditing.id }); } else { await supabase.from("challenges")._token(token).insert(chalForm); } setChalEditing(null); setChalNew(false); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); await loadChallenges(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+  const saveChallenge = async () => { if(!chalForm.title){ flash("Title required."); return; } setSaving(true); try { if(chalForm.active){ try { await supabase.from("challenges")._token(token).update({ active: false }, { active: true }); } catch(e){} } const cleanForm = { ...chalForm, deadline: chalForm.deadline || null };
+    if(chalEditing){ await supabase.from("challenges")._token(token).update(cleanForm, { id: chalEditing.id }); } else { await supabase.from("challenges")._token(token).insert(cleanForm); } setChalEditing(null); setChalNew(false); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); await loadChallenges(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
   const deleteChallenge = async (id) => { setSaving(true); try { await supabase.from("challenges")._token(token).delete({ id }); await loadChallenges(); flash("Removed."); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
   const startEditChal = (c) => { setChalEditing(c); setChalNew(false); setChalForm({ title: c.title, description: c.description||"", video_url: c.video_url||"", submission_email: c.submission_email||SUBMISSION_EMAIL, deadline: c.deadline||"", active: c.active }); };
   const startNewChal = () => { setChalNew(true); setChalEditing(null); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); };
@@ -1208,11 +1209,8 @@ function Admin({ token }) {
                   <div>
                     <div style={{ display: "flex", gap: 12, marginBottom: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => saveExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Exercise</label>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer" }}><input type="checkbox" checked={!!ex.superset_group} onChange={e => saveExercise(ex.id, "superset_group", e.target.checked ? "A" : "")} style={{ width: 16, height: 16 }} /> Superset</label>
-                      {ex.superset_group && <>
-                        <div style={{ width: 60 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>GROUP</label><input defaultValue={ex.superset_group} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} placeholder="A" /></div>
-                        <div style={{ width: 70 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>ROUNDS</label><input type="number" defaultValue={ex.superset_rounds || 1} onBlur={e => saveExercise(ex.id, "superset_rounds", parseInt(e.target.value) || 1)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} min="1" /></div>
-                      </>}
+                      <div style={{ width: 70 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUPERSET</label><input defaultValue={ex.superset_group || ""} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} placeholder="A" /></div>
+                      <div style={{ width: 70 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SS RNDS</label><input type="number" defaultValue={ex.superset_rounds || 1} onBlur={e => saveExercise(ex.id, "superset_rounds", parseInt(e.target.value) || 1)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} min="1" /></div>
                     </div>
                     <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
                     <textarea defaultValue={ex.instructions} onBlur={e => saveExercise(ex.id, "instructions", e.target.value)} onChange={e => debouncedSave(`einst-${ex.id}`, () => saveExercise(ex.id, "instructions", e.target.value))} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="Simple instructions..." />
@@ -1328,6 +1326,7 @@ function Admin({ token }) {
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={artForm.title} onChange={e=>setArtForm({...artForm,title:e.target.value})} style={inp} placeholder="Article title..." /></div>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label><textarea value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." /></div>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (optional)</label><input value={artForm.video_url} onChange={e=>setArtForm({...artForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/watch?v=..." /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>BELT LEVEL</label><select value={artForm.belt_id} onChange={e=>setArtForm({...artForm,belt_id:e.target.value})} style={{ ...inp, cursor: "pointer" }}><option value="all">All Belts</option>{BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
             <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>PUBLISHED</label><input type="checkbox" checked={artForm.published} onChange={e=>setArtForm({...artForm,published:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /></div>
             <div style={{ display: "flex", gap: 6 }}><button onClick={saveArticle} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setArtEditing(null);setArtNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
           </div>
@@ -1560,7 +1559,7 @@ function StudentLayout({ profile, token, onLogout }) {
           ) : activeTab === "challenges" ? (
             <StudentChallenges token={token} profile={profile} />
           ) : activeTab === "resources" ? (
-            <StudentResources token={token} />
+            <StudentResources token={token} profile={profile} />
           ) : activeTab === "levelup" ? (
             <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} />
           ) : activeTab === "messages" ? (
