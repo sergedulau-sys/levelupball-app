@@ -210,6 +210,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout }) {
     { id: "workouts", icon: "🏀", label: "Workouts" },
     { id: "challenges", icon: "🏆", label: "Challenge" },
     { id: "resources", icon: "📖", label: "Resources" },
+    { id: "messages", icon: "💬", label: "Messages" },
   ];
   return (
     <>
@@ -708,6 +709,135 @@ function AdminSubmissions({ token }) {
   });
 }
 
+
+// ============================================================
+// ADMIN: MESSAGES
+// ============================================================
+function AdminMessages({ token }) {
+  const [students, setStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [newMsg, setNewMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const studs = await supabase.from("profiles")._token(token).select("id,full_name,belt_id", "&role=eq.student&order=full_name");
+        setStudents(studs);
+        // Get unread counts
+        const allMsgs = await supabase.from("messages")._token(token).select("student_id,read,sender_role", "&sender_role=eq.student&read=eq.false");
+        const counts = {};
+        allMsgs.forEach(m => { counts[m.student_id] = (counts[m.student_id] || 0) + 1; });
+        setUnreadCounts(counts);
+      } catch(e) { console.error(e); }
+      setLoading(false);
+    })();
+  }, [token]);
+
+  const selectStudent = async (student) => {
+    setSelectedStudent(student);
+    try {
+      const msgs = await supabase.from("messages")._token(token).select("*", `&student_id=eq.${student.id}&order=created_at`);
+      setMessages(msgs);
+      // Mark student messages as read
+      await supabase.from("messages")._token(token).update({ read: true }, { student_id: student.id, sender_role: "student", read: false });
+      setUnreadCounts(prev => ({ ...prev, [student.id]: 0 }));
+    } catch(e) { console.error(e); }
+  };
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // Auto refresh messages
+  useEffect(() => {
+    if (!selectedStudent) return;
+    const interval = setInterval(async () => {
+      try {
+        const msgs = await supabase.from("messages")._token(token).select("*", `&student_id=eq.${selectedStudent.id}&order=created_at`);
+        setMessages(msgs);
+      } catch(e) {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedStudent, token]);
+
+  const send = async () => {
+    if (!newMsg.trim() || !selectedStudent) return;
+    setSending(true);
+    try {
+      await supabase.from("messages")._token(token).insert({ student_id: selectedStudent.id, sender_role: "admin", content: newMsg.trim(), read: true });
+      setNewMsg("");
+      const msgs = await supabase.from("messages")._token(token).select("*", `&student_id=eq.${selectedStudent.id}&order=created_at`);
+      setMessages(msgs);
+    } catch(e) { console.error(e); }
+    setSending(false);
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading...</div>;
+
+  const totalUnread = Object.values(unreadCounts).reduce((s, n) => s + n, 0);
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+        <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MESSAGES {totalUnread > 0 && <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8, fontWeight: 700 }}>{totalUnread} new</span>}</h2>
+      </div>
+
+      <div style={{ display: "flex", gap: 14, minHeight: 500 }}>
+        {/* Student list */}
+        <div style={{ width: 220, flexShrink: 0, background: "#141414", borderRadius: 14, border: "1px solid #222", overflow: "hidden" }}>
+          <div style={{ padding: "12px 14px", borderBottom: "1px solid #222" }}>
+            <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2 }}>STUDENTS</p>
+          </div>
+          <div style={{ overflowY: "auto", maxHeight: 450 }}>
+            {students.map(s => {
+              const unread = unreadCounts[s.id] || 0;
+              const isActive = selectedStudent?.id === s.id;
+              return (
+                <button key={s.id} onClick={() => selectStudent(s)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "none", borderBottom: "1px solid #1a1a1a", background: isActive ? "#222" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: FONTS }}>
+                  <span style={{ fontSize: 13, color: isActive ? "#fff" : "#aaa", fontWeight: unread > 0 ? 700 : 400 }}>{s.full_name}</span>
+                  {unread > 0 && <span style={{ background: "#EF4444", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 8, minWidth: 18, textAlign: "center" }}>{unread}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Chat area */}
+        <div style={{ flex: 1, background: "#141414", borderRadius: 14, border: "1px solid #222", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {!selectedStudent ? (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}><div style={{ textAlign: "center" }}><div style={{ fontSize: 32, marginBottom: 8 }}>💬</div><p>Select a student to chat</p></div></div>
+          ) : (
+            <>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 600 }}>{selectedStudent.full_name}</span>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+                {messages.length === 0 && <div style={{ textAlign: "center", padding: 24, color: "#555" }}><p style={{ fontSize: 13 }}>No messages yet</p></div>}
+                {messages.map(m => (
+                  <div key={m.id} style={{ display: "flex", justifyContent: m.sender_role === "admin" ? "flex-end" : "flex-start", marginBottom: 8 }}>
+                    <div style={{ maxWidth: "75%", padding: "10px 14px", borderRadius: m.sender_role === "admin" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.sender_role === "admin" ? "#FF6D00" : "#0a0a0a", border: m.sender_role === "admin" ? "none" : "1px solid #222" }}>
+                      <p style={{ fontSize: 13, color: "#fff", lineHeight: 1.5 }}>{m.content}</p>
+                      <p style={{ fontSize: 10, color: m.sender_role === "admin" ? "rgba(255,255,255,0.5)" : "#555", marginTop: 4, textAlign: "right" }}>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={bottomRef} />
+              </div>
+              <div style={{ padding: "10px 14px", borderTop: "1px solid #222", display: "flex", gap: 8 }}>
+                <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type a reply..." style={{ flex: 1, background: "#0a0a0a", border: "1px solid #333", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONTS }} />
+                <button onClick={send} disabled={!newMsg.trim() || sending} style={{ background: "#FF6D00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 12, fontWeight: 600, cursor: newMsg.trim() ? "pointer" : "default", fontFamily: F, opacity: newMsg.trim() ? 1 : 0.5 }}>Send</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Admin({ token }) {
   const [tab, setTab] = useState("workouts");
   const [belt, setBelt] = useState("white");
@@ -905,7 +1035,7 @@ function Admin({ token }) {
 
       {/* TABS */}
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
-        {["workouts", "library", "articles", "challenges", "students"].map(t => (
+        {["workouts", "library", "articles", "challenges", "students", "messages"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#FF6D00" : "#666", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
         ))}
       </div>
@@ -1113,6 +1243,9 @@ function Admin({ token }) {
       </>}
 
       {/* ========== STUDENTS TAB ========== */}
+      {/* ===== MESSAGES TAB ===== */}
+      {tab === "messages" && <AdminMessages token={token} />}
+
       {tab === "students" && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MANAGE STUDENTS</h2>
@@ -1161,6 +1294,67 @@ function Admin({ token }) {
 
 // ============================================================
 // MAIN APP
+
+
+// ============================================================
+// STUDENT: MESSAGES
+// ============================================================
+function StudentMessages({ token, profile }) {
+  const [messages, setMessages] = useState([]);
+  const [newMsg, setNewMsg] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
+
+  const loadMessages = useCallback(async () => {
+    try {
+      const msgs = await supabase.from("messages")._token(token).select("*", `&student_id=eq.${profile.id}&order=created_at`);
+      setMessages(msgs);
+    } catch(e) { console.error(e); }
+    setLoading(false);
+  }, [token, profile.id]);
+
+  useEffect(() => { loadMessages(); const interval = setInterval(loadMessages, 5000); return () => clearInterval(interval); }, [loadMessages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const send = async () => {
+    if (!newMsg.trim()) return;
+    setSending(true);
+    try {
+      await supabase.from("messages")._token(token).insert({ student_id: profile.id, sender_role: "student", content: newMsg.trim() });
+      setNewMsg("");
+      await loadMessages();
+    } catch(e) { console.error(e); }
+    setSending(false);
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: C.textDim }}>Loading...</div>;
+
+  return (
+    <div className="fade-in" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 100px)" }}>
+      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 16 }}>Messages</h1>
+      <p style={{ fontSize: 13, color: C.textDim, marginBottom: 20 }}>Chat with your coach</p>
+
+      <div style={{ flex: 1, overflowY: "auto", background: C.surface, borderRadius: 16, border: `1px solid ${C.border}`, padding: 16, marginBottom: 14 }}>
+        {messages.length === 0 && <div style={{ textAlign: "center", padding: 32, color: C.textDim }}><div style={{ fontSize: 32, marginBottom: 8 }}>💬</div><p>No messages yet. Say hi to your coach!</p></div>}
+        {messages.map(m => (
+          <div key={m.id} style={{ display: "flex", justifyContent: m.sender_role === "student" ? "flex-end" : "flex-start", marginBottom: 8 }}>
+            <div style={{ maxWidth: "75%", padding: "10px 14px", borderRadius: m.sender_role === "student" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.sender_role === "student" ? C.accent : C.bg, border: m.sender_role === "student" ? "none" : `1px solid ${C.border}`, color: m.sender_role === "student" ? "#fff" : C.text }}>
+              <p style={{ fontSize: 13, lineHeight: 1.5 }}>{m.content}</p>
+              <p style={{ fontSize: 10, color: m.sender_role === "student" ? "rgba(255,255,255,0.5)" : C.textDim, marginTop: 4, textAlign: "right" }}>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type a message..." style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 16px", color: C.text, fontSize: 14, outline: "none", fontFamily: FONTS }} />
+        <button onClick={send} disabled={!newMsg.trim() || sending} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 12, padding: "12px 20px", fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, cursor: newMsg.trim() ? "pointer" : "default", opacity: newMsg.trim() ? 1 : 0.5 }}>Send</button>
+      </div>
+    </div>
+  );
+}
 
 // ============================================================
 // STUDENT LAYOUT
@@ -1239,6 +1433,8 @@ function StudentLayout({ profile, token, onLogout }) {
             <StudentChallenges token={token} profile={profile} />
           ) : activeTab === "resources" ? (
             <StudentResources token={token} />
+          ) : activeTab === "messages" ? (
+            <StudentMessages token={token} profile={profile} />
           ) : null}
         </main>
       </div>
