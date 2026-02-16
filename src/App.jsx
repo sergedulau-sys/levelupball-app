@@ -1370,17 +1370,28 @@ function StudentLayout({ profile, token, onLogout }) {
 
   useEffect(() => {
     (async () => {
+      // Load workouts separately so one failure doesn't block all
       try {
         const wks = await supabase.from("workouts")._token(token).select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`);
-        for (const w of wks) { w.cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`); for (const c of w.cats) { c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`); } }
+        console.log("Workouts loaded:", wks.length, "for belt:", profile.belt_id);
+        for (const w of wks) {
+          w.cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`);
+          for (const c of w.cats) { c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`); }
+        }
         setWorkoutsData(wks);
+      } catch (e) { console.error("Error loading workouts:", e); }
+      try {
         const comps = await supabase.from("completed_exercises")._token(token).select("exercise_id", `&student_id=eq.${profile.id}`);
         setCompletedIds(new Set(comps.map(c => c.exercise_id)));
+      } catch (e) { console.error("Error loading completed exercises:", e); }
+      try {
         const wComps = await supabase.from("completed_workouts")._token(token).select("workout_id", `&student_id=eq.${profile.id}`);
         setCompletedWorkoutIds(new Set(wComps.map(c => c.workout_id)));
+      } catch (e) { console.error("Error loading completed workouts:", e); }
+      try {
         const cResults = await supabase.from("challenge_results")._token(token).select("*", `&student_id=eq.${profile.id}`);
         setChallengeResults(cResults);
-      } catch (e) { console.error(e); }
+      } catch (e) { console.error("Error loading challenge results:", e); }
       setLoaded(true);
     })();
   }, [token, profile]);
