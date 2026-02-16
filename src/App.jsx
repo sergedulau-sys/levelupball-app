@@ -58,7 +58,7 @@ const supabase = {
 // DESIGN SYSTEM — #1 updated belts, #8 branding
 // ============================================================
 const BELT_LEVELS = [
-  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#D4D4D4", level: 1, weeks: 3, workoutsNeeded: 9 },
+  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, weeks: 3, workoutsNeeded: 9 },
   { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, weeks: 4, workoutsNeeded: 12 },
   { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, weeks: 5, workoutsNeeded: 15 },
   { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, weeks: 6, workoutsNeeded: 18 },
@@ -66,14 +66,49 @@ const BELT_LEVELS = [
 ];
 
 const C = {
-  bg: "#FAFAFA", surface: "#FFFFFF", surfaceHover: "#F5F5F5", border: "#E5E5E5", borderLight: "#D4D4D4",
-  text: "#171717", textMuted: "#525252", textDim: "#A3A3A3",
-  accent: "#EA580C", accentLight: "#F97316", accentGlow: "rgba(234,88,12,0.08)",
-  success: "#16A34A", successGlow: "rgba(22,163,74,0.08)", danger: "#DC2626",
-  challenge: "#CA8A04", challengeGlow: "rgba(202,138,4,0.06)",
+  bg: "#09090b", surface: "#18181b", surfaceHover: "#27272a", border: "#27272a", borderLight: "#3f3f46",
+  text: "#fafafa", textMuted: "#a1a1aa", textDim: "#71717a",
+  accent: "#F97316", accentLight: "#FB923C", accentGlow: "rgba(249,115,22,0.15)",
+  success: "#22C55E", successGlow: "rgba(34,197,94,0.15)", danger: "#EF4444",
+  challenge: "#FACC15", challengeGlow: "rgba(250,204,21,0.12)",
 };
 
 const FONTS = `'DM Sans', sans-serif`;
+const LOGO_SM = "data:image/png;base64,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";
+const LOGO_LG = "data:image/png;base64,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";
+const QUOTES = [
+  ["Don\'t stop when you\'re tired. Stop when you\'re done.", "David Goggins"],
+  ["Discipline equals freedom.", "Jocko Willink"],
+  ["You don\'t rise to the level of your goals. You fall to the level of your systems.", "James Clear"],
+  ["Be uncommon amongst uncommon people.", "David Goggins"],
+  ["The more you sweat in training, the less you bleed in combat.", "Jocko Willink"],
+  ["Hard work beats talent when talent doesn\'t work hard.", "Tim Notke"],
+  ["The only easy day was yesterday.", "Navy SEALs"],
+  ["Get comfortable being uncomfortable.", "David Goggins"],
+  ["Default aggressive.", "Jocko Willink"],
+  ["Suffer the pain of discipline or suffer the pain of regret.", "Jim Rohn"],
+  ["Stay hard.", "David Goggins"],
+  ["Good. Now go do something about it.", "Jocko Willink"],
+  ["The body achieves what the mind believes.", "Napoleon Hill"],
+  ["You are in danger of living a life so comfortable and soft that you will die without ever realizing your potential.", "David Goggins"],
+  ["Don\'t expect to be motivated every day. You have to be driven.", "David Goggins"],
+  ["The test is not a test. It is a training day.", "Jocko Willink"],
+  ["Mental toughness is a lifestyle.", "David Goggins"],
+  ["Hesitation is the enemy.", "Jocko Willink"],
+  ["We are all great. No matter if you think you\'re dumb, unfit, or not creative, there\'s genius in all of us.", "David Goggins"],
+  ["Leaders are not born. They are made.", "Jocko Willink"],
+  ["Ball don\'t lie. Put in the work.", "LevelUpBall"],
+  ["Champions are built in the offseason.", "LevelUpBall"],
+  ["Every rep counts. Every drill matters.", "LevelUpBall"],
+  ["Your competition is practicing right now.", "LevelUpBall"],
+  ["The court rewards those who prepare.", "LevelUpBall"],
+  ["No shortcuts. Just reps.", "LevelUpBall"],
+  ["Skills don\'t come from watching. They come from doing.", "LevelUpBall"],
+  ["Trust the process. Earn the belt.", "LevelUpBall"],
+  ["Today\'s sweat is tomorrow\'s highlight reel.", "LevelUpBall"],
+  ["Level up or get left behind.", "LevelUpBall"],
+];
+function getDailyQuote() { const d = new Date(); const idx = (d.getFullYear() * 366 + d.getMonth() * 31 + d.getDate()) % QUOTES.length; return QUOTES[idx]; }
 const DISPLAY = `'Bricolage Grotesque', sans-serif`;
 const F = DISPLAY; // alias for admin
 
@@ -94,7 +129,6 @@ const GLOBAL_CSS = `
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: ${C.bg}; font-family: ${FONTS}; color: ${C.text}; -webkit-font-smoothing: antialiased; }
 input::placeholder, textarea::placeholder { color: ${C.textDim}; }
-input, textarea, select { background: #fff; }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 10px; }
@@ -144,8 +178,8 @@ function BeltIcon({ beltId, size = 40 }) {
       <svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24" fill="none">
         <rect x="2" y="8" width="20" height="8" rx="2" fill={belt.color} opacity="0.3" />
         <rect x="2" y="9" width="20" height="6" rx="1.5" fill={belt.color} />
-        <rect x="9" y="7" width="6" height="10" rx="1.5" fill={belt.color} stroke="#fff" strokeWidth="1" />
-        <rect x="10.5" y="9" width="3" height="6" rx="0.5" fill="#fff" opacity="0.4" />
+        <rect x="9" y="7" width="6" height="10" rx="1.5" fill={belt.color} stroke={C.bg} strokeWidth="1" />
+        <rect x="10.5" y="9" width="3" height="6" rx="0.5" fill={C.bg} opacity="0.4" />
       </svg>
     </div>
   );
@@ -179,14 +213,14 @@ function ProgressRing({ percent, size = 56, strokeWidth = 4, color = C.accent })
 function Login({ onLogin }) {
   const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [loading, setLoading] = useState(false);
   const go = async () => { setErr(""); setLoading(true); try { onLogin(await supabase.auth.signIn(email, pw)); } catch (e) { setErr(e.message); } setLoading(false); };
-  const inp = { width: "100%", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS };
+  const inp = { width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS };
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(234,88,12,0.04), transparent 70%)", filter: "blur(40px)" }} />
-      <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(#E5E5E5 1px, transparent 1px)`, backgroundSize: "24px 24px", opacity: 0.3 }} />
+      <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(${C.border} 1px, transparent 1px)`, backgroundSize: "24px 24px", opacity: 0.3 }} />
       <div className="fade-in" style={{ width: "100%", maxWidth: 420, position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 16, boxShadow: `0 8px 32px ${C.accentGlow}` }}>🏀</div>
+          <img src={LOGO_LG} alt="LevelUpBall" style={{ width: 80, height: 80, marginBottom: 16 }} />
           <h1 style={{ fontFamily: DISPLAY, fontSize: 36, fontWeight: 800, letterSpacing: -0.5 }}>Level<span style={{ color: C.accent }}>Up</span>Ball</h1>
           <p style={{ color: C.textDim, fontSize: 14, marginTop: 8 }}>Your basketball training platform</p>
         </div>
@@ -194,7 +228,7 @@ function Login({ onLogin }) {
           {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 12, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
           <div style={{ marginBottom: 16 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && go()} style={inp} placeholder="you@email.com" /></div>
           <div style={{ marginBottom: 24 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Password</label><input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && go()} style={inp} placeholder="••••••••" /></div>
-          <button onClick={go} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}`, color: "#171717" }}>{loading ? "Signing in..." : "Sign In"}</button>
+          <button onClick={go} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>{loading ? "Signing in..." : "Sign In"}</button>
         </div>
       </div>
     </div>
@@ -211,6 +245,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout }) {
     { id: "workouts", icon: "🏀", label: "Workouts" },
     { id: "challenges", icon: "🏆", label: "Challenge" },
     { id: "resources", icon: "📖", label: "Resources" },
+    { id: "levelup", icon: "🔥", label: "Level Up" },
     { id: "messages", icon: "💬", label: "Messages" },
   ];
   return (
@@ -218,13 +253,13 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout }) {
       <div style={{ width: 240, flexShrink: 0, background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0 }} className="sidebar-desktop">
         <div style={{ padding: "24px 20px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏀</div>
+            <img src={LOGO_SM} alt="" style={{ width: 32, height: 32 }} />
             <span style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 700 }}>Level<span style={{ color: C.accent }}>Up</span>Ball</span>
           </div>
           <div style={{ background: C.bg, borderRadius: 14, padding: 14, border: `1px solid ${C.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <BeltIcon beltId={profile.belt_id} size={36} />
-              <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.full_name && !profile.full_name.includes("@") ? profile.full_name.split(" ")[0] : "Player"}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
+              <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.full_name.split(" ")[0]}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {BELT_LEVELS.map((b, i) => (<div key={b.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < belt.level ? belt.color : C.border }} />))}
@@ -267,6 +302,12 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
       <div style={{ marginBottom: 32 }}>
         <p style={{ color: C.textDim, fontSize: 14, marginBottom: 4 }}>{greeting}</p>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{(profile.full_name && !profile.full_name.includes("@") ? profile.full_name.split(" ")[0] : "Player")} 👊</h1>
+        {(() => { const [q, a] = getDailyQuote(); return (
+          <div style={{ background: C.surface, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.border}`, marginTop: 12, display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>🔥</span>
+            <div><p style={{ fontSize: 13, color: C.text, fontStyle: "italic", lineHeight: 1.5 }}>"{q}"</p><p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>— {a}</p></div>
+          </div>
+        ); })()}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
@@ -310,7 +351,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
           <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Up Next</h2>
           <button onClick={() => onSelectWorkout(nextWorkout)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${C.accent}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#171717" }}>{nextWorkout.name.replace("Workout ", "")}</div>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextWorkout.name.replace("Workout ", "")}</div>
               <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>{nextWorkout.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
             </div>
             <span style={{ color: C.accent, fontSize: 20 }}>→</span>
@@ -407,7 +448,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                 <div key={ex.id} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${isChallenge ? C.challenge + "44" : done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
                   <div onClick={() => setExpanded(open ? null : ex.id)} style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <button onClick={e => { e.stopPropagation(); onToggle(ex.id); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : `2px solid ${C.borderLight}`, background: done ? C.success : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#171717", fontSize: 11, fontWeight: 700 }}>{done && "✓"}</button>
+                      <button onClick={e => { e.stopPropagation(); onToggle(ex.id); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : `2px solid ${C.borderLight}`, background: done ? C.success : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 11, fontWeight: 700 }}>{done && "✓"}</button>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
@@ -527,8 +568,8 @@ function StudentChallenges({ token, profile }) {
       <div style={{ background: `linear-gradient(135deg, ${C.accent}, #EA580C, #DC2626)`, borderRadius: 20, padding: 28, marginBottom: 20, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -30, fontSize: 100, opacity: 0.1 }}>🏆</div>
         <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>This Week</p>
-        <h2 style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#171717" }}>{challenge.title}</h2>
-        {deadlineStr && (<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "5px 14px", marginTop: 12 }}><span style={{ fontSize: 11 }}>⏰</span><span style={{ fontSize: 12, fontWeight: 600, color: "#171717" }}>{isExpired ? "Ended" : `Due ${deadlineStr}`}</span></div>)}
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#fff" }}>{challenge.title}</h2>
+        {deadlineStr && (<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "5px 14px", marginTop: 12 }}><span style={{ fontSize: 11 }}>⏰</span><span style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{isExpired ? "Ended" : `Due ${deadlineStr}`}</span></div>)}
       </div>
 
       {challenge.description && (<div style={{ background: C.surface, borderRadius: 16, padding: 20, border: `1px solid ${C.border}`, marginBottom: 14 }}><p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{challenge.description}</p></div>)}
@@ -637,31 +678,31 @@ function LibrarySearch({ token, onAdd, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #333", width: "100%", maxWidth: 600, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ background: "#141414", borderRadius: 16, border: "1px solid #333", width: "100%", maxWidth: 600, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "18px 20px", borderBottom: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h3 style={{ fontFamily: F, fontSize: 16, color: "#171717", letterSpacing: 1 }}>ADD FROM LIBRARY</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#525252", fontSize: 20, cursor: "pointer" }}>✕</button>
+          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", letterSpacing: 1 }}>ADD FROM LIBRARY</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#888", fontSize: 20, cursor: "pointer" }}>✕</button>
         </div>
         <div style={{ padding: "12px 20px", borderBottom: "1px solid #1a1a1a" }}>
           <input
             value={search} onChange={e => setSearch(e.target.value)} autoFocus
             placeholder="Search exercises..."
-            style={{ width: "100%", background: "#F5F5F5", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#171717", fontSize: 14, outline: "none" }}
+            style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, outline: "none" }}
           />
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 20px" }}>
-          {loading ? <p style={{ color: "#737373", textAlign: "center", padding: 20 }}>Loading library...</p> :
-           filtered.length === 0 ? <p style={{ color: "#737373", textAlign: "center", padding: 20 }}>No exercises found. Add some in the Library tab first!</p> :
+          {loading ? <p style={{ color: "#555", textAlign: "center", padding: 20 }}>Loading library...</p> :
+           filtered.length === 0 ? <p style={{ color: "#555", textAlign: "center", padding: 20 }}>No exercises found. Add some in the Library tab first!</p> :
            Object.entries(grouped).map(([category, exercises]) => (
             <div key={category} style={{ marginBottom: 20 }}>
-              <p style={{ fontFamily: F, fontSize: 11, color: "#EA580C", letterSpacing: 2, marginBottom: 8 }}>{category.toUpperCase()}</p>
+              <p style={{ fontFamily: F, fontSize: 11, color: "#FF6D00", letterSpacing: 2, marginBottom: 8 }}>{category.toUpperCase()}</p>
               {exercises.map(ex => (
-                <div key={ex.id} style={{ background: "#F5F5F5", borderRadius: 10, padding: "12px 14px", marginBottom: 6, border: "1px solid #1a1a1a", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div key={ex.id} style={{ background: "#0a0a0a", borderRadius: 10, padding: "12px 14px", marginBottom: 6, border: "1px solid #1a1a1a", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div>
-                    <p style={{ fontFamily: F, fontSize: 14, color: "#171717", fontWeight: 500 }}>{ex.name}</p>
-                    <p style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{ex.default_sets}×{ex.default_reps} · {ex.default_rest_seconds}s rest</p>
+                    <p style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 500 }}>{ex.name}</p>
+                    <p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{ex.default_sets}×{ex.default_reps} · {ex.default_rest_seconds}s rest</p>
                   </div>
-                  <button onClick={() => onAdd(ex)} style={{ background: "#EA580C", border: "none", borderRadius: 6, padding: "6px 14px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>+ ADD</button>
+                  <button onClick={() => onAdd(ex)} style={{ background: "#FF6D00", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>+ ADD</button>
                 </div>
               ))}
             </div>
@@ -693,18 +734,18 @@ function AdminSubmissions({ token }) {
   const deleteSub = async (id) => {
     try { await supabase.from("challenge_submissions")._token(token).delete({ id }); setSubs(subs.filter(s => s.id !== id)); } catch(e){}
   };
-  if (loading) return <p style={{ color: "#737373", fontSize: 12 }}>Loading submissions...</p>;
-  if (subs.length === 0) return <p style={{ color: "#737373", fontSize: 12 }}>No submissions yet.</p>;
+  if (loading) return <p style={{ color: "#555", fontSize: 12 }}>Loading submissions...</p>;
+  if (subs.length === 0) return <p style={{ color: "#555", fontSize: 12 }}>No submissions yet.</p>;
   return subs.map(s => {
     const author = profiles[s.student_id];
     return (
-      <div key={s.id} style={{ background: "#F5F5F5", borderRadius: 10, border: "1px solid #222", marginBottom: 8, padding: 14 }}>
+      <div key={s.id} style={{ background: "#0a0a0a", borderRadius: 10, border: "1px solid #222", marginBottom: 8, padding: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div><span style={{ fontFamily: F, fontSize: 13, color: "#171717", fontWeight: 600 }}>{author?.full_name || "Unknown"}</span><span style={{ fontSize: 11, color: "#737373", marginLeft: 8 }}>{new Date(s.created_at).toLocaleDateString()}</span></div>
-          <button onClick={() => deleteSub(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "3px 10px", color: "#DC2626", fontSize: 10, cursor: "pointer", fontFamily: F }}>DELETE</button>
+          <div><span style={{ fontFamily: F, fontSize: 13, color: "#fff", fontWeight: 600 }}>{author?.full_name || "Unknown"}</span><span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>{new Date(s.created_at).toLocaleDateString()}</span></div>
+          <button onClick={() => deleteSub(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "3px 10px", color: "#ff4444", fontSize: 10, cursor: "pointer", fontFamily: F }}>DELETE</button>
         </div>
         <div style={{ borderRadius: 10, overflow: "hidden" }}><VideoPlayer url={s.video_url} /></div>
-        {s.caption && <p style={{ fontSize: 12, color: "#525252", marginTop: 6 }}>{s.caption}</p>}
+        {s.caption && <p style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{s.caption}</p>}
       </div>
     );
   });
@@ -776,30 +817,30 @@ function AdminMessages({ token }) {
     setSending(false);
   };
 
-  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#525252" }}>Loading...</div>;
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading...</div>;
 
   const totalUnread = Object.values(unreadCounts).reduce((s, n) => s + n, 0);
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <h2 style={{ fontFamily: F, fontSize: 20, color: "#171717", fontWeight: 600, letterSpacing: 1 }}>MESSAGES {totalUnread > 0 && <span style={{ background: "#EF4444", color: "#171717", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8, fontWeight: 700 }}>{totalUnread} new</span>}</h2>
+        <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MESSAGES {totalUnread > 0 && <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8, fontWeight: 700 }}>{totalUnread} new</span>}</h2>
       </div>
 
       <div style={{ display: "flex", gap: 14, minHeight: 500 }}>
         {/* Student list */}
-        <div style={{ width: 220, flexShrink: 0, background: "#FFFFFF", borderRadius: 14, border: "1px solid #222", overflow: "hidden" }}>
+        <div style={{ width: 220, flexShrink: 0, background: "#141414", borderRadius: 14, border: "1px solid #222", overflow: "hidden" }}>
           <div style={{ padding: "12px 14px", borderBottom: "1px solid #222" }}>
-            <p style={{ fontFamily: F, fontSize: 10, color: "#737373", letterSpacing: 2 }}>STUDENTS</p>
+            <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 2 }}>STUDENTS</p>
           </div>
           <div style={{ overflowY: "auto", maxHeight: 450 }}>
             {students.map(s => {
               const unread = unreadCounts[s.id] || 0;
               const isActive = selectedStudent?.id === s.id;
               return (
-                <button key={s.id} onClick={() => selectStudent(s)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "none", borderBottom: "1px solid #1a1a1a", background: isActive ? "#E5E5E5" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: FONTS }}>
-                  <span style={{ fontSize: 13, color: isActive ? "#fff" : "#525252", fontWeight: unread > 0 ? 700 : 400 }}>{s.full_name}</span>
-                  {unread > 0 && <span style={{ background: "#EF4444", color: "#171717", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 8, minWidth: 18, textAlign: "center" }}>{unread}</span>}
+                <button key={s.id} onClick={() => selectStudent(s)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "none", borderBottom: "1px solid #1a1a1a", background: isActive ? "#222" : "transparent", cursor: "pointer", textAlign: "left", fontFamily: FONTS }}>
+                  <span style={{ fontSize: 13, color: isActive ? "#fff" : "#aaa", fontWeight: unread > 0 ? 700 : 400 }}>{s.full_name}</span>
+                  {unread > 0 && <span style={{ background: "#EF4444", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 8, minWidth: 18, textAlign: "center" }}>{unread}</span>}
                 </button>
               );
             })}
@@ -807,29 +848,29 @@ function AdminMessages({ token }) {
         </div>
 
         {/* Chat area */}
-        <div style={{ flex: 1, background: "#FFFFFF", borderRadius: 14, border: "1px solid #222", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, background: "#141414", borderRadius: 14, border: "1px solid #222", display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {!selectedStudent ? (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#737373" }}><div style={{ textAlign: "center" }}><div style={{ fontSize: 32, marginBottom: 8 }}>💬</div><p>Select a student to chat</p></div></div>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}><div style={{ textAlign: "center" }}><div style={{ fontSize: 32, marginBottom: 8 }}>💬</div><p>Select a student to chat</p></div></div>
           ) : (
             <>
               <div style={{ padding: "12px 16px", borderBottom: "1px solid #222", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontFamily: F, fontSize: 14, color: "#171717", fontWeight: 600 }}>{selectedStudent.full_name}</span>
+                <span style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 600 }}>{selectedStudent.full_name}</span>
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
-                {messages.length === 0 && <div style={{ textAlign: "center", padding: 24, color: "#737373" }}><p style={{ fontSize: 13 }}>No messages yet</p></div>}
+                {messages.length === 0 && <div style={{ textAlign: "center", padding: 24, color: "#555" }}><p style={{ fontSize: 13 }}>No messages yet</p></div>}
                 {messages.map(m => (
                   <div key={m.id} style={{ display: "flex", justifyContent: m.sender_role === "admin" ? "flex-end" : "flex-start", marginBottom: 8 }}>
-                    <div style={{ maxWidth: "75%", padding: "10px 14px", borderRadius: m.sender_role === "admin" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.sender_role === "admin" ? "#EA580C" : "#F0F0F0", border: m.sender_role === "admin" ? "none" : "1px solid #222" }}>
-                      <p style={{ fontSize: 13, color: "#171717", lineHeight: 1.5 }}>{m.content}</p>
-                      <p style={{ fontSize: 10, color: m.sender_role === "admin" ? "rgba(255,255,255,0.5)" : "#737373", marginTop: 4, textAlign: "right" }}>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                    <div style={{ maxWidth: "75%", padding: "10px 14px", borderRadius: m.sender_role === "admin" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", background: m.sender_role === "admin" ? "#FF6D00" : "#0a0a0a", border: m.sender_role === "admin" ? "none" : "1px solid #222" }}>
+                      <p style={{ fontSize: 13, color: "#fff", lineHeight: 1.5 }}>{m.content}</p>
+                      <p style={{ fontSize: 10, color: m.sender_role === "admin" ? "rgba(255,255,255,0.5)" : "#555", marginTop: 4, textAlign: "right" }}>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                     </div>
                   </div>
                 ))}
                 <div ref={bottomRef} />
               </div>
               <div style={{ padding: "10px 14px", borderTop: "1px solid #222", display: "flex", gap: 8 }}>
-                <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type a reply..." style={{ flex: 1, background: "#F5F5F5", border: "1px solid #333", borderRadius: 10, padding: "10px 14px", color: "#171717", fontSize: 13, outline: "none", fontFamily: FONTS }} />
-                <button onClick={send} disabled={!newMsg.trim() || sending} style={{ background: "#EA580C", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 12, fontWeight: 600, cursor: newMsg.trim() ? "pointer" : "default", fontFamily: F, opacity: newMsg.trim() ? 1 : 0.5 }}>Send</button>
+                <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type a reply..." style={{ flex: 1, background: "#0a0a0a", border: "1px solid #333", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONTS }} />
+                <button onClick={send} disabled={!newMsg.trim() || sending} style={{ background: "#FF6D00", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 12, fontWeight: 600, cursor: newMsg.trim() ? "pointer" : "default", fontFamily: F, opacity: newMsg.trim() ? 1 : 0.5 }}>Send</button>
               </div>
             </>
           )}
@@ -870,7 +911,7 @@ function Admin({ token }) {
   const [chalNew, setChalNew] = useState(false);
   const [chalForm, setChalForm] = useState({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", active: false }); // { catId, workoutId }
 
-  const inp = { width: "100%", background: "#F5F5F5", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#171717", fontSize: 14, outline: "none" };
+  const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "10px 14px", color: "#fff", fontSize: 14, outline: "none" };
   const sinp = { ...inp, width: 80, textAlign: "center", padding: "8px" };
 
   // Load workouts
@@ -1030,14 +1071,14 @@ function Admin({ token }) {
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
-      {msg && <div style={{ position: "fixed", top: 70, right: 20, background: msg.startsWith("Error") ? "#DC2626" : "#16A34A", color: "#171717", padding: "10px 20px", borderRadius: 8, fontFamily: F, fontSize: 13, letterSpacing: 1, zIndex: 200 }}>{msg}</div>}
-      {saving && <div style={{ position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", background: "#EA580C", color: "#171717", padding: "6px 16px", borderRadius: 6, fontFamily: F, fontSize: 11, letterSpacing: 1, zIndex: 200 }}>SAVING...</div>}
+      {msg && <div style={{ position: "fixed", top: 70, right: 20, background: msg.startsWith("Error") ? "#ff4444" : "#00C853", color: "#fff", padding: "10px 20px", borderRadius: 8, fontFamily: F, fontSize: 13, letterSpacing: 1, zIndex: 200 }}>{msg}</div>}
+      {saving && <div style={{ position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", background: "#FF6D00", color: "#fff", padding: "6px 16px", borderRadius: 6, fontFamily: F, fontSize: 11, letterSpacing: 1, zIndex: 200 }}>SAVING...</div>}
       {showLibSearch && <LibrarySearch token={token} onAdd={addExerciseFromLibrary} onClose={() => setShowLibSearch(null)} />}
 
       {/* TABS */}
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
-        {["workouts", "library", "articles", "challenges", "students", "messages"].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#EA580C" : "#737373", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
+        {["workouts", "library", "articles", "challenges", "students", "levelup", "messages"].map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#FF6D00" : "#666", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
         ))}
       </div>
 
@@ -1045,82 +1086,82 @@ function Admin({ token }) {
       {tab === "workouts" && <>
         <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
           {BELT_LEVELS.map(b => (
-            <button key={b.id} onClick={() => { setBelt(b.id); setEditing(null); }} style={{ background: belt === b.id ? b.color : "#FFFFFF", color: belt === b.id ? b.tc : "#525252", border: belt === b.id ? "none" : "1px solid #333", borderRadius: 8, padding: "7px 16px", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{b.name.toUpperCase()}</button>
+            <button key={b.id} onClick={() => { setBelt(b.id); setEditing(null); }} style={{ background: belt === b.id ? b.color : "#141414", color: belt === b.id ? b.tc : "#888", border: belt === b.id ? "none" : "1px solid #333", borderRadius: 8, padding: "7px 16px", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{b.name.toUpperCase()}</button>
           ))}
         </div>
-        {loading ? <div style={{ textAlign: "center", padding: 40, color: "#525252" }}>Loading workouts...</div> : !editing ? <>
+        {loading ? <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading workouts...</div> : !editing ? <>
           {workouts.map(w => {
             const ec = (w.cats || []).reduce((s, c) => s + (c.exercises || []).length, 0);
             return (
-              <div key={w.id} style={{ background: "#FFFFFF", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div key={w.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <div>
-                  <p style={{ fontFamily: F, fontSize: 16, color: "#171717", fontWeight: 600 }}>{w.name}</p>
-                  <p style={{ color: "#737373", fontSize: 12, marginTop: 2 }}>{(w.cats || []).length} categories · {ec} exercises</p>
+                  <p style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600 }}>{w.name}</p>
+                  <p style={{ color: "#555", fontSize: 12, marginTop: 2 }}>{(w.cats || []).length} categories · {ec} exercises</p>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => setEditing(w)} style={{ background: "#EA580C", border: "none", borderRadius: 8, padding: "7px 16px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
-                  <button onClick={() => duplicateWorkout(w.id)} style={{ background: "#3B82F6", border: "none", borderRadius: 8, padding: "7px 12px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>COPY</button>
-                  <button onClick={() => deleteWorkout(w.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 12px", color: "#DC2626", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
+                  <button onClick={() => setEditing(w)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
+                  <button onClick={() => duplicateWorkout(w.id)} style={{ background: "#3B82F6", border: "none", borderRadius: 8, padding: "7px 12px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>COPY</button>
+                  <button onClick={() => deleteWorkout(w.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 12px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
                 </div>
               </div>
             );
           })}
-          <button onClick={addWorkout} disabled={saving} style={{ background: "#F0F0F0", border: "2px dashed #333", borderRadius: 12, padding: 18, width: "100%", color: "#EA580C", fontFamily: F, fontSize: 13, letterSpacing: 1, cursor: "pointer", fontWeight: 600, marginTop: 6 }}>+ ADD WORKOUT</button>
+          <button onClick={addWorkout} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 12, padding: 18, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 13, letterSpacing: 1, cursor: "pointer", fontWeight: 600, marginTop: 6 }}>+ ADD WORKOUT</button>
         </> : <>
-          <button onClick={() => { setEditing(null); loadWorkouts(); }} style={{ background: "#F0F0F0", border: "1px solid #333", borderRadius: 8, padding: "7px 14px", color: "#171717", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", marginBottom: 18 }}>← BACK TO LIST</button>
+          <button onClick={() => { setEditing(null); loadWorkouts(); }} style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "7px 14px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", marginBottom: 18 }}>← BACK TO LIST</button>
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", color: "#737373", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>WORKOUT NAME</label>
+            <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>WORKOUT NAME</label>
             <input defaultValue={editing.name} onBlur={e => saveWorkoutName(editing.id, e.target.value)} onChange={e => debouncedSave(`wname-${editing.id}`, () => saveWorkoutName(editing.id, e.target.value))} style={inp} />
           </div>
           {(editing.cats || []).map(cat => (
-            <div key={cat.id} style={{ background: "#FFFFFF", borderRadius: 14, padding: 18, border: "1px solid #222", marginBottom: 14 }}>
+            <div key={cat.id} style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222", marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                 <input defaultValue={cat.name} onBlur={e => saveCategoryName(cat.id, e.target.value)} onChange={e => debouncedSave(`cname-${cat.id}`, () => saveCategoryName(cat.id, e.target.value))} style={{ ...inp, maxWidth: 280, fontFamily: F, fontSize: 15, fontWeight: 600 }} />
-                <button onClick={() => deleteCategory(cat.id, editing.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 10px", color: "#DC2626", fontSize: 10, fontFamily: F, cursor: "pointer", letterSpacing: 1 }}>REMOVE</button>
+                <button onClick={() => deleteCategory(cat.id, editing.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 10px", color: "#ff4444", fontSize: 10, fontFamily: F, cursor: "pointer", letterSpacing: 1 }}>REMOVE</button>
               </div>
               {(cat.exercises || []).map(ex => (
-                <div key={ex.id} style={{ background: "#F5F5F5", borderRadius: 10, padding: 14, marginBottom: 8, border: "1px solid #1a1a1a" }}>
+                <div key={ex.id} style={{ background: "#0a0a0a", borderRadius: 10, padding: 14, marginBottom: 8, border: "1px solid #1a1a1a" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                     <input defaultValue={ex.name} onBlur={e => saveExercise(ex.id, "name", e.target.value)} onChange={e => debouncedSave(`ename-${ex.id}`, () => saveExercise(ex.id, "name", e.target.value))} style={{ ...inp, fontWeight: 600 }} placeholder="Exercise name" />
-                    <button onClick={() => deleteExercise(ex.id, editing.id)} style={{ background: "none", border: "none", color: "#DC2626", cursor: "pointer", fontSize: 15, marginLeft: 10, flexShrink: 0 }}>✕</button>
+                    <button onClick={() => deleteExercise(ex.id, editing.id)} style={{ background: "none", border: "none", color: "#ff4444", cursor: "pointer", fontSize: 15, marginLeft: 10, flexShrink: 0 }}>✕</button>
                   </div>
                   <div style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (YouTube / Vimeo)</label>
+                    <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (YouTube / Vimeo)</label>
                     <input defaultValue={ex.video_url} onBlur={e => saveExercise(ex.id, "video_url", e.target.value)} onChange={e => debouncedSave(`evid-${ex.id}`, () => saveExercise(ex.id, "video_url", e.target.value))} style={inp} placeholder="https://youtube.com/watch?v=..." />
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
                     {[["SETS", "sets"], ["REPS", "reps"], ["REST (sec)", "rest_seconds"]].map(([l, k]) => (
                       <div key={k}>
-                        <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label>
+                        <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label>
                         <input type="number" min={k === "rest_seconds" ? 0 : 1} defaultValue={ex[k]} onBlur={e => saveExercise(ex.id, k, parseInt(e.target.value) || 0)} onChange={e => debouncedSave(`e${k}-${ex.id}`, () => saveExercise(ex.id, k, parseInt(e.target.value) || 0))} style={sinp} />
                       </div>
                     ))}
                   </div>
                   <div>
                     <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#525252", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => saveExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Exercise</label>
-                      <div style={{ flex: 1 }}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUPERSET GROUP</label><input defaultValue={ex.superset_group || ""} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#F5F5F5", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#171717", fontSize: 12, outline: "none" }} placeholder="e.g. A" /></div>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => saveExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Exercise</label>
+                      <div style={{ flex: 1 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUPERSET GROUP</label><input defaultValue={ex.superset_group || ""} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none" }} placeholder="e.g. A" /></div>
                     </div>
-                    <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
+                    <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
                     <textarea defaultValue={ex.instructions} onBlur={e => saveExercise(ex.id, "instructions", e.target.value)} onChange={e => debouncedSave(`einst-${ex.id}`, () => saveExercise(ex.id, "instructions", e.target.value))} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="Simple instructions..." />
                   </div>
                 </div>
               ))}
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setShowLibSearch({ catId: cat.id, workoutId: editing.id })} style={{ background: "#EA580C", border: "none", borderRadius: 8, padding: 9, flex: 1, color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>📚 ADD FROM LIBRARY</button>
-                <button onClick={() => addExercise(cat.id, editing.id)} disabled={saving} style={{ background: "none", border: "1px dashed #333", borderRadius: 8, padding: 9, flex: 1, color: "#737373", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>+ ADD CUSTOM</button>
+                <button onClick={() => setShowLibSearch({ catId: cat.id, workoutId: editing.id })} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: 9, flex: 1, color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>📚 ADD FROM LIBRARY</button>
+                <button onClick={() => addExercise(cat.id, editing.id)} disabled={saving} style={{ background: "none", border: "1px dashed #333", borderRadius: 8, padding: 9, flex: 1, color: "#666", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>+ ADD CUSTOM</button>
               </div>
             </div>
           ))}
-          <button onClick={() => addCategory(editing.id)} disabled={saving} style={{ background: "#F0F0F0", border: "2px dashed #333", borderRadius: 12, padding: 14, width: "100%", color: "#EA580C", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD CATEGORY</button>
+          <button onClick={() => addCategory(editing.id)} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 12, padding: 14, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD CATEGORY</button>
         </>}
       </>}
 
       {/* ========== LIBRARY TAB ========== */}
       {tab === "library" && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
-          <h2 style={{ fontFamily: F, fontSize: 20, color: "#171717", fontWeight: 600, letterSpacing: 1 }}>EXERCISE LIBRARY</h2>
-          <button onClick={startNewLib} style={{ background: "#EA580C", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW EXERCISE</button>
+          <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>EXERCISE LIBRARY</h2>
+          <button onClick={startNewLib} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW EXERCISE</button>
         </div>
 
         {/* Search */}
@@ -1130,15 +1171,15 @@ function Admin({ token }) {
 
         {/* Add/Edit Form */}
         {(libNew || libEditing) && (
-          <div style={{ background: "#FFFFFF", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
-            <h3 style={{ fontFamily: F, fontSize: 14, color: "#171717", marginBottom: 14, letterSpacing: 1 }}>{libEditing ? "EDIT EXERCISE" : "NEW EXERCISE"}</h3>
+          <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{libEditing ? "EDIT EXERCISE" : "NEW EXERCISE"}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div>
-                <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>NAME *</label>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>NAME *</label>
                 <input value={libForm.name} onChange={e => setLibForm({ ...libForm, name: e.target.value })} style={inp} placeholder="e.g. Crossover Dribble" />
               </div>
               <div>
-                <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CATEGORY *</label>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CATEGORY *</label>
                 <input value={libForm.category} onChange={e => setLibForm({ ...libForm, category: e.target.value })} style={inp} placeholder="e.g. Ball Handling" list="cat-suggestions" />
                 <datalist id="cat-suggestions">
                   {existingCategories.map(c => <option key={c} value={c} />)}
@@ -1146,58 +1187,58 @@ function Admin({ token }) {
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
-              <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL</label>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL</label>
               <input value={libForm.video_url} onChange={e => setLibForm({ ...libForm, video_url: e.target.value })} style={inp} placeholder="https://youtube.com/watch?v=..." />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div>
-                <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT SETS</label>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT SETS</label>
                 <input type="number" min="1" value={libForm.default_sets} onChange={e => setLibForm({ ...libForm, default_sets: parseInt(e.target.value) || 1 })} style={sinp} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT REPS</label>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT REPS</label>
                 <input type="number" min="1" value={libForm.default_reps} onChange={e => setLibForm({ ...libForm, default_reps: parseInt(e.target.value) || 1 })} style={sinp} />
               </div>
               <div>
-                <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT REST (sec)</label>
+                <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEFAULT REST (sec)</label>
                 <input type="number" min="0" value={libForm.default_rest_seconds} onChange={e => setLibForm({ ...libForm, default_rest_seconds: parseInt(e.target.value) || 0 })} style={sinp} />
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
               <textarea value={libForm.instructions} onChange={e => setLibForm({ ...libForm, instructions: e.target.value })} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="How to perform this exercise..." />
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={saveLibItem} disabled={saving} style={{ background: "#16A34A", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
-              <button onClick={() => { setLibEditing(null); setLibNew(false); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#525252", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button>
+              <button onClick={saveLibItem} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
+              <button onClick={() => { setLibEditing(null); setLibNew(false); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button>
             </div>
           </div>
         )}
 
         {/* Library List */}
-        {libLoading ? <p style={{ color: "#737373", padding: 20, textAlign: "center" }}>Loading...</p> :
+        {libLoading ? <p style={{ color: "#555", padding: 20, textAlign: "center" }}>Loading...</p> :
          Object.keys(libGrouped).length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "#737373" }}>
+          <div style={{ textAlign: "center", padding: 40, color: "#555" }}>
             <p style={{ fontSize: 36, marginBottom: 10 }}>📚</p>
             <p style={{ fontSize: 14 }}>{libSearch ? "No exercises match your search." : "Your exercise library is empty."}</p>
-            <p style={{ fontSize: 12, marginTop: 4, color: "#A3A3A3" }}>Add your first exercise above!</p>
+            <p style={{ fontSize: 12, marginTop: 4, color: "#444" }}>Add your first exercise above!</p>
           </div>
         ) : Object.entries(libGrouped).map(([category, exercises]) => (
           <div key={category} style={{ marginBottom: 24 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 4, height: 20, borderRadius: 2, background: "#EA580C" }} />
-              <p style={{ fontFamily: F, fontSize: 14, color: "#EA580C", letterSpacing: 2, fontWeight: 600 }}>{category.toUpperCase()}</p>
-              <span style={{ fontSize: 11, color: "#737373" }}>{exercises.length}</span>
+              <div style={{ width: 4, height: 20, borderRadius: 2, background: "#FF6D00" }} />
+              <p style={{ fontFamily: F, fontSize: 14, color: "#FF6D00", letterSpacing: 2, fontWeight: 600 }}>{category.toUpperCase()}</p>
+              <span style={{ fontSize: 11, color: "#555" }}>{exercises.length}</span>
             </div>
             {exercises.map(ex => (
-              <div key={ex.id} style={{ background: "#FFFFFF", borderRadius: 10, padding: "14px 16px", marginBottom: 6, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div key={ex.id} style={{ background: "#141414", borderRadius: 10, padding: "14px 16px", marginBottom: 6, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                  <p style={{ fontFamily: F, fontSize: 14, color: "#171717", fontWeight: 500 }}>{ex.name}</p>
-                  <p style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{ex.default_sets}×{ex.default_reps} · {ex.default_rest_seconds}s rest {ex.video_url ? "· 🎬" : ""}</p>
+                  <p style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 500 }}>{ex.name}</p>
+                  <p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{ex.default_sets}×{ex.default_reps} · {ex.default_rest_seconds}s rest {ex.video_url ? "· 🎬" : ""}</p>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => startEditLib(ex)} style={{ background: "#E5E5E5", border: "none", borderRadius: 6, padding: "5px 12px", color: "#171717", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button>
-                  <button onClick={() => deleteLibItem(ex.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#DC2626", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
+                  <button onClick={() => startEditLib(ex)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button>
+                  <button onClick={() => deleteLibItem(ex.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
                 </div>
               </div>
             ))}
@@ -1208,86 +1249,89 @@ function Admin({ token }) {
 
       {/* ===== ARTICLES ===== */}
       {tab === "articles" && <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#171717", fontWeight: 600, letterSpacing: 1 }}>RESOURCES / ARTICLES</h2><button onClick={startNewArt} style={{ background: "#EA580C", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW ARTICLE</button></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>RESOURCES / ARTICLES</h2><button onClick={startNewArt} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW ARTICLE</button></div>
         {(artNew||artEditing) && (
-          <div style={{ background: "#FFFFFF", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
-            <h3 style={{ fontFamily: F, fontSize: 14, color: "#171717", marginBottom: 14, letterSpacing: 1 }}>{artEditing ? "EDIT" : "NEW"} ARTICLE</h3>
-            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={artForm.title} onChange={e=>setArtForm({...artForm,title:e.target.value})} style={inp} placeholder="Article title..." /></div>
-            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label><textarea value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." /></div>
-            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (optional)</label><input value={artForm.video_url} onChange={e=>setArtForm({...artForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/watch?v=..." /></div>
-            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}><label style={{ color: "#737373", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>PUBLISHED</label><input type="checkbox" checked={artForm.published} onChange={e=>setArtForm({...artForm,published:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /></div>
-            <div style={{ display: "flex", gap: 6 }}><button onClick={saveArticle} disabled={saving} style={{ background: "#16A34A", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setArtEditing(null);setArtNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#525252", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
+          <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{artEditing ? "EDIT" : "NEW"} ARTICLE</h3>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={artForm.title} onChange={e=>setArtForm({...artForm,title:e.target.value})} style={inp} placeholder="Article title..." /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label><textarea value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (optional)</label><input value={artForm.video_url} onChange={e=>setArtForm({...artForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/watch?v=..." /></div>
+            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>PUBLISHED</label><input type="checkbox" checked={artForm.published} onChange={e=>setArtForm({...artForm,published:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /></div>
+            <div style={{ display: "flex", gap: 6 }}><button onClick={saveArticle} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setArtEditing(null);setArtNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
           </div>
         )}
-        {articles.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#737373" }}><p style={{ fontSize: 36, marginBottom: 10 }}>📖</p><p>No articles yet.</p></div>) : articles.map(a=>(<div key={a.id} style={{ background: "#FFFFFF", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><p style={{ fontFamily: F, fontSize: 15, color: "#171717", fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{a.published ? "Published" : "Draft"} · {new Date(a.created_at).toLocaleDateString()}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditArt(a)} style={{ background: "#E5E5E5", border: "none", borderRadius: 6, padding: "5px 12px", color: "#171717", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteArticle(a.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#DC2626", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
+        {articles.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#555" }}><p style={{ fontSize: 36, marginBottom: 10 }}>📖</p><p>No articles yet.</p></div>) : articles.map(a=>(<div key={a.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{a.published ? "Published" : "Draft"} · {new Date(a.created_at).toLocaleDateString()}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditArt(a)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteArticle(a.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
       </>}
 
       {/* ===== CHALLENGES ===== */}
       {tab === "challenges" && <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#171717", fontWeight: 600, letterSpacing: 1 }}>WEEKLY CHALLENGES</h2><button onClick={startNewChal} style={{ background: "#EA580C", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW CHALLENGE</button></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>WEEKLY CHALLENGES</h2><button onClick={startNewChal} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW CHALLENGE</button></div>
         {(chalNew||chalEditing) && (
-          <div style={{ background: "#FFFFFF", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
-            <h3 style={{ fontFamily: F, fontSize: 14, color: "#171717", marginBottom: 14, letterSpacing: 1 }}>{chalEditing ? "EDIT" : "NEW"} CHALLENGE</h3>
-            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={chalForm.title} onChange={e=>setChalForm({...chalForm,title:e.target.value})} style={inp} placeholder="e.g. 50 Made Free Throws" /></div>
-            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea value={chalForm.description} onChange={e=>setChalForm({...chalForm,description:e.target.value})} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Explain the challenge..." /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}><div><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input value={chalForm.video_url} onChange={e=>setChalForm({...chalForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/..." /></div><div><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEADLINE</label><input type="date" value={chalForm.deadline} onChange={e=>setChalForm({...chalForm,deadline:e.target.value})} style={inp} /></div></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUBMISSION EMAIL</label><input value={chalForm.submission_email} onChange={e=>setChalForm({...chalForm,submission_email:e.target.value})} style={inp} /></div><div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 18 }}><label style={{ color: "#737373", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>ACTIVE</label><input type="checkbox" checked={chalForm.active} onChange={e=>setChalForm({...chalForm,active:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /><span style={{ fontSize: 10, color: "#EA580C" }}>{chalForm.active ? "Students see this" : "Hidden"}</span></div></div>
-            <div style={{ display: "flex", gap: 6 }}><button onClick={saveChallenge} disabled={saving} style={{ background: "#16A34A", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setChalEditing(null);setChalNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#525252", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
+          <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{chalEditing ? "EDIT" : "NEW"} CHALLENGE</h3>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={chalForm.title} onChange={e=>setChalForm({...chalForm,title:e.target.value})} style={inp} placeholder="e.g. 50 Made Free Throws" /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea value={chalForm.description} onChange={e=>setChalForm({...chalForm,description:e.target.value})} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Explain the challenge..." /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input value={chalForm.video_url} onChange={e=>setChalForm({...chalForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/..." /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEADLINE</label><input type="date" value={chalForm.deadline} onChange={e=>setChalForm({...chalForm,deadline:e.target.value})} style={inp} /></div></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUBMISSION EMAIL</label><input value={chalForm.submission_email} onChange={e=>setChalForm({...chalForm,submission_email:e.target.value})} style={inp} /></div><div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 18 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>ACTIVE</label><input type="checkbox" checked={chalForm.active} onChange={e=>setChalForm({...chalForm,active:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /><span style={{ fontSize: 10, color: "#FF6D00" }}>{chalForm.active ? "Students see this" : "Hidden"}</span></div></div>
+            <div style={{ display: "flex", gap: 6 }}><button onClick={saveChallenge} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setChalEditing(null);setChalNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
           </div>
         )}
         {/* Submissions viewer */}
         <div style={{ marginTop: 24, marginBottom: 24 }}>
-          <h3 style={{ fontFamily: F, fontSize: 14, color: "#171717", letterSpacing: 1, marginBottom: 12 }}>STUDENT SUBMISSIONS</h3>
+          <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", letterSpacing: 1, marginBottom: 12 }}>STUDENT SUBMISSIONS</h3>
           <AdminSubmissions token={token} />
         </div>
-        {challenges.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#737373" }}><p style={{ fontSize: 36, marginBottom: 10 }}>🏆</p><p>No challenges yet.</p></div>) : challenges.map(c=>(<div key={c.id} style={{ background: "#FFFFFF", borderRadius: 12, padding: 18, border: c.active ? "2px solid #FF6D00" : "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><p style={{ fontFamily: F, fontSize: 15, color: "#171717", fontWeight: 600 }}>{c.title}</p>{c.active && <span style={{ background: "#EA580C", color: "#171717", fontFamily: F, fontSize: 9, padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>ACTIVE</span>}</div><p style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{c.deadline ? "Due " + new Date(c.deadline+"T12:00:00").toLocaleDateString() : "No deadline"}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditChal(c)} style={{ background: "#E5E5E5", border: "none", borderRadius: 6, padding: "5px 12px", color: "#171717", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteChallenge(c.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#DC2626", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
+        {challenges.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#555" }}><p style={{ fontSize: 36, marginBottom: 10 }}>🏆</p><p>No challenges yet.</p></div>) : challenges.map(c=>(<div key={c.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: c.active ? "2px solid #FF6D00" : "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{c.title}</p>{c.active && <span style={{ background: "#FF6D00", color: "#fff", fontFamily: F, fontSize: 9, padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>ACTIVE</span>}</div><p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{c.deadline ? "Due " + new Date(c.deadline+"T12:00:00").toLocaleDateString() : "No deadline"}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditChal(c)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteChallenge(c.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
       </>}
 
       {/* ========== STUDENTS TAB ========== */}
+      {/* ===== LEVEL UP TAB ===== */}
+      {tab === "levelup" && <AdminLevelUp token={token} />}
+
       {/* ===== MESSAGES TAB ===== */}
       {tab === "messages" && <AdminMessages token={token} />}
 
       {tab === "students" && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <h2 style={{ fontFamily: F, fontSize: 20, color: "#171717", fontWeight: 600, letterSpacing: 1 }}>MANAGE STUDENTS</h2>
-          <button onClick={() => setShowAdd(!showAdd)} style={{ background: "#EA580C", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD STUDENT</button>
+          <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MANAGE STUDENTS</h2>
+          <button onClick={() => setShowAdd(!showAdd)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD STUDENT</button>
         </div>
         {showAdd && (
-          <div style={{ background: "#FFFFFF", borderRadius: 14, padding: 18, border: "1px solid #222", marginBottom: 18 }}>
-            <h3 style={{ fontFamily: F, fontSize: 14, color: "#171717", marginBottom: 14, letterSpacing: 1 }}>NEW STUDENT</h3>
+          <div style={{ background: "#141414", borderRadius: 14, padding: 18, border: "1px solid #222", marginBottom: 18 }}>
+            <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>NEW STUDENT</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               {[["NAME", "name", "Player name"], ["EMAIL", "email", "email@example.com"], ["PASSWORD", "password", "Temp password"]].map(([l, k, ph]) => (
-                <div key={k}><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label><input value={ns[k]} onChange={e => setNs({ ...ns, [k]: e.target.value })} style={inp} placeholder={ph} /></div>
+                <div key={k}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label><input value={ns[k]} onChange={e => setNs({ ...ns, [k]: e.target.value })} style={inp} placeholder={ph} /></div>
               ))}
-              <div><label style={{ display: "block", color: "#737373", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>STARTING BELT</label><select value={ns.beltId} onChange={e => setNs({ ...ns, beltId: e.target.value })} style={{ ...inp, cursor: "pointer" }}>{BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+              <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>STARTING BELT</label><select value={ns.beltId} onChange={e => setNs({ ...ns, beltId: e.target.value })} style={{ ...inp, cursor: "pointer" }}>{BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={addStudent} disabled={saving} style={{ background: "#16A34A", border: "none", borderRadius: 8, padding: "9px 18px", color: "#171717", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
-              <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#525252", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button>
+              <button onClick={addStudent} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
+              <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button>
             </div>
           </div>
         )}
         {students.map(s => {
           const sb = BELT_LEVELS.find(b => b.id === s.belt_id) || BELT_LEVELS[0];
           return (
-            <div key={s.id} style={{ background: "#FFFFFF", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 10 }}>
+            <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: `${sb.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: `2px solid ${sb.color}` }}>🏀</div>
-                <div><p style={{ fontFamily: F, fontSize: 15, color: "#171717", fontWeight: 600 }}>{s.full_name}</p><p style={{ fontSize: 11, color: "#737373" }}>{s.email}</p></div>
+                <div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{s.full_name}</p><p style={{ fontSize: 11, color: "#555" }}>{s.email}</p></div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, background: `${sb.color}18`, padding: "4px 12px", borderRadius: 20, border: `1px solid ${sb.color}33` }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: sb.color }} />
                   <span style={{ fontFamily: F, fontSize: 10, color: sb.color, letterSpacing: 1 }}>{sb.name.toUpperCase()}</span>
                 </div>
-                {s.belt_id !== "black" && <button onClick={() => promoteStudent(s)} disabled={saving} style={{ background: "#16A34A", border: "none", borderRadius: 8, padding: "5px 12px", color: "#171717", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>PROMOTE ↑</button>}
-                {s.belt_id !== "white" && <button onClick={() => demoteStudent(s)} disabled={saving} style={{ background: "#CA8A04", border: "none", borderRadius: 8, padding: "5px 12px", color: "#171717", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>DEMOTE ↓</button>}
-                <button onClick={() => deleteStudent(s.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#DC2626", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>REMOVE</button>
+                {s.belt_id !== "black" && <button onClick={() => promoteStudent(s)} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>PROMOTE ↑</button>}
+                {s.belt_id !== "white" && <button onClick={() => demoteStudent(s)} disabled={saving} style={{ background: "#F59E0B", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>DEMOTE ↓</button>}
+                <button onClick={() => deleteStudent(s.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>REMOVE</button>
               </div>
             </div>
           );
         })}
-        {students.length === 0 && <div style={{ textAlign: "center", padding: 36, color: "#737373" }}><p style={{ fontSize: 28, marginBottom: 8 }}>👥</p><p>No students yet.</p></div>}
+        {students.length === 0 && <div style={{ textAlign: "center", padding: 36, color: "#555" }}><p style={{ fontSize: 28, marginBottom: 8 }}>👥</p><p>No students yet.</p></div>}
       </>}
     </div>
   );
@@ -1424,7 +1468,7 @@ function StudentLayout({ profile, token, onLogout }) {
     } catch(e) { console.error(e); }
   };
 
-  if (!loaded) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ fontSize: 40, animation: "pulse 1.5s infinite" }}>🏀</div></div>;
+  if (!loaded) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><img src={LOGO_SM} alt="" style={{ width: 48, height: 48, animation: "pulse 1.5s infinite" }} /></div>;
 
   return (
     <>
@@ -1445,6 +1489,8 @@ function StudentLayout({ profile, token, onLogout }) {
             <StudentChallenges token={token} profile={profile} />
           ) : activeTab === "resources" ? (
             <StudentResources token={token} />
+          ) : activeTab === "levelup" ? (
+            <StudentLevelUp token={token} profile={profile} />
           ) : activeTab === "messages" ? (
             <StudentMessages token={token} profile={profile} />
           ) : null}
@@ -1461,9 +1507,9 @@ function AdminHeader({ onLogout }) {
   return (
     <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏀</div>
+        <img src={LOGO_SM} alt="" style={{ width: 32, height: 32 }} />
         <span style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 700 }}>Level<span style={{ color: C.accent }}>Up</span>Ball</span>
-        <span style={{ background: C.accent, color: "#171717", fontFamily: DISPLAY, fontSize: 9, padding: "2px 8px", borderRadius: 6, fontWeight: 600, letterSpacing: 1 }}>ADMIN</span>
+        <span style={{ background: C.accent, color: "#fff", fontFamily: DISPLAY, fontSize: 9, padding: "2px 8px", borderRadius: 6, fontWeight: 600, letterSpacing: 1 }}>ADMIN</span>
       </div>
       <button onClick={onLogout} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS }}>Log Out</button>
     </div>
@@ -1489,7 +1535,7 @@ export default function LevelUpBallApp() {
 
   const logout = () => { setSession(null); setProfile(null); };
 
-  if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><div style={{ fontSize: 48, animation: "pulse 1.5s infinite" }}>🏀</div></div></>;
+  if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 60, height: 60, animation: "pulse 1.5s infinite" }} /></div></>;
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
@@ -1497,6 +1543,244 @@ export default function LevelUpBallApp() {
       {!session && <Login onLogin={handleLogin} />}
       {session && profile?.role === "admin" && <><AdminHeader onLogout={logout} /><Admin token={session.access_token} /></>}
       {session && profile?.role === "student" && <StudentLayout profile={profile} token={session.access_token} onLogout={logout} />}
+    </div>
+  );
+}
+
+// ============================================================
+// STUDENT: LEVEL UP
+// ============================================================
+function StudentLevelUp({ token, profile }) {
+  const [drills, setDrills] = useState([]);
+  const [submissions, setSubmissions] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [videoUrls, setVideoUrls] = useState({});
+  const [submitting, setSubmitting] = useState(null);
+  const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
+  const nextBelt = BELT_LEVELS.find(b => b.level === belt.level + 1);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const d = await supabase.from("levelup_drills")._token(token).select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`);
+        setDrills(d);
+        const s = await supabase.from("levelup_submissions")._token(token).select("*", `&student_id=eq.${profile.id}`);
+        const map = {}; s.forEach(sub => map[sub.drill_id] = sub); setSubmissions(map);
+      } catch(e) { console.error(e); }
+      setLoading(false);
+    })();
+  }, [token, profile]);
+
+  const submitVideo = async (drillId) => {
+    const url = videoUrls[drillId];
+    if (!url) return;
+    setSubmitting(drillId);
+    try {
+      const existing = submissions[drillId];
+      if (existing) {
+        await supabase.from("levelup_submissions")._token(token).update({ video_url: url, status: "pending" }, { id: existing.id });
+        setSubmissions({ ...submissions, [drillId]: { ...existing, video_url: url, status: "pending" } });
+      } else {
+        const res = await supabase.from("levelup_submissions")._token(token).insert({ student_id: profile.id, drill_id: drillId, video_url: url });
+        setSubmissions({ ...submissions, [drillId]: res[0] });
+      }
+      setVideoUrls({ ...videoUrls, [drillId]: "" });
+    } catch(e) { console.error(e); }
+    setSubmitting(null);
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: C.textDim }}>Loading...</div>;
+
+  // Group drills by category
+  const categories = {};
+  drills.forEach(d => { if (!categories[d.category]) categories[d.category] = []; categories[d.category].push(d); });
+  const allSubmitted = drills.length > 0 && drills.every(d => submissions[d.id]);
+  const allApproved = drills.length > 0 && drills.every(d => submissions[d.id]?.status === "approved");
+
+  return (
+    <div className="fade-in">
+      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>Level Up</h1>
+      <p style={{ color: C.textDim, fontSize: 14, marginBottom: 24 }}>
+        {nextBelt ? `Complete these drills to earn your ${nextBelt.name}` : "You've reached the highest belt!"}
+      </p>
+
+      {nextBelt && (
+        <div style={{ background: `linear-gradient(135deg, ${belt.color}22, ${nextBelt.color}22)`, borderRadius: 16, padding: 20, marginBottom: 24, border: `1px solid ${belt.color}33`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <BeltIcon beltId={belt.id} size={44} />
+            <span style={{ fontSize: 20, color: C.textDim }}>→</span>
+            <BeltIcon beltId={nextBelt.id} size={44} />
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>{Object.keys(submissions).filter(k => submissions[k]?.status === "approved").length}/{drills.length} approved</p>
+            <p style={{ fontSize: 11, color: C.textDim }}>{allApproved ? "Ready for promotion! 🎉" : allSubmitted ? "Waiting for coach review..." : "Submit your videos"}</p>
+          </div>
+        </div>
+      )}
+
+      {drills.length === 0 ? (
+        <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🔥</div>
+          <p style={{ color: C.textMuted }}>No level up drills set for your belt yet</p>
+          <p style={{ color: C.textDim, fontSize: 13, marginTop: 4 }}>Your coach will add them soon!</p>
+        </div>
+      ) : Object.entries(categories).map(([catName, catDrills]) => (
+        <div key={catName} style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 3, height: 18, borderRadius: 2, background: C.accent }} />
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{catName}</h3>
+          </div>
+          {catDrills.map(drill => {
+            const sub = submissions[drill.id];
+            const isPending = sub?.status === "pending";
+            const isApproved = sub?.status === "approved";
+            const isRejected = sub?.status === "rejected";
+            return (
+              <div key={drill.id} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${isApproved ? C.success + "44" : isPending ? C.accent + "44" : isRejected ? C.danger + "44" : C.border}`, marginBottom: 8, padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 600, color: C.text }}>{drill.name}</p>
+                      {isApproved && <span style={{ fontSize: 9, fontWeight: 700, background: C.successGlow, color: C.success, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.success}33` }}>APPROVED ✓</span>}
+                      {isPending && <span style={{ fontSize: 9, fontWeight: 700, background: C.accentGlow, color: C.accent, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.accent}33` }}>PENDING</span>}
+                      {isRejected && <span style={{ fontSize: 9, fontWeight: 700, background: "rgba(239,68,68,0.1)", color: C.danger, padding: "2px 8px", borderRadius: 4, border: `1px solid ${C.danger}33` }}>TRY AGAIN</span>}
+                    </div>
+                    {drill.description && <p style={{ fontSize: 12, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>{drill.description}</p>}
+                  </div>
+                </div>
+                {drill.demo_video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DEMO</p><VideoPlayer url={drill.demo_video_url} /></div>}
+                {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
+                {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
+                {!isApproved && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={videoUrls[drill.id] || ""} onChange={e => setVideoUrls({ ...videoUrls, [drill.id]: e.target.value })} placeholder="Paste your YouTube/Vimeo link..." style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", color: C.text, fontSize: 12, outline: "none", fontFamily: FONTS }} />
+                    <button onClick={() => submitVideo(drill.id)} disabled={!videoUrls[drill.id] || submitting === drill.id} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, fontWeight: 600, cursor: videoUrls[drill.id] ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrls[drill.id] ? 1 : 0.5, whiteSpace: "nowrap" }}>{sub ? "Resubmit" : "Submit"}</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// ADMIN: LEVEL UP MANAGEMENT
+// ============================================================
+function AdminLevelUp({ token }) {
+  const [belt, setBelt] = useState("white");
+  const [drills, setDrills] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [profiles, setProfiles] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [flash, setFlash] = useState("");
+  const showFlash = (msg) => { setFlash(msg); setTimeout(() => setFlash(""), 2000); };
+  const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "8px 12px", color: "#fff", fontSize: 13, outline: "none", fontFamily: FONTS };
+
+  const loadDrills = useCallback(async () => {
+    try {
+      const d = await supabase.from("levelup_drills")._token(token).select("*", `&belt_id=eq.${belt}&order=sort_order`);
+      setDrills(d);
+    } catch(e) {}
+  }, [token, belt]);
+
+  const loadSubmissions = useCallback(async () => {
+    try {
+      const s = await supabase.from("levelup_submissions")._token(token).select("*", "&order=created_at.desc");
+      setSubmissions(s);
+      const p = await supabase.from("profiles")._token(token).select("id,full_name,belt_id,email", "&role=eq.student");
+      const map = {}; p.forEach(pr => map[pr.id] = pr); setProfiles(map);
+    } catch(e) {}
+  }, [token]);
+
+  useEffect(() => { loadDrills(); setLoading(false); }, [belt, loadDrills]);
+  useEffect(() => { loadSubmissions(); }, [loadSubmissions]);
+
+  const addDrill = async () => {
+    setSaving(true);
+    try {
+      await supabase.from("levelup_drills")._token(token).insert({ belt_id: belt, category: "General", name: "New Drill", sort_order: drills.length });
+      await loadDrills(); showFlash("Drill added!");
+    } catch(e) { showFlash("Error: " + e.message); }
+    setSaving(false);
+  };
+
+  const updateDrill = async (id, field, value) => {
+    try { await supabase.from("levelup_drills")._token(token).update({ [field]: value }, { id }); } catch(e) {}
+  };
+
+  const deleteDrill = async (id) => {
+    setSaving(true);
+    try { await supabase.from("levelup_drills")._token(token).delete({ id }); await loadDrills(); showFlash("Deleted."); } catch(e) { showFlash("Error"); }
+    setSaving(false);
+  };
+
+  const reviewSubmission = async (id, status, note) => {
+    try {
+      await supabase.from("levelup_submissions")._token(token).update({ status, admin_note: note || "" }, { id });
+      await loadSubmissions(); showFlash(status === "approved" ? "Approved!" : "Rejected.");
+    } catch(e) {}
+  };
+
+  const pendingSubs = submissions.filter(s => s.status === "pending");
+
+  return (
+    <div>
+      {flash && <div style={{ background: "#16A34A22", border: "1px solid #16A34A44", borderRadius: 10, padding: "8px 14px", marginBottom: 14, color: "#22C55E", fontSize: 13 }}>{flash}</div>}
+
+      {/* Pending submissions */}
+      {pendingSubs.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 1, marginBottom: 14 }}>🔥 PENDING SUBMISSIONS <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8 }}>{pendingSubs.length}</span></h3>
+          {pendingSubs.map(sub => {
+            const student = profiles[sub.student_id];
+            const drill = drills.find(d => d.id === sub.drill_id) || {};
+            return (
+              <div key={sub.id} style={{ background: "#141414", borderRadius: 14, border: "1px solid #222", padding: 16, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <div>
+                    <p style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 600 }}>{student?.full_name || student?.email || "Unknown"}</p>
+                    <p style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Drill: {drill.name || "Unknown"} · {new Date(sub.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <BeltBadge beltId={student?.belt_id || "white"} size="sm" />
+                </div>
+                <div style={{ borderRadius: 10, overflow: "hidden", marginBottom: 10 }}><VideoPlayer url={sub.video_url} /></div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => reviewSubmission(sub.id, "approved", "")} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>APPROVE ✓</button>
+                  <button onClick={() => { const note = prompt("Feedback for student (optional):"); reviewSubmission(sub.id, "rejected", note || ""); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 16px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>REJECT ✗</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Drill editor by belt */}
+      <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 1, marginBottom: 14 }}>LEVEL UP DRILLS</h3>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        {BELT_LEVELS.filter(b => b.id !== "black").map(b => (
+          <button key={b.id} onClick={() => setBelt(b.id)} style={{ background: belt === b.id ? b.color : "#141414", color: belt === b.id ? (b.id === "white" ? "#333" : "#fff") : "#888", border: belt === b.id ? "none" : "1px solid #333", borderRadius: 8, padding: "7px 14px", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{b.name.toUpperCase()}</button>
+        ))}
+      </div>
+
+      <button onClick={addDrill} disabled={saving} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600, marginBottom: 16 }}>+ ADD DRILL</button>
+
+      {drills.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 32, color: "#555" }}><p>No drills for this belt yet. Add some!</p></div>
+      ) : drills.map(d => (
+        <div key={d.id} style={{ background: "#141414", borderRadius: 12, padding: 16, border: "1px solid #222", marginBottom: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+            <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DRILL NAME</label><input defaultValue={d.name} onBlur={e => updateDrill(d.id, "name", e.target.value)} style={inp} /></div>
+            <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CATEGORY</label><input defaultValue={d.category} onBlur={e => updateDrill(d.id, "category", e.target.value)} style={inp} /></div>
+          </div>
+          <div style={{ marginBottom: 8 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea defaultValue={d.description} onBlur={e => updateDrill(d.id, "description", e.target.value)} style={{ ...inp, minHeight: 60 }} /></div>
+          <div style={{ marginBottom: 8 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input defaultValue={d.demo_video_url} onBlur={e => updateDrill(d.id, "demo_video_url", e.target.value)} style={inp} placeholder="https://youtube.com/watch?v=..." /></div>
+          <button onClick={() => deleteDrill(d.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 14px", color: "#ff4444", fontFamily: F, fontSize: 10, cursor: "pointer" }}>DELETE</button>
+        </div>
+      ))}
     </div>
   );
 }
