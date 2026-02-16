@@ -1305,6 +1305,10 @@ function Admin({ token }) {
               <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
               <textarea value={libForm.instructions} onChange={e => setLibForm({ ...libForm, instructions: e.target.value })} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="How to perform this exercise..." />
             </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>IMAGE URL</label>
+              <input value={libForm.image_url || ""} onChange={e => setLibForm({ ...libForm, image_url: e.target.value })} style={inp} placeholder="https://i.imgur.com/... or any image URL" />
+            </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={saveLibItem} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button>
               <button onClick={() => { setLibEditing(null); setLibNew(false); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button>
