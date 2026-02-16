@@ -515,9 +515,7 @@ function StudentChallenges({ token, profile }) {
 
   const deadlineStr = challenge.deadline ? new Date(challenge.deadline + "T23:59:59").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : null;
   const isExpired = challenge.deadline ? new Date(challenge.deadline + "T23:59:59") < new Date() : false;
-  const mailSubject = encodeURIComponent("Challenge Submission - " + profile.full_name);
-  const mailBody = encodeURIComponent("Hi Coach!\n\nHere is my video.\n\nPlayer: " + profile.full_name);
-  const mailLink = "mailto:" + (challenge.submission_email || SUBMISSION_EMAIL) + "?subject=" + mailSubject + "&body=" + mailBody;
+
 
   return (
     <div className="fade-in">
@@ -534,9 +532,7 @@ function StudentChallenges({ token, profile }) {
       {challenge.description && (<div style={{ background: C.surface, borderRadius: 16, padding: 20, border: `1px solid ${C.border}`, marginBottom: 14 }}><p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{challenge.description}</p></div>)}
       {challenge.video_url && (<div style={{ marginBottom: 14 }}><VideoPlayer url={challenge.video_url} /></div>)}
 
-      {!isExpired && (
-        <a href={mailLink} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: `linear-gradient(135deg, ${C.success}, #16A34A)`, borderRadius: 14, padding: "14px 24px", textDecoration: "none", marginBottom: 28 }}><span>📧</span><span style={{ fontFamily: DISPLAY, fontSize: 14, color: "#fff", fontWeight: 700 }}>Email Your Video</span></a>
-      )}
+
 
       {/* #11 Social submissions */}
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginTop: 8 }}>
@@ -677,6 +673,41 @@ function LibrarySearch({ token, onAdd, onClose }) {
 // ============================================================
 // ADMIN PANEL
 // ============================================================
+function AdminSubmissions({ token }) {
+  const [subs, setSubs] = useState([]);
+  const [profiles, setProfiles] = useState({});
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const allSubs = await supabase.from("challenge_submissions")._token(token).select("*", "&order=created_at.desc");
+        setSubs(allSubs);
+        const profs = await supabase.from("profiles")._token(token).select("id,full_name,belt_id", "&role=eq.student");
+        const map = {}; profs.forEach(p => map[p.id] = p); setProfiles(map);
+      } catch(e){}
+      setLoading(false);
+    })();
+  }, [token]);
+  const deleteSub = async (id) => {
+    try { await supabase.from("challenge_submissions")._token(token).delete({ id }); setSubs(subs.filter(s => s.id !== id)); } catch(e){}
+  };
+  if (loading) return <p style={{ color: "#555", fontSize: 12 }}>Loading submissions...</p>;
+  if (subs.length === 0) return <p style={{ color: "#555", fontSize: 12 }}>No submissions yet.</p>;
+  return subs.map(s => {
+    const author = profiles[s.student_id];
+    return (
+      <div key={s.id} style={{ background: "#0a0a0a", borderRadius: 10, border: "1px solid #222", marginBottom: 8, padding: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div><span style={{ fontFamily: F, fontSize: 13, color: "#fff", fontWeight: 600 }}>{author?.full_name || "Unknown"}</span><span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>{new Date(s.created_at).toLocaleDateString()}</span></div>
+          <button onClick={() => deleteSub(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "3px 10px", color: "#ff4444", fontSize: 10, cursor: "pointer", fontFamily: F }}>DELETE</button>
+        </div>
+        <div style={{ borderRadius: 10, overflow: "hidden" }}><VideoPlayer url={s.video_url} /></div>
+        {s.caption && <p style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{s.caption}</p>}
+      </div>
+    );
+  });
+}
+
 function Admin({ token }) {
   const [tab, setTab] = useState("workouts");
   const [belt, setBelt] = useState("white");
@@ -753,6 +784,18 @@ function Admin({ token }) {
   };
 
   // -- Workout CRUD --
+  const duplicateWorkout = async (sourceId) => { setSaving(true); try {
+    const src = workouts.find(w => w.id === sourceId); if (!src) return;
+    const newW = await supabase.from("workouts")._token(token).insert({ belt_id: belt, name: src.name + " (Copy)", sort_order: workouts.length });
+    const wid = newW[0].id;
+    for (const cat of (src.cats || [])) {
+      const newC = await supabase.from("categories")._token(token).insert({ workout_id: wid, name: cat.name, sort_order: cat.sort_order });
+      for (const ex of (cat.exercises || [])) {
+        await supabase.from("exercises")._token(token).insert({ category_id: newC[0].id, name: ex.name, video_url: ex.video_url || "", sets: ex.sets, reps: ex.reps, rest_seconds: ex.rest_seconds, instructions: ex.instructions || "", sort_order: ex.sort_order, is_challenge: ex.is_challenge || false, superset_group: ex.superset_group || "" });
+      }
+    }
+    await loadWorkouts(); flash("Workout duplicated!");
+  } catch(e) { flash("Error: " + e.message); } setSaving(false); };
   const addWorkout = async () => { setSaving(true); try { await supabase.from("workouts")._token(token).insert({ belt_id: belt, name: `Workout ${workouts.length + 1}`, sort_order: workouts.length }); await loadWorkouts(); flash("Workout added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const deleteWorkout = async (id) => { setSaving(true); try { await supabase.from("workouts")._token(token).delete({ id }); if (editing?.id === id) setEditing(null); await loadWorkouts(); flash("Workout deleted."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const saveWorkoutName = async (id, name) => { try { await supabase.from("workouts")._token(token).update({ name }, { id }); } catch (e) { console.error(e); } };
@@ -800,6 +843,7 @@ function Admin({ token }) {
 
   // -- Student CRUD --
   const addStudent = async () => { if (!ns.name || !ns.email || !ns.password) return; setSaving(true); try { await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId }); setNs({ name: "", email: "", password: "", beltId: "white" }); setShowAdd(false); await loadStudents(); flash("Student added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const demoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci <= 0) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci - 1].id }, { id: student.id }); await loadStudents(); flash("Demoted."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const promoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci >= BELT_LEVELS.length - 1) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci + 1].id }, { id: student.id }); await loadStudents(); flash("Student promoted!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const deleteStudent = async (id) => { setSaving(true); try { await supabase.from("profiles")._token(token).delete({ id }); await loadStudents(); flash("Student removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
 
@@ -884,6 +928,7 @@ function Admin({ token }) {
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => setEditing(w)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
+                  <button onClick={() => duplicateWorkout(w.id)} style={{ background: "#3B82F6", border: "none", borderRadius: 8, padding: "7px 12px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>COPY</button>
                   <button onClick={() => deleteWorkout(w.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 12px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
                 </div>
               </div>
@@ -1059,6 +1104,11 @@ function Admin({ token }) {
             <div style={{ display: "flex", gap: 6 }}><button onClick={saveChallenge} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setChalEditing(null);setChalNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
           </div>
         )}
+        {/* Submissions viewer */}
+        <div style={{ marginTop: 24, marginBottom: 24 }}>
+          <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", letterSpacing: 1, marginBottom: 12 }}>STUDENT SUBMISSIONS</h3>
+          <AdminSubmissions token={token} />
+        </div>
         {challenges.length===0 ? (<div style={{ textAlign: "center", padding: 40, color: "#555" }}><p style={{ fontSize: 36, marginBottom: 10 }}>🏆</p><p>No challenges yet.</p></div>) : challenges.map(c=>(<div key={c.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: c.active ? "2px solid #FF6D00" : "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{c.title}</p>{c.active && <span style={{ background: "#FF6D00", color: "#fff", fontFamily: F, fontSize: 9, padding: "2px 8px", borderRadius: 4, letterSpacing: 1 }}>ACTIVE</span>}</div><p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{c.deadline ? "Due " + new Date(c.deadline+"T12:00:00").toLocaleDateString() : "No deadline"}</p></div><div style={{ display: "flex", gap: 6 }}><button onClick={()=>startEditChal(c)} style={{ background: "#222", border: "none", borderRadius: 6, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>EDIT</button><button onClick={()=>deleteChallenge(c.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>DEL</button></div></div>))}
       </>}
 
@@ -1084,7 +1134,7 @@ function Admin({ token }) {
           </div>
         )}
         {students.map(s => {
-          const sb = BELT_LEVELS.find(b => b.id === s.belt_id);
+          const sb = BELT_LEVELS.find(b => b.id === s.belt_id) || BELT_LEVELS[0];
           return (
             <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1097,6 +1147,7 @@ function Admin({ token }) {
                   <span style={{ fontFamily: F, fontSize: 10, color: sb.color, letterSpacing: 1 }}>{sb.name.toUpperCase()}</span>
                 </div>
                 {s.belt_id !== "black" && <button onClick={() => promoteStudent(s)} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>PROMOTE ↑</button>}
+                {s.belt_id !== "white" && <button onClick={() => demoteStudent(s)} disabled={saving} style={{ background: "#F59E0B", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>DEMOTE ↓</button>}
                 <button onClick={() => deleteStudent(s.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>REMOVE</button>
               </div>
             </div>
