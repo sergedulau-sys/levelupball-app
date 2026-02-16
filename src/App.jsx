@@ -526,7 +526,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
               const isChallenge = ex.is_challenge;
               // #5 get previous result for challenge exercise
               const prevResult = isChallenge ? challengeResults.find(r => r.exercise_id === ex.id) : null;
-              const showRest = !isSuperset || ei === group.exercises.length - 1;
+              const showRest = !ex.superset_group || ei === group.exercises.length - 1;
               return (
                 <div key={ex.id} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${isChallenge ? C.challenge + "44" : done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
                   <div onClick={() => setExpanded(open ? null : ex.id)} style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
