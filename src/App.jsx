@@ -984,7 +984,7 @@ function Admin({ token }) {
   const [libLoading, setLibLoading] = useState(true);
   const [libEditing, setLibEditing] = useState(null);
   const [libNew, setLibNew] = useState(false);
-  const [libForm, setLibForm] = useState({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "" });
+  const [libForm, setLibForm] = useState({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "", image_url: "" });
   const [libSearch, setLibSearch] = useState("");
   // Library search modal for workout editor
   const [showLibSearch, setShowLibSearch] = useState(null);
@@ -1051,7 +1051,7 @@ function Admin({ token }) {
     for (const cat of (src.cats || [])) {
       const newC = await supabase.from("categories")._token(token).insert({ workout_id: wid, name: cat.name, sort_order: cat.sort_order });
       for (const ex of (cat.exercises || [])) {
-        await supabase.from("exercises")._token(token).insert({ category_id: newC[0].id, name: ex.name, video_url: ex.video_url || "", sets: ex.sets, reps: ex.reps, rest_seconds: ex.rest_seconds, instructions: ex.instructions || "", sort_order: ex.sort_order, is_challenge: ex.is_challenge || false, superset_group: ex.superset_group || "" });
+        await supabase.from("exercises")._token(token).insert({ category_id: newC[0].id, name: ex.name, video_url: ex.video_url || "", sets: ex.sets, reps: ex.reps, rest_seconds: ex.rest_seconds, instructions: ex.instructions || "", image_url: ex.image_url || "", sort_order: ex.sort_order, is_challenge: ex.is_challenge || false, superset_group: ex.superset_group || "" });
       }
     }
     await loadWorkouts(); flash("Workout duplicated!");
@@ -1120,7 +1120,7 @@ function Admin({ token }) {
         flash("Exercise added to library!");
       }
       setLibEditing(null); setLibNew(false);
-      setLibForm({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "" });
+      setLibForm({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "", image_url: "" });
       await loadLibrary();
     } catch (e) { flash("Error: " + e.message); }
     setSaving(false);
@@ -1130,12 +1130,12 @@ function Admin({ token }) {
 
   const startEditLib = (item) => {
     setLibEditing(item); setLibNew(false);
-    setLibForm({ name: item.name, category: item.category, video_url: item.video_url || "", default_sets: item.default_sets, default_reps: item.default_reps, default_rest_seconds: item.default_rest_seconds, instructions: item.instructions || "" });
+    setLibForm({ name: item.name, category: item.category, video_url: item.video_url || "", default_sets: item.default_sets, default_reps: item.default_reps, default_rest_seconds: item.default_rest_seconds, instructions: item.instructions || "", image_url: item.image_url || "" });
   };
 
   const startNewLib = () => {
     setLibNew(true); setLibEditing(null);
-    setLibForm({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "" });
+    setLibForm({ name: "", category: "", video_url: "", default_sets: 0, default_reps: 0, default_rest_seconds: 0, instructions: "", image_url: "" });
   };
 
   // Library grouped + filtered
