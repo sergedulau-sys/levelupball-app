@@ -309,7 +309,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
           <button onClick={() => onSelectWorkout(nextWorkout)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${C.accent}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextWorkout.name.replace("Workout ", "")}</div>
-              <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700 }}>{nextWorkout.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
+              <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>{nextWorkout.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
             </div>
             <span style={{ color: C.accent, fontSize: 20 }}>→</span>
           </button>
@@ -543,12 +543,19 @@ function StudentChallenges({ token, profile }) {
         <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>
 
         {/* Submit form */}
-        {!isExpired && (
+        {!isExpired && !submissions.find(s => s.student_id === profile.id) && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 10 }}>Share your attempt</p>
             <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="Paste YouTube/Vimeo link..." style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.text, fontSize: 13, outline: "none", fontFamily: FONTS, marginBottom: 8 }} />
             <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Add a caption (optional)" style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.text, fontSize: 13, outline: "none", fontFamily: FONTS, marginBottom: 10 }} />
             <button onClick={submitVideo} disabled={!videoUrl || submitting} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12, fontWeight: 600, cursor: videoUrl ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrl ? 1 : 0.5 }}>{submitting ? "Posting..." : "Post"}</button>
+          </div>
+        )}
+
+        {!isExpired && submissions.find(s => s.student_id === profile.id) && (
+          <div style={{ background: C.successGlow, borderRadius: 12, padding: "12px 16px", marginBottom: 16, border: `1px solid ${C.success}33`, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: C.success, fontWeight: 700 }}>✓</span>
+            <span style={{ fontSize: 13, color: C.success }}>You've submitted your video!</span>
           </div>
         )}
 
@@ -866,7 +873,7 @@ function Admin({ token }) {
             <button key={b.id} onClick={() => { setBelt(b.id); setEditing(null); }} style={{ background: belt === b.id ? b.color : "#141414", color: belt === b.id ? b.tc : "#888", border: belt === b.id ? "none" : "1px solid #333", borderRadius: 8, padding: "7px 16px", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{b.name.toUpperCase()}</button>
           ))}
         </div>
-        {loading ? <LoadingScreen message="Loading workouts..." /> : !editing ? <>
+        {loading ? <div style={{ textAlign: "center", padding: 40, color: "#888" }}>Loading workouts...</div/> : !editing ? <>
           {workouts.map(w => {
             const ec = (w.cats || []).reduce((s, c) => s + (c.exercises || []).length, 0);
             return (
