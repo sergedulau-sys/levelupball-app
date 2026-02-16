@@ -58,11 +58,11 @@ const supabase = {
 // DESIGN SYSTEM — #1 updated belts, #8 branding
 // ============================================================
 const BELT_LEVELS = [
-  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, weeks: 3, workoutsNeeded: 9, code: "WHITE2026" },
-  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, weeks: 4, workoutsNeeded: 12, code: "BLUE2026" },
-  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, weeks: 5, workoutsNeeded: 15, code: "PURPLE2026" },
-  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, weeks: 6, workoutsNeeded: 18, code: "BROWN2026" },
-  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, weeks: 0, workoutsNeeded: 0, code: "BLACK2026" },
+  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, code: "WHITE2026" },
+  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1200, code: "BLUE2026" },
+  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 1400, code: "PURPLE2026" },
+  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 1600, code: "BROWN2026" },
+  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, code: "BLACK2026" },
 ];
 
 const C = {
@@ -336,12 +336,13 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  // #6 Progress: workouts completed for this belt
+  // XP system
   const wDone = bw.filter(w => completedWorkoutIds.has(w.id)).length;
-  const needed = belt.workoutsNeeded || 9;
-  const totalWeeks = belt.weeks || 3;
-  const currentWeek = wDone < Math.ceil(needed / 3) ? 1 : wDone < Math.ceil(needed * 2 / 3) ? 2 : totalWeeks;
-  const beltPct = needed > 0 ? Math.min(100, Math.round((wDone / needed) * 100)) : 100;
+  const xpPerWorkout = belt.xpPerWorkout || 200;
+  const xpGoal = belt.xpGoal || 1000;
+  const currentXp = wDone * xpPerWorkout;
+  const xpPct = xpGoal > 0 ? Math.min(100, Math.round((currentXp / xpGoal) * 100)) : 100;
+  const xpUnlocked = currentXp >= xpGoal;
 
   // #10 Next workout = first incomplete
   const nextWorkout = bw.find(w => !completedWorkoutIds.has(w.id));
@@ -360,20 +361,24 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-        {/* #6 Belt progress */}
+        {/* XP Progress */}
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: C.accentGlow, filter: "blur(30px)" }} />
+          <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: xpUnlocked ? C.successGlow : C.accentGlow, filter: "blur(30px)" }} />
           <div style={{ position: "relative" }}>
-            <p style={{ fontSize: 12, fontWeight: 500, color: C.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Belt Progress</p>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-              <div>
-                <p style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{beltPct}<span style={{ fontSize: 16, color: C.textDim }}>%</span></p>
-                <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Week {currentWeek} of {totalWeeks}</p>
+            <p style={{ fontSize: 12, fontWeight: 500, color: C.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>XP to Level Up</p>
+            {xpUnlocked ? (
+              <div><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.success, lineHeight: 1.2 }}>UNLOCKED! 🔥</p><p style={{ fontSize: 11, color: C.success, marginTop: 4 }}>You can now apply to level up</p></div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                  <p style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{currentXp}<span style={{ fontSize: 14, color: C.textDim }}>/{xpGoal} XP</span></p>
+                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{xpGoal - currentXp} XP until Level Up</p>
+                </div>
+                <ProgressRing percent={xpPct} size={52} color={xpPct >= 100 ? C.success : C.accent} />
               </div>
-              <ProgressRing percent={beltPct} size={52} />
-            </div>
-            <div style={{ height: 4, background: C.border, borderRadius: 2, marginTop: 14 }}><div style={{ height: "100%", width: `${beltPct}%`, background: `linear-gradient(90deg, ${C.accent}, ${C.accentLight})`, borderRadius: 2, transition: "width 0.8s" }} /></div>
-            <p style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>Workout {wDone} of {needed}</p>
+            )}
+            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 14 }}><div style={{ height: "100%", width: `${xpPct}%`, background: xpUnlocked ? `linear-gradient(90deg, ${C.success}, #4ADE80)` : `linear-gradient(90deg, ${C.accent}, ${C.accentLight})`, borderRadius: 3, transition: "width 0.8s" }} /></div>
+            <p style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>{wDone} workouts completed · {xpPerWorkout} XP each</p>
           </div>
         </div>
 
@@ -390,7 +395,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
           <p style={{ fontSize: 12, fontWeight: 500, color: C.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Workouts</p>
           <p style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{wDone}<span style={{ fontSize: 16, color: C.textDim }}>/{bw.length}</span></p>
-          <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>completed</p>
+          <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>+{currentXp} XP earned</p>
         </div>
       </div>
 
@@ -504,7 +509,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
                           {isChallenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
                         </div>
-                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, !ex.hide_rest && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
+                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, ex.time_seconds > 0 && !ex.hide_time && `${ex.time_seconds}s`, !ex.hide_rest && !ex.superset_group && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
                       </div>
                     </div>
                     <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
@@ -514,7 +519,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                       <VideoPlayer url={ex.video_url} />
                       {ex.instructions && (<div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instructions</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.instructions}</p></div>)}
                       <div style={{ display: "grid", gridTemplateColumns: `repeat(${[!ex.hide_sets, !ex.hide_reps, ex.time_seconds > 0, !ex.hide_rest].filter(Boolean).length}, 1fr)`, gap: 8, marginTop: 10 }}>
-                        {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], !ex.hide_rest && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
+                        {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.reps], ex.time_seconds > 0 && !ex.hide_time && ["Time", ex.time_seconds + "s"], !ex.hide_rest && !ex.superset_group && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
                       </div>
                       {/* #5 Challenge exercise input */}
                       {isChallenge && (
@@ -527,13 +532,14 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                           </div>
                         </div>
                       )}
-                      {ex.time_seconds > 0 && (
+                      {ex.time_seconds > 0 && !ex.hide_time && (
                         <div style={{ marginTop: 10 }}>
                           <p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DRILL TIMER</p>
                           <RestTimer seconds={ex.time_seconds} />
                         </div>
                       )}
                       {showRest && !ex.hide_rest && <RestTimer seconds={ex.rest_seconds} />}
+                      {!showRest && !ex.hide_rest && ex.superset_group && <div style={{ height: 1, background: C.border, margin: "4px 0" }} />}
                     </div>
                   )}
                 </div>
@@ -1197,12 +1203,16 @@ function Admin({ token }) {
                     <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_sets} onChange={e => saveExercise(ex.id, "hide_sets", e.target.checked)} /> Hide Sets</label>
                     <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_reps} onChange={e => saveExercise(ex.id, "hide_reps", e.target.checked)} /> Hide Reps</label>
                     <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_rest} onChange={e => saveExercise(ex.id, "hide_rest", e.target.checked)} /> Hide Rest</label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_time} onChange={e => saveExercise(ex.id, "hide_time", e.target.checked)} /> Hide Time</label>
                   </div>
                   <div>
-                    <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+                    <div style={{ display: "flex", gap: 12, marginBottom: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => saveExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Exercise</label>
-                      <div style={{ flex: 1 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUPERSET GROUP</label><input defaultValue={ex.superset_group || ""} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none" }} placeholder="e.g. A" /></div>
-                      <div style={{ width: 80 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SS ROUNDS</label><input type="number" defaultValue={ex.superset_rounds || 1} onBlur={e => saveExercise(ex.id, "superset_rounds", parseInt(e.target.value) || 1)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} min="1" /></div>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer" }}><input type="checkbox" checked={!!ex.superset_group} onChange={e => saveExercise(ex.id, "superset_group", e.target.checked ? "A" : "")} style={{ width: 16, height: 16 }} /> Superset</label>
+                      {ex.superset_group && <>
+                        <div style={{ width: 60 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>GROUP</label><input defaultValue={ex.superset_group} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} placeholder="A" /></div>
+                        <div style={{ width: 70 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>ROUNDS</label><input type="number" defaultValue={ex.superset_rounds || 1} onBlur={e => saveExercise(ex.id, "superset_rounds", parseInt(e.target.value) || 1)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} min="1" /></div>
+                      </>}
                     </div>
                     <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
                     <textarea defaultValue={ex.instructions} onBlur={e => saveExercise(ex.id, "instructions", e.target.value)} onChange={e => debouncedSave(`einst-${ex.id}`, () => saveExercise(ex.id, "instructions", e.target.value))} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="Simple instructions..." />
@@ -1552,7 +1562,7 @@ function StudentLayout({ profile, token, onLogout }) {
           ) : activeTab === "resources" ? (
             <StudentResources token={token} />
           ) : activeTab === "levelup" ? (
-            <StudentLevelUp token={token} profile={profile} />
+            <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} />
           ) : activeTab === "messages" ? (
             <StudentMessages token={token} profile={profile} />
           ) : null}
@@ -1612,7 +1622,7 @@ export default function LevelUpBallApp() {
 // ============================================================
 // STUDENT: LEVEL UP
 // ============================================================
-function StudentLevelUp({ token, profile }) {
+function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), workoutsData = [] }) {
   const [drills, setDrills] = useState([]);
   const [submissions, setSubmissions] = useState({});
   const [loading, setLoading] = useState(true);
@@ -1620,6 +1630,10 @@ function StudentLevelUp({ token, profile }) {
   const [submitting, setSubmitting] = useState(null);
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
   const nextBelt = BELT_LEVELS.find(b => b.level === belt.level + 1);
+  const wDone = workoutsData.filter(w => completedWorkoutIds.has(w.id)).length;
+  const currentXp = wDone * (belt.xpPerWorkout || 200);
+  const xpGoal = belt.xpGoal || 1000;
+  const xpUnlocked = currentXp >= xpGoal;
 
   useEffect(() => {
     (async () => {
@@ -1675,7 +1689,7 @@ function StudentLevelUp({ token, profile }) {
           </div>
           <div style={{ textAlign: "right" }}>
             <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>{Object.keys(submissions).filter(k => submissions[k]?.status === "approved").length}/{drills.length} approved</p>
-            <p style={{ fontSize: 11, color: C.textDim }}>{allApproved ? "Ready for promotion! 🎉" : allSubmitted ? "Waiting for coach review..." : "Submit your videos"}</p>
+            <p style={{ fontSize: 11, color: C.textDim }}>{allApproved ? "Ready for promotion! 🎉" : !xpUnlocked ? `${currentXp}/${xpGoal} XP — keep training!` : allSubmitted ? "Waiting for coach review..." : "Submit your videos"}</p>
           </div>
         </div>
       )}
@@ -1713,10 +1727,15 @@ function StudentLevelUp({ token, profile }) {
                 {drill.demo_video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DEMO</p><VideoPlayer url={drill.demo_video_url} /></div>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
-                {!isApproved && (
+                {!isApproved && xpUnlocked && (
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={videoUrls[drill.id] || ""} onChange={e => setVideoUrls({ ...videoUrls, [drill.id]: e.target.value })} placeholder="Paste your YouTube/Vimeo link..." style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", color: C.text, fontSize: 12, outline: "none", fontFamily: FONTS }} />
                     <button onClick={() => submitVideo(drill.id)} disabled={!videoUrls[drill.id] || submitting === drill.id} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, fontWeight: 600, cursor: videoUrls[drill.id] ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrls[drill.id] ? 1 : 0.5, whiteSpace: "nowrap" }}>{sub ? "Resubmit" : "Submit"}</button>
+                  </div>
+                )}
+                {!isApproved && !xpUnlocked && (
+                  <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
+                    <p style={{ fontSize: 12, color: C.textDim }}>🔒 Earn {xpGoal - currentXp} more XP to unlock submissions</p>
                   </div>
                 )}
               </div>
