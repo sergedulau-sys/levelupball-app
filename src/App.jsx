@@ -483,6 +483,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, marginLeft: 4 }}>
               <div style={{ width: 18, height: 18, borderRadius: 4, background: `${C.accent}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.accent }}>⚡</div>
               <span style={{ fontSize: 11, fontWeight: 600, color: C.accent, letterSpacing: 0.5, textTransform: "uppercase" }}>Superset</span>
+              {group.exercises[0]?.superset_rounds > 1 && <span style={{ fontSize: 10, fontWeight: 700, background: C.accentGlow, color: C.accent, padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.accent}33` }}>×{group.exercises[0].superset_rounds} rounds</span>}
             </div>
           )}
           <div style={isSuperset ? { borderLeft: `2px solid ${C.accent}44`, paddingLeft: 12, marginLeft: 8 } : {}}>
@@ -503,7 +504,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
                           {isChallenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
                         </div>
-                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{ex.sets}×{ex.reps} · {ex.rest_seconds}s rest</p>
+                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, !ex.hide_rest && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
                       </div>
                     </div>
                     <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
@@ -512,8 +513,8 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                     <div style={{ padding: "0 16px 14px" }} className="fade-in">
                       <VideoPlayer url={ex.video_url} />
                       {ex.instructions && (<div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instructions</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.instructions}</p></div>)}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
-                        {[["Sets", ex.sets], ["Reps", ex.reps], ["Rest", ex.rest_seconds + "s"]].map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
+                      <div style={{ display: "grid", gridTemplateColumns: `repeat(${[!ex.hide_sets, !ex.hide_reps, ex.time_seconds > 0, !ex.hide_rest].filter(Boolean).length}, 1fr)`, gap: 8, marginTop: 10 }}>
+                        {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], !ex.hide_rest && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
                       </div>
                       {/* #5 Challenge exercise input */}
                       {isChallenge && (
@@ -526,7 +527,13 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                           </div>
                         </div>
                       )}
-                      {showRest && <RestTimer seconds={ex.rest_seconds} />}
+                      {ex.time_seconds > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DRILL TIMER</p>
+                          <RestTimer seconds={ex.time_seconds} />
+                        </div>
+                      )}
+                      {showRest && !ex.hide_rest && <RestTimer seconds={ex.rest_seconds} />}
                     </div>
                   )}
                 </div>
@@ -1190,6 +1197,7 @@ function Admin({ token }) {
                     <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
                       <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => saveExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Exercise</label>
                       <div style={{ flex: 1 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUPERSET GROUP</label><input defaultValue={ex.superset_group || ""} onBlur={e => saveExercise(ex.id, "superset_group", e.target.value)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none" }} placeholder="e.g. A" /></div>
+                      <div style={{ width: 80 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SS ROUNDS</label><input type="number" defaultValue={ex.superset_rounds || 1} onBlur={e => saveExercise(ex.id, "superset_rounds", parseInt(e.target.value) || 1)} style={{ width: "100%", background: "#0a0a0a", border: "1px solid #333", borderRadius: 8, padding: "6px 10px", color: "#fff", fontSize: 12, outline: "none", textAlign: "center" }} min="1" /></div>
                     </div>
                     <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>INSTRUCTIONS</label>
                     <textarea defaultValue={ex.instructions} onBlur={e => saveExercise(ex.id, "instructions", e.target.value)} onChange={e => debouncedSave(`einst-${ex.id}`, () => saveExercise(ex.id, "instructions", e.target.value))} style={{ ...inp, minHeight: 50, resize: "vertical" }} placeholder="Simple instructions..." />
