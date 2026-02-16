@@ -1185,13 +1185,18 @@ function Admin({ token }) {
                     <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (YouTube / Vimeo)</label>
                     <input defaultValue={ex.video_url} onBlur={e => saveExercise(ex.id, "video_url", e.target.value)} onChange={e => debouncedSave(`evid-${ex.id}`, () => saveExercise(ex.id, "video_url", e.target.value))} style={inp} placeholder="https://youtube.com/watch?v=..." />
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
-                    {[["SETS", "sets"], ["REPS", "reps"], ["REST (sec)", "rest_seconds"]].map(([l, k]) => (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+                    {[["SETS", "sets"], ["REPS", "reps"], ["REST (sec)", "rest_seconds"], ["TIME (sec)", "time_seconds"]].map(([l, k]) => (
                       <div key={k}>
                         <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label>
-                        <input type="number" min={k === "rest_seconds" ? 0 : 1} defaultValue={ex[k]} onBlur={e => saveExercise(ex.id, k, parseInt(e.target.value) || 0)} onChange={e => debouncedSave(`e${k}-${ex.id}`, () => saveExercise(ex.id, k, parseInt(e.target.value) || 0))} style={sinp} />
+                        <input type="number" min={0} defaultValue={ex[k] || 0} onBlur={e => saveExercise(ex.id, k, parseInt(e.target.value) || 0)} onChange={e => debouncedSave(`e${k}-${ex.id}`, () => saveExercise(ex.id, k, parseInt(e.target.value) || 0))} style={sinp} />
                       </div>
                     ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_sets} onChange={e => saveExercise(ex.id, "hide_sets", e.target.checked)} /> Hide Sets</label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_reps} onChange={e => saveExercise(ex.id, "hide_reps", e.target.checked)} /> Hide Reps</label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_rest} onChange={e => saveExercise(ex.id, "hide_rest", e.target.checked)} /> Hide Rest</label>
                   </div>
                   <div>
                     <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
