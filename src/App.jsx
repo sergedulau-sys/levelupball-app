@@ -807,7 +807,7 @@ function Admin({ token }) {
             <button key={b.id} onClick={() => { setBelt(b.id); setEditing(null); }} style={{ background: belt === b.id ? b.color : "#141414", color: belt === b.id ? b.tc : "#888", border: belt === b.id ? "none" : "1px solid #333", borderRadius: 8, padding: "7px 16px", fontFamily: DISPLAY, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>{b.name.toUpperCase()}</button>
           ))}
         </div>
-        {loading ? <LoadingScreen message="Loading workouts..." /> : !editing ? <>
+        {loading ? <div style={{ textAlign: "center", padding: 40, color: C.textDim }}>Loading workouts...</div> : !editing ? <>
           {workouts.map(w => {
             const ec = (w.cats || []).reduce((s, c) => s + (c.exercises || []).length, 0);
             return (
