@@ -146,7 +146,7 @@ function VideoPlayer({ url }) {
   return <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: 16, overflow: "hidden", background: "#000" }}><iframe src={eu} style={{ width: "100%", height: "100%", border: "none" }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>;
 }
 
-function RestTimer({ seconds }) {
+function RestTimer({ seconds, label = "REST" }) {
   const [rem, setRem] = useState(seconds);
   const [on, setOn] = useState(false);
   const ref = useRef(null);
@@ -159,7 +159,7 @@ function RestTimer({ seconds }) {
         <svg width="48" height="48" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke={C.border} strokeWidth="3" /><circle cx="24" cy="24" r="20" fill="none" stroke={rem === 0 ? C.success : C.accent} strokeWidth="3" strokeDasharray={`${(pct/100)*125.6} 125.6`} strokeLinecap="round" transform="rotate(-90 24 24)" style={{ transition: "stroke-dasharray 0.5s" }} /></svg>
         <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, fontFamily: DISPLAY }}>{fmtTime(rem)}</span>
       </div>
-      <div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 4 }}>REST</div><div style={{ height: 4, background: C.border, borderRadius: 2 }}><div style={{ height: "100%", width: `${pct}%`, background: rem === 0 ? C.success : C.accent, borderRadius: 2, transition: "width 0.5s" }} /></div></div>
+      <div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 4 }}>{label}</div><div style={{ height: 4, background: C.border, borderRadius: 2 }}><div style={{ height: "100%", width: `${pct}%`, background: rem === 0 ? C.success : C.accent, borderRadius: 2, transition: "width 0.5s" }} /></div></div>
       <div style={{ display: "flex", gap: 6 }}>
         {!on && rem > 0 && <button onClick={() => setOn(true)} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Start</button>}
         {on && <button onClick={() => { setOn(false); clearInterval(ref.current); }} style={{ background: C.surfaceHover, color: C.text, border: `1px solid ${C.borderLight}`, borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Pause</button>}
@@ -561,12 +561,9 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                         </div>
                       )}
                       {ex.time_seconds > 0 && !ex.hide_time && (
-                        <div style={{ marginTop: 10 }}>
-                          <p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DRILL TIMER</p>
-                          <RestTimer seconds={ex.time_seconds} />
-                        </div>
+                        <RestTimer seconds={ex.time_seconds} label="DRILL TIMER" />
                       )}
-                      {showRest && !ex.hide_rest && <RestTimer seconds={ex.rest_seconds} />}
+                      {showRest && !ex.hide_rest && <RestTimer seconds={ex.rest_seconds} label="REST" />}
 
                     </div>
                   )}
