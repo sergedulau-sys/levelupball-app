@@ -245,8 +245,8 @@ function Login({ onLogin }) {
       <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)" }} />
       <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(${C.border} 1px, transparent 1px)`, backgroundSize: "24px 24px", opacity: 0.3 }} />
       <div className="fade-in" style={{ width: "100%", maxWidth: 420, position: "relative", zIndex: 1 }}>
-        <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <img src={LOGO_LG} alt="LevelUpBall" style={{ width: 400, height: 400, marginBottom: 20, marginTop: 20 }} />
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <img src={LOGO_LG} alt="LevelUpBall" style={{ width: 400, height: 400, marginBottom: -100, marginTop: 20 }} />
           <h1 style={{ fontFamily: DISPLAY, fontSize: 36, fontWeight: 800, letterSpacing: -0.5 }}>Level<span style={{ color: C.accent }}>Up</span>Ball</h1>
           <p style={{ color: C.textDim, fontSize: 14, marginTop: 8 }}>{mode === 'signup' ? 'Create your player account' : 'Your basketball training platform'}</p>
         </div>
