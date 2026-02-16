@@ -429,25 +429,53 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelec
   const bw = workoutsData || [];
   return (
     <div className="fade-in">
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>My Workouts</h1>
+      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>My Workouts</h1>
+      <p style={{ fontSize: 13, color: C.textDim, marginBottom: 32 }}>Complete each workout to progress</p>
       {bw.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
       ) : (
-        <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
           {bw.map((w, idx) => {
             const ec = (w.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0);
             const dc = (w.cats||[]).reduce((s,c)=>s+(c.exercises||[]).filter(e=>completedIds.has(e.id)).length,0);
             const wDone = completedWorkoutIds.has(w.id);
+            const prevDone = idx === 0 || completedWorkoutIds.has(bw[idx - 1].id);
+            const isNext = !wDone && prevDone;
+            const isLocked = !wDone && !prevDone && idx > 0;
+            const nodeColor = wDone ? C.success : isNext ? C.accent : C.textDim;
+            const xpVal = 200;
+            // Zigzag offset for visual interest
+            const offset = idx % 2 === 0 ? -40 : 40;
             return (
-              <button key={w.id} onClick={() => onSelect(w)} style={{ background: C.surface, border: wDone ? `1px solid ${C.success}33` : `1px solid ${C.border}`, borderRadius: 16, padding: 18, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", fontFamily: FONTS, transition: "all 0.15s" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: wDone ? C.successGlow : C.bg, border: wDone ? `1.5px solid ${C.success}44` : `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 18, fontWeight: 800, color: wDone ? C.success : C.textDim }}>{wDone ? "✓" : idx + 1}</div>
-                  <div><p style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 600, color: wDone ? C.success : C.text }}>{w.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>{dc}/{ec} exercises</p></div>
-                </div>
-                <span style={{ color: C.textDim, fontSize: 16 }}>→</span>
-              </button>
+              <div key={w.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: "100%" }}>
+                {/* Dotted trail connecting to previous */}
+                {idx > 0 && (
+                  <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
+                    <path d={`M ${60 - offset} 0 Q 60 25 ${60 + offset} 50`} fill="none" stroke={completedWorkoutIds.has(bw[idx-1].id) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
+                  </svg>
+                )}
+                {/* Workout node */}
+                <button onClick={() => onSelect(w)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${C.accent}11, ${C.accent}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${C.accent}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${C.accent}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
+                  {/* Node circle */}
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? C.accent : C.bg, border: `2px solid ${wDone ? C.success : isNext ? C.accent : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${C.accent}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
+                    {wDone ? <span style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>✓</span> : isLocked ? <span style={{ fontSize: 18 }}>🔒</span> : <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: isNext ? "#fff" : C.textDim }}>{idx + 1}</span>}
+                  </div>
+                  <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: wDone ? C.success : isNext ? C.text : C.textDim, marginBottom: 4 }}>{w.name}</p>
+                  <p style={{ fontSize: 11, color: C.textDim }}>{dc}/{ec} exercises</p>
+                  <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, background: wDone ? C.successGlow : C.bg, padding: "3px 10px", borderRadius: 12, border: `1px solid ${wDone ? C.success + "33" : C.border}` }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: wDone ? C.success : "#22C55E" }}>+{xpVal} XP</span>
+                  </div>
+                  {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: C.accent, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
+                </button>
+              </div>
             );
           })}
+          {/* Final node: Level Up */}
+          <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
+            <path d={`M ${60 - (bw.length % 2 === 0 ? -40 : 40)} 0 Q 60 25 60 50`} fill="none" stroke={bw.length > 0 && bw.every(w => completedWorkoutIds.has(w.id)) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
+          </svg>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: bw.every(w => completedWorkoutIds.has(w.id)) ? `linear-gradient(135deg, ${C.accent}, #EA580C)` : C.surface, border: `2px solid ${bw.every(w => completedWorkoutIds.has(w.id)) ? C.accent : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: bw.every(w => completedWorkoutIds.has(w.id)) ? `0 0 24px ${C.accent}44` : "none" }}>🔥</div>
+          <p style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, color: C.textDim, marginTop: 8, letterSpacing: 1 }}>LEVEL UP</p>
         </div>
       )}
     </div>
@@ -509,7 +537,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
                           {isChallenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
                         </div>
-                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, ex.time_seconds > 0 && !ex.hide_time && `${ex.time_seconds}s`, !ex.hide_rest && !ex.superset_group && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
+                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, ex.time_seconds > 0 && !ex.hide_time && `${ex.time_seconds}s`, showRest && !ex.hide_rest && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
                       </div>
                     </div>
                     <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
@@ -518,8 +546,8 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                     <div style={{ padding: "0 16px 14px" }} className="fade-in">
                       <VideoPlayer url={ex.video_url} />
                       {ex.instructions && (<div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instructions</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.instructions}</p></div>)}
-                      <div style={{ display: "grid", gridTemplateColumns: `repeat(${[!ex.hide_sets, !ex.hide_reps, ex.time_seconds > 0, !ex.hide_rest].filter(Boolean).length}, 1fr)`, gap: 8, marginTop: 10 }}>
-                        {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.reps], ex.time_seconds > 0 && !ex.hide_time && ["Time", ex.time_seconds + "s"], !ex.hide_rest && !ex.superset_group && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
+                      <div style={{ display: "grid", gridTemplateColumns: `repeat(${[!ex.hide_sets, !ex.hide_reps, ex.time_seconds > 0 && !ex.hide_time, showRest && !ex.hide_rest].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
+                        {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.reps], ex.time_seconds > 0 && !ex.hide_time && ["Time", ex.time_seconds + "s"], showRest && !ex.hide_rest && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
                       </div>
                       {/* #5 Challenge exercise input */}
                       {isChallenge && (
@@ -539,7 +567,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                         </div>
                       )}
                       {showRest && !ex.hide_rest && <RestTimer seconds={ex.rest_seconds} />}
-                      {!showRest && !ex.hide_rest && ex.superset_group && <div style={{ height: 1, background: C.border, margin: "4px 0" }} />}
+
                     </div>
                   )}
                 </div>
