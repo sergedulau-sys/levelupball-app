@@ -537,7 +537,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
                           {isChallenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
                         </div>
-                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, (ex.time_seconds || 0) > 0 && !ex.hide_time && `${ex.time_seconds}s`, ex.court_type === "full" && "Full Court & Back", ex.court_type === "half" && "Half Court & Back", showRest && !ex.hide_rest && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
+                        <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[!ex.hide_sets && `${ex.sets} sets`, !ex.hide_reps && `${ex.reps} reps`, (ex.time_seconds || 0) > 0 && !ex.hide_time && `${ex.time_seconds}s`, ex.both_sides && "Both Sides", ex.court_type === "full" && "Full Court & Back", ex.court_type === "half" && "Half Court & Back", showRest && !ex.hide_rest && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
                       </div>
                     </div>
                     <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
@@ -1231,6 +1231,7 @@ function Admin({ token }) {
                     <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_reps} onChange={e => saveExercise(ex.id, "hide_reps", e.target.checked)} /> Hide Reps</label>
                     <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_rest} onChange={e => saveExercise(ex.id, "hide_rest", e.target.checked)} /> Hide Rest</label>
                     <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.hide_time} onChange={e => saveExercise(ex.id, "hide_time", e.target.checked)} /> Hide Time</label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, color: "#888", fontSize: 11, cursor: "pointer" }}><input type="checkbox" defaultChecked={ex.both_sides} onChange={e => saveExercise(ex.id, "both_sides", e.target.checked)} /> Both Sides</label>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <label style={{ color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1 }}>COURT:</label>
                       <select defaultValue={ex.court_type || ""} onChange={e => saveExercise(ex.id, "court_type", e.target.value)} style={{ background: "#0a0a0a", border: "1px solid #333", borderRadius: 6, padding: "4px 8px", color: "#fff", fontSize: 11, outline: "none", cursor: "pointer" }}>
