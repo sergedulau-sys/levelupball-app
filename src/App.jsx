@@ -365,14 +365,14 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: xpUnlocked ? C.successGlow : C.accentGlow, filter: "blur(30px)" }} />
           <div style={{ position: "relative" }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>XP to Level Up Submission</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>XP to Level Up Test</p>
             {xpUnlocked ? (
               <div><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.success, lineHeight: 1.2 }}>UNLOCKED! 🔥</p><p style={{ fontSize: 11, color: C.success, marginTop: 4 }}>You can now apply to level up</p></div>
             ) : (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                   <p style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, lineHeight: 1, color: "#22C55E" }}>{currentXp}<span style={{ fontSize: 14, color: "#22C55E" }}>/{xpGoal} XP</span></p>
-                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}><span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal - currentXp} XP</span> until Level Up Submission</p>
+                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}><span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal - currentXp} XP</span> until Level Up Test</p>
                 </div>
                 <ProgressRing percent={xpPct} size={52} color="#22C55E" />
               </div>
@@ -1850,7 +1850,7 @@ function AdminLevelUp({ token }) {
     } catch(e) {}
   };
 
-  const pendingSubs = submissions.filter(s => s.status === "pending");
+  const pendingSubs = submissions.filter(s => s.status !== "approved");
 
   return (
     <div>
@@ -1859,7 +1859,7 @@ function AdminLevelUp({ token }) {
       {/* Pending submissions */}
       {pendingSubs.length > 0 && (
         <div style={{ marginBottom: 28 }}>
-          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 1, marginBottom: 14 }}>🔥 PENDING SUBMISSIONS <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8 }}>{pendingSubs.length}</span></h3>
+          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 1, marginBottom: 14 }}>🔥 SUBMISSIONS TO REVIEW <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8 }}>{pendingSubs.length}</span></h3>
           {pendingSubs.map(sub => {
             const student = profiles[sub.student_id];
             const drill = drills.find(d => d.id === sub.drill_id) || {};
@@ -1873,9 +1873,17 @@ function AdminLevelUp({ token }) {
                   <BeltBadge beltId={student?.belt_id || "white"} size="sm" />
                 </div>
                 <div style={{ borderRadius: 10, overflow: "hidden", marginBottom: 10 }}><VideoPlayer url={sub.video_url} /></div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={() => reviewSubmission(sub.id, "approved", "")} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>APPROVE ✓</button>
-                  <button onClick={() => { const note = prompt("Feedback for student (optional):"); reviewSubmission(sub.id, "rejected", note || ""); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 16px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>REJECT ✗</button>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {sub.status === "pending" && <>
+                    <button onClick={() => reviewSubmission(sub.id, "approved", "")} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>APPROVE ✓</button>
+                    <button onClick={() => { const note = prompt("Feedback for student (optional):"); reviewSubmission(sub.id, "rejected", note || ""); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 16px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>REJECT ✗</button>
+                  </>}
+                  {sub.status === "rejected" && <>
+                    <span style={{ fontSize: 10, color: "#ff4444", fontWeight: 600, fontFamily: F, letterSpacing: 1 }}>REJECTED</span>
+                    <button onClick={() => reviewSubmission(sub.id, "pending", "")} style={{ background: "#3B82F6", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>ALLOW RESUBMIT ↺</button>
+                    <button onClick={() => reviewSubmission(sub.id, "approved", "")} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>APPROVE ✓</button>
+                  </>}
+                  {sub.status === "approved" && <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 600, fontFamily: F, letterSpacing: 1 }}>APPROVED ✓</span>}
                 </div>
               </div>
             );
