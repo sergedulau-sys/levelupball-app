@@ -425,8 +425,10 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 // ============================================================
 // WORKOUTS LIST — #3 numbered, #4/#6 show completion status
 // ============================================================
-function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelect }) {
+function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelect, profile }) {
   const bw = workoutsData || [];
+  const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
+  const bc = belt.color;
   return (
     <div className="fade-in">
       <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>My Workouts</h1>
@@ -460,9 +462,9 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelec
                   </svg>
                 )}
                 {/* Workout node */}
-                <button onClick={() => onSelect(w)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${C.accent}11, ${C.accent}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${C.accent}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${C.accent}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
+                <button onClick={() => onSelect(w)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${bc}11, ${bc}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${bc}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${bc}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
                   {/* Node circle */}
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? C.accent : C.bg, border: `2px solid ${wDone ? C.success : isNext ? C.accent : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${C.accent}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? bc : C.bg, border: `2px solid ${wDone ? C.success : isNext ? bc : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${bc}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
                     {wDone ? <span style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>✓</span> : isLocked ? <span style={{ fontSize: 18 }}>🔒</span> : <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: isNext ? "#fff" : C.textDim }}>{idx + 1}</span>}
                   </div>
                   <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: wDone ? C.success : isNext ? C.text : C.textDim, marginBottom: 4 }}>{w.name}</p>
@@ -470,7 +472,7 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelec
                   <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, background: wDone ? C.successGlow : C.bg, padding: "3px 10px", borderRadius: 12, border: `1px solid ${wDone ? C.success + "33" : C.border}` }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: wDone ? C.success : "#22C55E" }}>+{xpVal} XP</span>
                   </div>
-                  {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: C.accent, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
+                  {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: bc, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
                 </button>
               </div>
             );
@@ -1690,7 +1692,7 @@ function StudentLayout({ profile, token, onLogout }) {
           ) : activeTab === "dashboard" ? (
             <DashboardView profile={profile} workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} onSelectWorkout={(w) => { setActiveWorkout(w); setActiveTab("workouts"); }} />
           ) : activeTab === "workouts" ? (
-            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} onSelect={setActiveWorkout} />
+            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} onSelect={setActiveWorkout} profile={profile} />
           ) : activeTab === "challenges" ? (
             <StudentChallenges token={token} profile={profile} />
           ) : activeTab === "resources" ? (
