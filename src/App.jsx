@@ -700,6 +700,22 @@ function StudentChallenges({ token, profile }) {
 
 
 
+      {/* Weekly Prize */}
+      {challenge.prize_description && (
+        <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 18, padding: 20, marginBottom: 20, border: "1px solid #F59E0B33" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 22 }}>🏆</span>
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: "#F59E0B" }}>This Week's Prize</h3>
+          </div>
+          {challenge.prize_image_url && (
+            <div style={{ borderRadius: 14, overflow: "hidden", marginBottom: 12, border: "1px solid #F59E0B22" }}>
+              <img src={challenge.prize_image_url} alt="Prize" style={{ width: "100%", display: "block", borderRadius: 14 }} />
+            </div>
+          )}
+          <p style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{challenge.prize_description}</p>
+        </div>
+      )}
+
       {/* #11 Social submissions */}
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginTop: 8 }}>
         <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>
@@ -1860,10 +1876,30 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
 
   return (
     <div className="fade-in">
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>Level Up</h1>
-      <p style={{ color: C.textDim, fontSize: 14, marginBottom: 24 }}>
+      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>Level Up Test</h1>
+      <p style={{ color: C.textDim, fontSize: 14, marginBottom: 16 }}>
         {nextBelt ? `Complete these drills to earn your ${nextBelt.name}` : "You've reached the highest belt!"}
       </p>
+
+      {nextBelt && !xpUnlocked && (
+        <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 16, padding: 18, marginBottom: 20, border: "1px solid #F59E0B33", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 28, flexShrink: 0 }}>🔒</div>
+          <div>
+            <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>Earn {xpGoal} XP to unlock your Level Up Test</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Complete workouts to earn XP. Once you reach <span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal} XP</span>, you can submit videos of each drill below for coach approval. You currently have <span style={{ color: "#22C55E", fontWeight: 700 }}>{currentXp} XP</span>.</p>
+          </div>
+        </div>
+      )}
+
+      {nextBelt && xpUnlocked && !allApproved && (
+        <div style={{ background: `linear-gradient(135deg, #22C55E15, #22C55E05)`, borderRadius: 16, padding: 18, marginBottom: 20, border: "1px solid #22C55E33", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 28, flexShrink: 0 }}>✅</div>
+          <div>
+            <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>Level Up Test Unlocked!</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Record yourself performing each drill below and submit your video for coach approval.</p>
+          </div>
+        </div>
+      )}
 
       {nextBelt && (
         <div style={{ background: `linear-gradient(135deg, ${belt.color}22, ${nextBelt.color}22)`, borderRadius: 20, padding: 28, marginBottom: 24, border: `1px solid ${belt.color}33` }}>
