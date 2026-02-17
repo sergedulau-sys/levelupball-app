@@ -439,9 +439,14 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelec
             const ec = (w.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0);
             const dc = (w.cats||[]).reduce((s,c)=>s+(c.exercises||[]).filter(e=>completedIds.has(e.id)).length,0);
             const wDone = completedWorkoutIds.has(w.id);
-            const prevDone = idx === 0 || completedWorkoutIds.has(bw[idx - 1].id);
-            const isNext = !wDone && prevDone;
-            const isLocked = !wDone && !prevDone && idx > 0;
+            // Unlock in groups of 3
+            const groupSize = 3;
+            const groupIdx = Math.floor(idx / groupSize);
+            const groupStart = groupIdx * groupSize;
+            const prevGroupLastIdx = groupStart - 1;
+            const groupUnlocked = groupIdx === 0 || (prevGroupLastIdx >= 0 && completedWorkoutIds.has(bw[prevGroupLastIdx].id));
+            const isNext = !wDone && groupUnlocked;
+            const isLocked = !groupUnlocked;
             const nodeColor = wDone ? C.success : isNext ? C.accent : C.textDim;
             const xpVal = 200;
             // Zigzag offset for visual interest
