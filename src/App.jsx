@@ -726,10 +726,15 @@ function StudentResources({ token, profile }) {
       <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>Resources</h1>
       {articles.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 36, marginBottom: 12 }}>📖</div><p style={{ color: C.textMuted }}>No resources yet</p></div>
-      ) : articles.map(a => (
-        <div key={a.id} style={{ background: C.surface, borderRadius: 16, border: `1px solid ${C.border}`, marginBottom: 10, overflow: "hidden" }}>
-          <div onClick={() => setExpanded(expanded === a.id ? null : a.id)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}><div style={{ width: 40, height: 40, borderRadius: 12, background: C.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>📖</div><div><p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{new Date(a.created_at).toLocaleDateString()}</p></div></div>
+      ) : articles.map((a, ai) => {
+        const icons = ["📖", "🎯", "💡", "🏀", "🔥", "⭐", "📝", "🎓", "💪", "🧠"];
+        const colors = [C.accent, "#3B82F6", "#A855F7", "#22C55E", "#F59E0B", "#EC4899", "#06B6D4", "#8B5CF6", "#EF4444", "#14B8A6"];
+        const icon = icons[ai % icons.length];
+        const clr = colors[ai % colors.length];
+        return (
+        <div key={a.id} style={{ background: C.surface, borderRadius: 16, border: `1px solid ${clr}33`, marginBottom: 10, overflow: "hidden" }}>
+          <div onClick={() => setExpanded(expanded === a.id ? null : a.id)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: `linear-gradient(135deg, ${clr}10, transparent)` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: `${clr}18`, border: `1px solid ${clr}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icon}</div><div><p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{new Date(a.created_at).toLocaleDateString()}</p></div></div>
             <span style={{ color: C.textDim, fontSize: 14, transform: expanded === a.id ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
           </div>
           {expanded === a.id && (<div style={{ padding: "0 20px 20px" }} className="fade-in">
@@ -738,7 +743,8 @@ function StudentResources({ token, profile }) {
             <div style={{ background: C.bg, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{a.content}</div>
           </div>)}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1531,28 +1537,27 @@ function StudentLayout({ profile, token, onLogout }) {
 
   useEffect(() => {
     (async () => {
-      // Load workouts separately so one failure doesn't block all
+      // Load all data in parallel for speed
       try {
-        const wks = await supabase.from("workouts")._token(token).select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`);
-        console.log("Workouts loaded:", wks.length, "for belt:", profile.belt_id);
-        for (const w of wks) {
-          w.cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`);
-          for (const c of w.cats) { c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`); }
-        }
+        const [wks, comps, wComps, cResults] = await Promise.all([
+          supabase.from("workouts")._token(token).select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`),
+          supabase.from("completed_exercises")._token(token).select("exercise_id", `&student_id=eq.${profile.id}`).catch(() => []),
+          supabase.from("completed_workouts")._token(token).select("workout_id", `&student_id=eq.${profile.id}`).catch(() => []),
+          supabase.from("challenge_results")._token(token).select("*", `&student_id=eq.${profile.id}`).catch(() => []),
+        ]);
+        // Load all categories in parallel
+        const allCats = await Promise.all(wks.map(w => supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`)));
+        wks.forEach((w, i) => w.cats = allCats[i]);
+        // Load all exercises in parallel
+        const allCatIds = wks.flatMap(w => (w.cats || []).map(c => c.id));
+        const allExercises = await Promise.all(allCatIds.map(cid => supabase.from("exercises")._token(token).select("*", `&category_id=eq.${cid}&order=sort_order`)));
+        let exIdx = 0;
+        wks.forEach(w => (w.cats || []).forEach(c => { c.exercises = allExercises[exIdx++]; }));
         setWorkoutsData(wks);
-      } catch (e) { console.error("Error loading workouts:", e); }
-      try {
-        const comps = await supabase.from("completed_exercises")._token(token).select("exercise_id", `&student_id=eq.${profile.id}`);
         setCompletedIds(new Set(comps.map(c => c.exercise_id)));
-      } catch (e) { console.error("Error loading completed exercises:", e); }
-      try {
-        const wComps = await supabase.from("completed_workouts")._token(token).select("workout_id", `&student_id=eq.${profile.id}`);
         setCompletedWorkoutIds(new Set(wComps.map(c => c.workout_id)));
-      } catch (e) { console.error("Error loading completed workouts:", e); }
-      try {
-        const cResults = await supabase.from("challenge_results")._token(token).select("*", `&student_id=eq.${profile.id}`);
         setChallengeResults(cResults);
-      } catch (e) { console.error("Error loading challenge results:", e); }
+      } catch (e) { console.error("Error loading:", e); }
       setLoaded(true);
     })();
   }, [token, profile]);
