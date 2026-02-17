@@ -1213,10 +1213,10 @@ function Admin({ token }) {
 
   // Challenges CRUD
   const saveChallenge = async () => { if(!chalForm.title){ flash("Title required."); return; } setSaving(true); try { if(chalForm.active){ try { await supabase.from("challenges")._token(token).update({ active: false }, { active: true }); } catch(e){} } const cleanForm = { ...chalForm, deadline: chalForm.deadline || null };
-    if(chalEditing){ await supabase.from("challenges")._token(token).update(cleanForm, { id: chalEditing.id }); } else { await supabase.from("challenges")._token(token).insert(cleanForm); } setChalEditing(null); setChalNew(false); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", belt_id: "all", active: false }); await loadChallenges(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
+    if(chalEditing){ await supabase.from("challenges")._token(token).update(cleanForm, { id: chalEditing.id }); } else { await supabase.from("challenges")._token(token).insert(cleanForm); } setChalEditing(null); setChalNew(false); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", belt_id: "all", active: false, prize_description: "", prize_image_url: "" }); await loadChallenges(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
   const deleteChallenge = async (id) => { setSaving(true); try { await supabase.from("challenges")._token(token).delete({ id }); await loadChallenges(); flash("Removed."); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
   const startEditChal = (c) => { setChalEditing(c); setChalNew(false); setChalForm({ title: c.title, description: c.description||"", video_url: c.video_url||"", submission_email: c.submission_email||SUBMISSION_EMAIL, deadline: c.deadline||"", belt_id: c.belt_id||"all", active: c.active }); };
-  const startNewChal = () => { setChalNew(true); setChalEditing(null); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", belt_id: "all", active: false }); };
+  const startNewChal = () => { setChalNew(true); setChalEditing(null); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", belt_id: "all", active: false, prize_description: "", prize_image_url: "" }); };
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
