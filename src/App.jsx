@@ -1541,8 +1541,7 @@ function AdminStudents({ token, saving, setSaving, flash, students, loadStudents
           );
         })}
         {students.length === 0 && <div style={{ textAlign: "center", padding: 36, color: "#555" }}><p style={{ fontSize: 28, marginBottom: 8 }}>👥</p><p>No students yet.</p></div>}
-      </>
-  );
+      </>;
 }
 
 // ============================================================
