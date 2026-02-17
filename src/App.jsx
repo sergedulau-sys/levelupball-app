@@ -216,6 +216,7 @@ function Login({ onLogin }) {
   const urlBelt = params.get("belt") || "white";
   const urlCode = params.get("code") || "";
   const startBelt = BELT_LEVELS.find(b => b.id === urlBelt) ? urlBelt : "white";
+  const belt = BELT_LEVELS.find(b => b.id === startBelt) || BELT_LEVELS[0];
   const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [loading, setLoading] = useState(false);
   const [playerName, setPlayerName] = useState(""); const [age, setAge] = useState("");
   const [signupDone, setSignupDone] = useState(false);
