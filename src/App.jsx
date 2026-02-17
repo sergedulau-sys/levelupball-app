@@ -258,7 +258,7 @@ function Login({ onLogin }) {
               <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
               <p style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 8 }}>Account Created!</p>
               <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 20 }}>You're all set! Sign in to start training.</p>
-              <button onClick={() => { setMode("login"); setSignupDone(false); }} style={{ background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: DISPLAY }}>Go to Sign In</button>
+              <button onClick={() => { setMode("login"); setSignupDone(false); }} style={{ background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: "#fff", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: DISPLAY }}>Go to Sign In</button>
             </div>
           ) : mode === "signup" ? (
             <>
@@ -267,14 +267,14 @@ function Login({ onLogin }) {
               <div style={{ marginBottom: 14 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Access Code</label><input value={accessCode} onChange={e => setAccessCode(e.target.value)} style={inp} placeholder="Enter your access code" /></div>
               <div style={{ marginBottom: 14 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} placeholder="parent@email.com" /></div>
               <div style={{ marginBottom: 20 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Password</label><input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && doSignup()} style={inp} placeholder="At least 6 characters" /></div>
-              <button onClick={doSignup} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>{loading ? "Creating account..." : "Create Account"}</button>
+              <button onClick={doSignup} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>{loading ? "Creating account..." : "Create Account"}</button>
               <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.textDim }}>Already have an account? <span onClick={() => setMode("login")} style={{ color: C.accent, cursor: "pointer", fontWeight: 600 }}>Sign In</span></p>
             </>
           ) : (
             <>
               <div style={{ marginBottom: 16 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && go()} style={inp} placeholder="you@email.com" /></div>
               <div style={{ marginBottom: 24 }}><label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>Password</label><input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && go()} style={inp} placeholder="••••••••" /></div>
-              <button onClick={go} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>{loading ? "Signing in..." : "Sign In"}</button>
+              <button onClick={go} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>{loading ? "Signing in..." : "Sign In"}</button>
               <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.textDim }}>New player? <span onClick={() => setMode("signup")} style={{ color: C.accent, cursor: "pointer", fontWeight: 600 }}>Create Account</span></p>
             </>
           )}
@@ -403,9 +403,9 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
       {nextWorkout && (
         <div>
           <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Up Next</h2>
-          <button onClick={() => onSelectWorkout(nextWorkout)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${C.accent}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
+          <button onClick={() => onSelectWorkout(nextWorkout)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${belt.color}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextWorkout.name.replace("Workout ", "")}</div>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextWorkout.name.replace("Workout ", "")}</div>
               <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>{nextWorkout.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
             </div>
             <span style={{ color: C.accent, fontSize: 20 }}>→</span>
