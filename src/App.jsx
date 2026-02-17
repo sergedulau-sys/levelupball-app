@@ -58,11 +58,11 @@ const supabase = {
 // DESIGN SYSTEM — #1 updated belts, #8 branding
 // ============================================================
 const BELT_LEVELS = [
-  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, code: "WHITE2026" },
-  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1200, code: "BLUE2026" },
-  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 1400, code: "PURPLE2026" },
-  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 1600, code: "BROWN2026" },
-  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, code: "BLACK2026" },
+  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, weeks: 3, workoutsPerWeek: 3, code: "WHITE2026" },
+  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1200, weeks: 4, workoutsPerWeek: 3, code: "BLUE2026" },
+  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 1400, weeks: 5, workoutsPerWeek: 3, code: "PURPLE2026" },
+  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 1600, weeks: 6, workoutsPerWeek: 3, code: "BROWN2026" },
+  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
 ];
 
 const C = {
@@ -331,14 +331,14 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout }) {
 // ============================================================
 // #6 DASHBOARD — progress shows belt journey, #10 next workout clickable
 // ============================================================
-function DashboardView({ profile, workoutsData, completedIds, completedWorkoutIds, onSelectWorkout }) {
+function DashboardView({ profile, workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, totalWeekCompletions, onSelectWorkout }) {
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
   const bw = workoutsData || [];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  // XP system
-  const wDone = bw.filter(w => completedWorkoutIds.has(w.id)).length;
+  // XP system - based on week completions
+  const wDone = totalWeekCompletions || 0;
   const xpPerWorkout = belt.xpPerWorkout || 200;
   const xpGoal = belt.xpGoal || 1000;
   const currentXp = wDone * xpPerWorkout;
@@ -346,7 +346,8 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
   const xpUnlocked = currentXp >= xpGoal;
 
   // #10 Next workout = first incomplete
-  const nextWorkout = bw.find(w => !completedWorkoutIds.has(w.id));
+  const nextSlot = (weekSlots || []).find(s => !s.isWeekCompleted);
+  const nextWorkout = nextSlot || null;
 
   return (
     <div className="fade-in">
@@ -395,7 +396,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         {/* Workouts stat */}
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
           <p style={{ fontSize: 12, fontWeight: 500, color: C.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Workouts</p>
-          <p style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{wDone}<span style={{ fontSize: 16, color: C.textDim }}>/{bw.length}</span></p>
+          <p style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>{wDone}<span style={{ fontSize: 16, color: C.textDim }}>/{(weekSlots || []).length}</span></p>
           <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>+<span style={{ color: "#22C55E", fontWeight: 700 }}>{currentXp} XP</span> earned</p>
         </div>
       </div>
@@ -404,12 +405,12 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
       {nextWorkout && (
         <div>
           <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Up Next</h2>
-          <button onClick={() => onSelectWorkout(nextWorkout)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${belt.color}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
+          <button onClick={() => onSelectWorkout(nextWorkout, nextSlot?.week)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${belt.color}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextWorkout.name.replace("Workout ", "")}</div>
               <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>{nextWorkout.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
             </div>
-            <span style={{ color: C.accent, fontSize: 20 }}>→</span>
+            <span style={{ color: belt.color, fontSize: 20 }}>→</span>
           </button>
         </div>
       )}
@@ -426,63 +427,86 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 // ============================================================
 // WORKOUTS LIST — #3 numbered, #4/#6 show completion status
 // ============================================================
-function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelect, profile }) {
-  const bw = workoutsData || [];
+function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
+  const totalWeeks = belt.weeks || 1;
+  const wpw = belt.workoutsPerWeek || workoutsData.length || 3;
+
+  const isSlotDone = (workoutId, week) => weekCompletions.some(wc => wc.workout_id === workoutId && wc.week_number === week);
+
+  // Rolling unlock: first 3 (workoutsPerWeek) unlocked, then 1 unlocks per completion
+  const getUnlocked = () => {
+    const unlocked = new Set();
+    let budget = wpw; // start with first week unlocked
+    for (let i = 0; i < weekSlots.length; i++) {
+      if (i < budget) unlocked.add(i);
+      if (weekSlots[i].isWeekCompleted && i < budget) budget++;
+    }
+    return unlocked;
+  };
+  const unlockedSet = getUnlocked();
+
+  // Group by week
+  const weeks = [];
+  for (let w = 1; w <= totalWeeks; w++) {
+    weeks.push({ week: w, slots: weekSlots.filter(s => s.week === w) });
+  }
+
   return (
     <div className="fade-in">
       <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>My Workouts</h1>
       <p style={{ fontSize: 13, color: C.textDim, marginBottom: 32 }}>Complete each workout to progress</p>
-      {bw.length === 0 ? (
+      {weekSlots.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
-          {bw.map((w, idx) => {
-            const ec = (w.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0);
-            const dc = (w.cats||[]).reduce((s,c)=>s+(c.exercises||[]).filter(e=>completedIds.has(e.id)).length,0);
-            const wDone = completedWorkoutIds.has(w.id);
-            // Unlock in groups of 3
-            const groupSize = 3;
-            const groupIdx = Math.floor(idx / groupSize);
-            const groupStart = groupIdx * groupSize;
-            const prevGroupLastIdx = groupStart - 1;
-            const groupUnlocked = groupIdx === 0 || (prevGroupLastIdx >= 0 && completedWorkoutIds.has(bw[prevGroupLastIdx].id));
-            const isNext = !wDone && groupUnlocked;
-            const isLocked = !groupUnlocked;
-            const nodeColor = wDone ? C.success : isNext ? C.accent : C.textDim;
-            const xpVal = 200;
-            // Zigzag offset for visual interest
-            const offset = idx % 2 === 0 ? -40 : 40;
-            return (
-              <div key={w.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: "100%" }}>
-                {/* Dotted trail connecting to previous */}
-                {idx > 0 && (
-                  <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
-                    <path d={`M ${60 - offset} 0 Q 60 25 ${60 + offset} 50`} fill="none" stroke={completedWorkoutIds.has(bw[idx-1].id) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
-                  </svg>
-                )}
-                {/* Workout node */}
-                <button onClick={() => onSelect(w)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${bc}11, ${bc}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${bc}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${bc}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
-                  {/* Node circle */}
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? bc : C.bg, border: `2px solid ${wDone ? C.success : isNext ? bc : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${bc}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
-                    {wDone ? <span style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>✓</span> : isLocked ? <span style={{ fontSize: 18 }}>🔒</span> : <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: isNext ? "#fff" : C.textDim }}>{idx + 1}</span>}
-                  </div>
-                  <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: wDone ? C.success : isNext ? C.text : C.textDim, marginBottom: 4 }}>{w.name}</p>
-                  <p style={{ fontSize: 11, color: C.textDim }}>{dc}/{ec} exercises</p>
-                  <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, background: wDone ? C.successGlow : C.bg, padding: "3px 10px", borderRadius: 12, border: `1px solid ${wDone ? C.success + "33" : C.border}` }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: wDone ? C.success : "#22C55E" }}>+{xpVal} XP</span>
-                  </div>
-                  {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: bc, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
-                </button>
+          {weeks.map((weekGroup, wi) => (
+            <div key={wi} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              {/* Week header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: wi > 0 ? 20 : 0 }}>
+                <div style={{ height: 1, width: 40, background: C.border }} />
+                <span style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, color: bc, letterSpacing: 2, textTransform: "uppercase" }}>Week {weekGroup.week}</span>
+                <div style={{ height: 1, width: 40, background: C.border }} />
               </div>
-            );
-          })}
+              {weekGroup.slots.map((slot, si) => {
+                const wDone = slot.isWeekCompleted;
+                const slotIdx = slot.slotIndex;
+                const isUnlocked = unlockedSet.has(slotIdx);
+                const isNext = !wDone && isUnlocked;
+                const isLocked = !isUnlocked && !wDone;
+                const nodeColor = wDone ? C.success : isNext ? bc : C.textDim;
+                const offset = slotIdx % 2 === 0 ? -40 : 40;
+                const xpVal = belt.xpPerWorkout || 200;
+                return (
+                  <div key={`${slot.id}-${slot.week}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: "100%" }}>
+                    {/* Dotted trail */}
+                    {slotIdx > 0 && (
+                      <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
+                        <path d={`M ${60 - offset} 0 Q 60 25 ${60 + offset} 50`} fill="none" stroke={weekCompletions.some(wc => wc.workout_id === weekSlots[slotIdx-1]?.id && wc.week_number === weekSlots[slotIdx-1]?.week) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
+                      </svg>
+                    )}
+                    <button onClick={() => !isLocked && onSelect(slot, slot.week)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${bc}11, ${bc}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${bc}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${bc}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
+                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? bc : C.bg, border: `2px solid ${wDone ? C.success : isNext ? bc : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${bc}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
+                        {wDone ? <span style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>✓</span> : isLocked ? <span style={{ fontSize: 18 }}>🔒</span> : <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: isNext ? "#fff" : C.textDim }}>{slot.originalIndex + 1}</span>}
+                      </div>
+                      <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: wDone ? C.success : isNext ? C.text : C.textDim, marginBottom: 4 }}>{slot.name}</p>
+                      <p style={{ fontSize: 11, color: C.textDim }}>{(slot.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p>
+                      <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, background: wDone ? C.successGlow : C.bg, padding: "3px 10px", borderRadius: 12, border: `1px solid ${wDone ? C.success + "33" : C.border}` }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: wDone ? C.success : "#22C55E" }}>+{xpVal} XP</span>
+                      </div>
+                      {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: bc, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
           {/* Final node: Level Up */}
           <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
-            <path d={`M ${60 - (bw.length % 2 === 0 ? -40 : 40)} 0 Q 60 25 60 50`} fill="none" stroke={bw.length > 0 && bw.every(w => completedWorkoutIds.has(w.id)) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
+            <path d={`M ${60 - (weekSlots.length % 2 === 0 ? -40 : 40)} 0 Q 60 25 60 50`} fill="none" stroke={weekSlots.every(s => s.isWeekCompleted) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
           </svg>
-          <div style={{ width: 64, height: 64, borderRadius: "50%", background: bw.every(w => completedWorkoutIds.has(w.id)) ? `linear-gradient(135deg, ${C.accent}, #EA580C)` : C.surface, border: `2px solid ${bw.every(w => completedWorkoutIds.has(w.id)) ? C.accent : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: bw.every(w => completedWorkoutIds.has(w.id)) ? `0 0 24px ${C.accent}44` : "none" }}>🔥</div>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: weekSlots.every(s => s.isWeekCompleted) ? `linear-gradient(135deg, ${bc}, ${bc}CC)` : C.surface, border: `2px solid ${weekSlots.every(s => s.isWeekCompleted) ? bc : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: weekSlots.every(s => s.isWeekCompleted) ? `0 0 24px ${bc}44` : "none" }}>🔥</div>
           <p style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, color: C.textDim, marginTop: 8, letterSpacing: 1 }}>LEVEL UP</p>
         </div>
       )}
@@ -493,9 +517,9 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, onSelec
 // ============================================================
 // WORKOUT DETAIL — #4 complete button, #5 challenge exercises, #7 supersets
 // ============================================================
-function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, completedWorkoutIds, onCompleteWorkout, challengeResults, onSaveChallengeResult }) {
+function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, profile, completedWorkoutIds, weekCompletions, onCompleteWorkout, challengeResults, onSaveChallengeResult }) {
   const [expanded, setExpanded] = useState(null);
-  const isWorkoutDone = completedWorkoutIds.has(workout.id);
+  const isWorkoutDone = weekNum ? (weekCompletions || []).some(wc => wc.workout_id === workout.id && wc.week_number === weekNum) : completedWorkoutIds.has(workout.id);
 
   // #7 Group exercises by superset
   const renderCategory = (cat) => {
@@ -533,7 +557,8 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
               const done = completedIds.has(ex.id);
               const isChallenge = ex.is_challenge;
               // #5 get previous result for challenge exercise
-              const prevResult = isChallenge ? challengeResults.find(r => r.exercise_id === ex.id) : null;
+              const allResults = isChallenge ? challengeResults.filter(r => r.exercise_id === ex.id) : [];
+              const prevResult = allResults.length > 0 ? allResults.reduce((best, r) => (!best || r.reps_completed > best.reps_completed) ? r : best, null) : null;
               const showRest = !ex.superset_group || ei === group.exercises.length - 1;
               return (
                 <div key={ex.id} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${isChallenge ? C.challenge + "44" : done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
@@ -562,7 +587,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
                       {isChallenge && (
                         <div style={{ background: C.challengeGlow, borderRadius: 12, padding: 14, marginTop: 10, border: `1px solid ${C.challenge}33` }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: C.challenge, letterSpacing: 1, marginBottom: 8 }}>⭐ CHALLENGE DRILL</p>
-                          {prevResult && <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>Last time: <span style={{ fontWeight: 700, color: C.text }}>{prevResult.reps_completed} reps</span></p>}
+                          {prevResult && <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>PR: <span style={{ fontWeight: 700, color: C.text }}>{prevResult.reps_completed} reps</span> 🏆</p>}
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ fontSize: 12, color: C.textMuted }}>Reps completed:</span>
                             <input type="number" min="0" defaultValue={prevResult?.reps_completed || ""} onBlur={e => { const v = parseInt(e.target.value); if (v >= 0) onSaveChallengeResult(ex.id, workout.id, v); }} style={{ width: 70, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 14, fontWeight: 600, textAlign: "center", outline: "none", fontFamily: DISPLAY }} placeholder="0" />
@@ -588,7 +613,8 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
   return (
     <div className="fade-in">
       <button onClick={onBack} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, cursor: "pointer", fontFamily: FONTS, fontSize: 13, marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back</button>
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>{workout.name}</h1>
+      <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5, marginBottom: 4 }}>{workout.name}</h1>
+      {weekNum && <p style={{ fontSize: 13, color: C.textDim, marginBottom: 24 }}>Week {weekNum}</p>}
       {(workout.cats || []).map(cat => (
         <div key={cat.id} style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -600,7 +626,7 @@ function WorkoutView({ workout, onBack, completedIds, onToggle, token, profile, 
       ))}
       {/* #4 Complete workout button */}
       {!isWorkoutDone ? (
-        <button onClick={() => onCompleteWorkout(workout.id)} style={{ width: "100%", background: `linear-gradient(135deg, ${C.success}, #16A34A)`, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, cursor: "pointer", marginTop: 12, boxShadow: `0 4px 16px ${C.successGlow}` }}>✓ Mark Workout Complete</button>
+        <button onClick={() => onCompleteWorkout(workout.id, weekNum || 1)} style={{ width: "100%", background: `linear-gradient(135deg, ${C.success}, #16A34A)`, color: "#fff", border: "none", borderRadius: 14, padding: 16, fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, cursor: "pointer", marginTop: 12, boxShadow: `0 4px 16px ${C.successGlow}` }}>✓ Mark Workout Complete</button>
       ) : (
         <div style={{ textAlign: "center", padding: 16, color: C.success, fontFamily: DISPLAY, fontSize: 14, fontWeight: 600 }}>✓ Workout Completed!</div>
       )}
@@ -1619,18 +1645,40 @@ function StudentLayout({ profile, token, onLogout }) {
   const [workoutsData, setWorkoutsData] = useState([]);
   const [completedIds, setCompletedIds] = useState(new Set());
   const [completedWorkoutIds, setCompletedWorkoutIds] = useState(new Set());
+  const [weekCompletions, setWeekCompletions] = useState([]);
   const [challengeResults, setChallengeResults] = useState([]);
   const [activeWorkout, setActiveWorkout] = useState(null);
+  const [activeWeek, setActiveWeek] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
+  const totalWeeks = belt.weeks || 1;
+  // Build virtual workout slots: each workout repeated across weeks
+  const buildWeekSlots = () => {
+    const bw = workoutsData || [];
+    const wpw = belt.workoutsPerWeek || bw.length || 3;
+    const slots = [];
+    for (let week = 1; week <= totalWeeks; week++) {
+      for (let i = 0; i < Math.min(wpw, bw.length); i++) {
+        const w = bw[i % bw.length];
+        const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === week);
+        slots.push({ ...w, week, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: i });
+      }
+    }
+    return slots;
+  };
+  const weekSlots = buildWeekSlots();
+  const totalWeekCompletions = weekCompletions.length;
+
 
   useEffect(() => {
     (async () => {
       // Load all data in parallel for speed
       try {
-        const [wks, comps, wComps, cResults] = await Promise.all([
+        const [wks, comps, wComps, weekComps, cResults] = await Promise.all([
           supabase.from("workouts")._token(token).select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`),
           supabase.from("completed_exercises")._token(token).select("exercise_id", `&student_id=eq.${profile.id}`).catch(() => []),
           supabase.from("completed_workouts")._token(token).select("workout_id", `&student_id=eq.${profile.id}`).catch(() => []),
+          supabase.from("workout_week_completions")._token(token).select("*", `&student_id=eq.${profile.id}`).catch(() => []),
           supabase.from("challenge_results")._token(token).select("*", `&student_id=eq.${profile.id}`).catch(() => []),
         ]);
         // Load all categories in parallel
@@ -1644,6 +1692,7 @@ function StudentLayout({ profile, token, onLogout }) {
         setWorkoutsData(wks);
         setCompletedIds(new Set(comps.map(c => c.exercise_id)));
         setCompletedWorkoutIds(new Set(wComps.map(c => c.workout_id)));
+        setWeekCompletions(weekComps);
         setChallengeResults(cResults);
       } catch (e) { console.error("Error loading:", e); }
       setLoaded(true);
@@ -1656,25 +1705,24 @@ function StudentLayout({ profile, token, onLogout }) {
     else { ns.add(exerciseId); setCompletedIds(ns); try { await supabase.from("completed_exercises")._token(token).insert({ student_id: profile.id, exercise_id: exerciseId }); } catch(e){} }
   };
 
-  const completeWorkout = async (workoutId) => {
+  const completeWeekWorkout = async (workoutId, weekNum) => {
     try {
-      await supabase.from("completed_workouts")._token(token).insert({ student_id: profile.id, workout_id: workoutId });
-      setCompletedWorkoutIds(new Set([...completedWorkoutIds, workoutId]));
+      await supabase.from("workout_week_completions")._token(token).insert({ student_id: profile.id, workout_id: workoutId, week_number: weekNum });
+      setWeekCompletions([...weekCompletions, { workout_id: workoutId, week_number: weekNum }]);
+      // Also mark in old system for backward compat
+      if (!completedWorkoutIds.has(workoutId)) {
+        try { await supabase.from("completed_workouts")._token(token).insert({ student_id: profile.id, workout_id: workoutId }); } catch(e){}
+        setCompletedWorkoutIds(new Set([...completedWorkoutIds, workoutId]));
+      }
     } catch(e) { console.error(e); }
   };
 
   const saveChallengeResult = async (exerciseId, workoutId, reps) => {
     try {
-      // Upsert - update if exists, insert if not
-      const existing = challengeResults.find(r => r.exercise_id === exerciseId && r.workout_id === workoutId);
-      if (existing) {
-        await supabase.from("challenge_results")._token(token).update({ reps_completed: reps }, { id: existing.id });
-        setChallengeResults(challengeResults.map(r => r.id === existing.id ? { ...r, reps_completed: reps } : r));
-      } else {
-        const res = await supabase.from("challenge_results")._token(token).insert({ student_id: profile.id, exercise_id: exerciseId, workout_id: workoutId, reps_completed: reps });
-        setChallengeResults([...challengeResults, ...res]);
-      }
-    } catch(e) { console.error(e); }
+      await supabase.from("challenge_results")._token(token).upsert({ student_id: profile.id, exercise_id: exerciseId, workout_id: workoutId, week_number: activeWeek || 1, reps_completed: reps });
+      const updated = await supabase.from("challenge_results")._token(token).select("*", `&student_id=eq.${profile.id}`);
+      setChallengeResults(updated);
+    } catch (e) { console.error(e); }
   };
 
   if (!loaded) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><img src={LOGO_SM} alt="" style={{ width: 100, height: 100, animation: "pulse 1.5s infinite" }} /></div>;
@@ -1689,17 +1737,17 @@ function StudentLayout({ profile, token, onLogout }) {
         <Sidebar activeTab={activeWorkout ? "workouts" : activeTab} setActiveTab={(t) => { setActiveTab(t); setActiveWorkout(null); }} profile={profile} onLogout={onLogout} />
         <main className="main-content" style={{ flex: 1, padding: "32px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
           {activeWorkout ? (
-            <WorkoutView workout={activeWorkout} onBack={() => setActiveWorkout(null)} completedIds={completedIds} onToggle={toggleComplete} token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} onCompleteWorkout={completeWorkout} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
+            <WorkoutView workout={activeWorkout} weekNum={activeWeek} onBack={() => { setActiveWorkout(null); setActiveWeek(null); }} completedIds={completedIds} onToggle={toggleComplete} token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} weekCompletions={weekCompletions} onCompleteWorkout={completeWeekWorkout} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
           ) : activeTab === "dashboard" ? (
-            <DashboardView profile={profile} workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} onSelectWorkout={(w) => { setActiveWorkout(w); setActiveTab("workouts"); }} />
+            <DashboardView profile={profile} workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} totalWeekCompletions={totalWeekCompletions} onSelectWorkout={(w, week) => { setActiveWorkout(w); setActiveWeek(week); setActiveTab("workouts"); }} />
           ) : activeTab === "workouts" ? (
-            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} onSelect={setActiveWorkout} profile={profile} />
+            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} />
           ) : activeTab === "challenges" ? (
             <StudentChallenges token={token} profile={profile} />
           ) : activeTab === "resources" ? (
             <StudentResources token={token} profile={profile} />
           ) : activeTab === "levelup" ? (
-            <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} />
+            <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} totalWeekCompletions={totalWeekCompletions} />
           ) : activeTab === "messages" ? (
             <StudentMessages token={token} profile={profile} />
           ) : null}
@@ -1759,7 +1807,7 @@ export default function LevelUpBallApp() {
 // ============================================================
 // STUDENT: LEVEL UP
 // ============================================================
-function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), workoutsData = [] }) {
+function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), workoutsData = [], totalWeekCompletions = 0 }) {
   const [drills, setDrills] = useState([]);
   const [submissions, setSubmissions] = useState({});
   const [loading, setLoading] = useState(true);
@@ -1767,7 +1815,7 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
   const [submitting, setSubmitting] = useState(null);
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
   const nextBelt = BELT_LEVELS.find(b => b.level === belt.level + 1);
-  const wDone = workoutsData.filter(w => completedWorkoutIds.has(w.id)).length;
+  const wDone = totalWeekCompletions;
   const currentXp = wDone * (belt.xpPerWorkout || 200);
   const xpGoal = belt.xpGoal || 1000;
   const xpUnlocked = currentXp >= xpGoal;
