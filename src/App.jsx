@@ -620,7 +620,8 @@ function StudentChallenges({ token, profile }) {
   useEffect(() => {
     (async () => {
       try {
-        const c = await supabase.from("challenges")._token(token).select("*", "&active=eq.true&limit=1");
+        const allC = await supabase.from("challenges")._token(token).select("*", "&active=eq.true&order=created_at.desc");
+        const c = allC.filter(ch => !ch.belt_id || ch.belt_id === "all" || ch.belt_id === profile.belt_id).slice(0, 1);
         if (c.length > 0) {
           setChallenge(c[0]);
           const subs = await supabase.from("challenge_submissions")._token(token).select("*", `&challenge_id=eq.${c[0].id}&order=created_at.desc`);
@@ -1018,15 +1019,18 @@ function Admin({ token }) {
     setLoading(true);
     try {
       const wks = await supabase.from("workouts")._token(token).select("*", `&belt_id=eq.${belt}&order=sort_order`);
-      const full = [];
-      for (const w of wks) {
-        const cats = await supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`);
-        for (const c of cats) { c.exercises = await supabase.from("exercises")._token(token).select("*", `&category_id=eq.${c.id}&order=sort_order`); }
-        w.cats = cats;
-        full.push(w);
+      // Load all categories in parallel
+      const allCats = await Promise.all(wks.map(w => supabase.from("categories")._token(token).select("*", `&workout_id=eq.${w.id}&order=sort_order`)));
+      wks.forEach((w, i) => w.cats = allCats[i]);
+      // Load all exercises in parallel
+      const allCatIds = wks.flatMap(w => (w.cats || []).map(c => c.id));
+      if (allCatIds.length > 0) {
+        const allExs = await Promise.all(allCatIds.map(cid => supabase.from("exercises")._token(token).select("*", `&category_id=eq.${cid}&order=sort_order`)));
+        let idx = 0;
+        wks.forEach(w => (w.cats || []).forEach(c => { c.exercises = allExs[idx++]; }));
       }
-      setWorkouts(full);
-    } catch (e) { console.error(e); }
+      setWorkouts(wks);
+    } catch (e) { console.error(e); flash("Error loading workouts: " + e.message); }
     setLoading(false);
   }, [belt, token]);
 
@@ -1414,7 +1418,47 @@ function Admin({ token }) {
       {/* ===== MESSAGES TAB ===== */}
       {tab === "messages" && <AdminMessages token={token} />}
 
-      {tab === "students" && <>
+      {tab === "students" && <AdminStudents token={token} saving={saving} setSaving={setSaving} flash={flash} students={students} loadStudents={loadStudents} showAdd={showAdd} setShowAdd={setShowAdd} ns={ns} setNs={setNs} addStudent={addStudent} promoteStudent={promoteStudent} demoteStudent={demoteStudent} deleteStudent={deleteStudent} inp={inp} />}
+    </div>
+  );
+}
+
+function AdminStudents({ token, saving, setSaving, flash, students, loadStudents, showAdd, setShowAdd, ns, setNs, addStudent, promoteStudent, demoteStudent, deleteStudent, inp }) {
+  const [viewSubs, setViewSubs] = useState(null);
+  const [studentSubs, setStudentSubs] = useState([]);
+  const [drills, setDrills] = useState([]);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+
+  const viewStudentSubs = async (student) => {
+    if (viewSubs === student.id) { setViewSubs(null); return; }
+    setViewSubs(student.id);
+    setLoadingSubs(true);
+    try {
+      const subs = await supabase.from("levelup_submissions")._token(token).select("*", `&student_id=eq.${student.id}&order=created_at.desc`);
+      setStudentSubs(subs);
+      const d = await supabase.from("levelup_drills")._token(token).select("*", `&belt_id=eq.${student.belt_id}`);
+      setDrills(d);
+    } catch(e) { console.error(e); }
+    setLoadingSubs(false);
+  };
+
+  const reviewSub = async (subId, status, note) => {
+    try {
+      await supabase.from("levelup_submissions")._token(token).update({ status, admin_note: note || "" }, { id: subId });
+      setStudentSubs(studentSubs.map(s => s.id === subId ? { ...s, status, admin_note: note || "" } : s));
+      flash(status === "approved" ? "Approved!" : status === "rejected" ? "Rejected." : "Reset to pending.");
+    } catch(e) { flash("Error"); }
+  };
+
+  const resetSub = async (subId) => {
+    try {
+      await supabase.from("levelup_submissions")._token(token).delete({ id: subId });
+      setStudentSubs(studentSubs.filter(s => s.id !== subId));
+      flash("Submission deleted — student can resubmit.");
+    } catch(e) { flash("Error"); }
+  };
+
+  return <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MANAGE STUDENTS</h2>
           <button onClick={() => setShowAdd(!showAdd)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD STUDENT</button>
@@ -1437,26 +1481,67 @@ function Admin({ token }) {
         {students.map(s => {
           const sb = BELT_LEVELS.find(b => b.id === s.belt_id) || BELT_LEVELS[0];
           return (
-            <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 10 }}>
+            <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: `${sb.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: `2px solid ${sb.color}` }}>🏀</div>
                 <div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{s.full_name}</p><p style={{ fontSize: 11, color: "#555" }}>{s.email}</p></div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, background: `${sb.color}18`, padding: "4px 12px", borderRadius: 20, border: `1px solid ${sb.color}33` }}>
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: sb.color }} />
                   <span style={{ fontFamily: F, fontSize: 10, color: sb.color, letterSpacing: 1 }}>{sb.name.toUpperCase()}</span>
                 </div>
+                <button onClick={() => viewStudentSubs(s)} style={{ background: viewSubs === s.id ? "#3B82F6" : "#222", border: viewSubs === s.id ? "none" : "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>LEVEL UP</button>
                 {s.belt_id !== "black" && <button onClick={() => promoteStudent(s)} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>PROMOTE ↑</button>}
                 {s.belt_id !== "white" && <button onClick={() => demoteStudent(s)} disabled={saving} style={{ background: "#F59E0B", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>DEMOTE ↓</button>}
                 <button onClick={() => deleteStudent(s.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer" }}>REMOVE</button>
               </div>
+              </div>
+              {viewSubs === s.id && (
+              <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 14, marginTop: 10, borderTop: "1px solid #222", width: "100%" }}>
+                {loadingSubs ? <p style={{ color: "#555", fontSize: 12 }}>Loading...</p> : (
+                  <>
+                    <p style={{ fontFamily: F, fontSize: 10, color: "#666", letterSpacing: 1, marginBottom: 10 }}>LEVEL UP SUBMISSIONS</p>
+                    {studentSubs.length === 0 ? <p style={{ color: "#555", fontSize: 12 }}>No submissions yet.</p> : (
+                      drills.map(drill => {
+                        const sub = studentSubs.find(ss => ss.drill_id === drill.id);
+                        return (
+                          <div key={drill.id} style={{ background: "#141414", borderRadius: 8, padding: 12, marginBottom: 6, border: `1px solid ${sub?.status === "approved" ? "#22C55E33" : sub?.status === "rejected" ? "#EF444433" : sub ? "#F9731633" : "#222"}` }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <p style={{ fontSize: 12, color: "#fff", fontWeight: 600 }}>{drill.name}</p>
+                                <p style={{ fontSize: 10, color: "#555", marginTop: 2 }}>{sub ? (sub.status === "approved" ? "✓ Approved" : sub.status === "rejected" ? "✗ Rejected" : "⏳ Pending") : "Not submitted"}</p>
+                              </div>
+                              {sub && (
+                                <div style={{ display: "flex", gap: 4 }}>
+                                  {sub.status === "pending" && <>
+                                    <button onClick={() => reviewSub(sub.id, "approved", "")} style={{ background: "#16A34A", border: "none", borderRadius: 6, padding: "4px 10px", color: "#fff", fontSize: 9, cursor: "pointer", fontFamily: F, fontWeight: 600 }}>APPROVE</button>
+                                    <button onClick={() => { const n = prompt("Feedback (optional):"); reviewSub(sub.id, "rejected", n || ""); }} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "4px 10px", color: "#ff4444", fontSize: 9, cursor: "pointer", fontFamily: F }}>REJECT</button>
+                                  </>}
+                                  {sub.status === "rejected" && <>
+                                    <button onClick={() => resetSub(sub.id)} style={{ background: "#3B82F6", border: "none", borderRadius: 6, padding: "4px 10px", color: "#fff", fontSize: 9, cursor: "pointer", fontFamily: F, fontWeight: 600 }}>ALLOW RESUBMIT</button>
+                                    <button onClick={() => reviewSub(sub.id, "approved", "")} style={{ background: "#16A34A", border: "none", borderRadius: 6, padding: "4px 10px", color: "#fff", fontSize: 9, cursor: "pointer", fontFamily: F, fontWeight: 600 }}>APPROVE</button>
+                                  </>}
+                                  {sub.status === "approved" && <span style={{ fontSize: 9, color: "#22C55E", fontWeight: 600 }}>✓</span>}
+                                </div>
+                              )}
+                            </div>
+                            {sub?.video_url && <div style={{ marginTop: 8, borderRadius: 8, overflow: "hidden" }}><VideoPlayer url={sub.video_url} /></div>}
+                            {sub?.admin_note && <p style={{ fontSize: 10, color: "#888", marginTop: 4 }}>Note: {sub.admin_note}</p>}
+                          </div>
+                        );
+                      })
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             </div>
           );
         })}
         {students.length === 0 && <div style={{ textAlign: "center", padding: 36, color: "#555" }}><p style={{ fontSize: 28, marginBottom: 8 }}>👥</p><p>No students yet.</p></div>}
-      </>}
-    </div>
+      </>
   );
 }
 
