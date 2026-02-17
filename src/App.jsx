@@ -1815,15 +1815,24 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
       </p>
 
       {nextBelt && (
-        <div style={{ background: `linear-gradient(135deg, ${belt.color}22, ${nextBelt.color}22)`, borderRadius: 16, padding: 20, marginBottom: 24, border: `1px solid ${belt.color}33`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <BeltIcon beltId={belt.id} size={44} />
-            <span style={{ fontSize: 20, color: C.textDim }}>→</span>
-            <BeltIcon beltId={nextBelt.id} size={44} />
+        <div style={{ background: `linear-gradient(135deg, ${belt.color}22, ${nextBelt.color}22)`, borderRadius: 20, padding: 28, marginBottom: 24, border: `1px solid ${belt.color}33` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginBottom: 16 }}>
+            <div style={{ textAlign: "center" }}>
+              <BeltIcon beltId={belt.id} size={80} />
+              <p style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: belt.color, marginTop: 8 }}>{belt.name}</p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 32, color: C.accent }}>→</span>
+              <span style={{ fontSize: 9, color: C.textDim, letterSpacing: 1, textTransform: "uppercase" }}>LEVEL UP</span>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <BeltIcon beltId={nextBelt.id} size={80} />
+              <p style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: nextBelt.color, marginTop: 8 }}>{nextBelt.name}</p>
+            </div>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>{Object.keys(submissions).filter(k => submissions[k]?.status === "approved").length}/{drills.length} approved</p>
-            <p style={{ fontSize: 11, color: C.textDim }}>{allApproved ? "Ready for promotion! 🎉" : !xpUnlocked ? `${currentXp}/${xpGoal} XP — keep training!` : allSubmitted ? "Waiting for coach review..." : "Submit your videos"}</p>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>{Object.keys(submissions).filter(k => submissions[k]?.status === "approved").length}/{drills.length} approved</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{allApproved ? "Ready for promotion! 🎉" : !xpUnlocked ? `${currentXp}/${xpGoal} XP — keep training!` : allSubmitted ? "Waiting for coach review..." : "Submit your videos"}</p>
           </div>
         </div>
       )}
