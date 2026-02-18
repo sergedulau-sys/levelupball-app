@@ -1140,34 +1140,65 @@ function StudentResources({ token, profile }) {
       {articles.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 36, marginBottom: 12 }}>📖</div><p style={{ color: C.textMuted }}>No resources yet</p></div>
       ) : articles.map((a, ai) => {
-        const icons = ["📖", "🎯", "💡", "🏀", "🔥", "⭐", "📝", "🎓", "💪", "🧠"];
-        const colors = [C.accent, "#3B82F6", "#A855F7", "#22C55E", "#F59E0B", "#EC4899", "#06B6D4", "#8B5CF6", "#EF4444", "#14B8A6"];
-        const icon = icons[ai % icons.length];
-        const clr = colors[ai % colors.length];
+        const cardStyles = [
+          { gradient: "linear-gradient(135deg, #FF6D00, #FF9800)", icon: "🏀", tagBg: "#FF6D0033", tagColor: "#FF6D00" },
+          { gradient: "linear-gradient(135deg, #3B82F6, #60A5FA)", icon: "🎯", tagBg: "#3B82F633", tagColor: "#3B82F6" },
+          { gradient: "linear-gradient(135deg, #A855F7, #C084FC)", icon: "💡", tagBg: "#A855F733", tagColor: "#A855F7" },
+          { gradient: "linear-gradient(135deg, #22C55E, #4ADE80)", icon: "🔥", tagBg: "#22C55E33", tagColor: "#22C55E" },
+          { gradient: "linear-gradient(135deg, #F59E0B, #FBBF24)", icon: "⭐", tagBg: "#F59E0B33", tagColor: "#F59E0B" },
+          { gradient: "linear-gradient(135deg, #EC4899, #F472B6)", icon: "💪", tagBg: "#EC489933", tagColor: "#EC4899" },
+          { gradient: "linear-gradient(135deg, #06B6D4, #22D3EE)", icon: "📖", tagBg: "#06B6D433", tagColor: "#06B6D4" },
+          { gradient: "linear-gradient(135deg, #8B5CF6, #A78BFA)", icon: "🧠", tagBg: "#8B5CF633", tagColor: "#8B5CF6" },
+        ];
+        const cs = cardStyles[ai % cardStyles.length];
+        const isOpen = expanded === a.id;
+        const readTime = Math.max(1, Math.ceil(a.content.length / 900));
         return (
-        <div key={a.id} style={{ background: C.surface, borderRadius: 16, border: `1px solid ${clr}33`, marginBottom: 10, overflow: "hidden" }}>
-          <div onClick={() => setExpanded(expanded === a.id ? null : a.id)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: `linear-gradient(135deg, ${clr}10, transparent)` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: `${clr}18`, border: `1px solid ${clr}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icon}</div><div><p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 600 }}>{a.title}</p><p style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>{new Date(a.created_at).toLocaleDateString()}</p></div></div>
-            <span style={{ color: C.textDim, fontSize: 14, transform: expanded === a.id ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
+        <div key={a.id} style={{ marginBottom: 14, borderRadius: 20, overflow: "hidden", border: `1px solid ${cs.tagColor}22`, transition: "transform 0.2s, box-shadow 0.2s" }}>
+          {/* Card header - clickable */}
+          <div onClick={() => setExpanded(isOpen ? null : a.id)} style={{ cursor: "pointer", position: "relative", overflow: "hidden" }}>
+            {/* Gradient banner */}
+            <div style={{ background: cs.gradient, padding: "20px 20px 14px", position: "relative" }}>
+              <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.12, transform: "rotate(15deg)" }}>{cs.icon}</div>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative", zIndex: 1 }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, color: "#fff", lineHeight: 1.3, marginBottom: 6, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>{a.title}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.2)", padding: "3px 8px", borderRadius: 6 }}>{readTime} min read</span>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>{new Date(a.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{cs.icon}</div>
+              </div>
+            </div>
+            {/* Preview strip */}
+            {!isOpen && (
+              <div style={{ background: C.surface, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <p style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{a.content.replace(/[*#-]/g, "").substring(0, 90)}...</p>
+                <span style={{ background: cs.tagBg, color: cs.tagColor, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>READ</span>
+              </div>
+            )}
           </div>
-          {expanded === a.id && (<div style={{ padding: "0 20px 20px" }} className="fade-in">
-            {/* #2 article video */}
-            {a.video_url && <div style={{ marginBottom: 12 }}><VideoPlayer url={a.video_url} /></div>}
-            <div style={{ background: C.bg, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14, lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: (() => {
-                  let t = a.content;
-                  t = t.replace(/\n/g, "\n");
-                  t = t.replace(/^## (.+)$/gm, '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:20px 0 10px">$1</h2>');
-                  t = t.replace(/^### (.+)$/gm, '<h3 style="font-size:18px;font-weight:700;color:#fff;margin:16px 0 8px">$1</h3>');
-                  t = t.replace(/^- (.+)$/gm, '<div style="padding-left:16px;margin:4px 0">• $1</div>');
-                  t = t.replace(/[*][*](.+?)[*][*]/g, '<strong style="color:#fff;font-weight:700">$1</strong>');
-                  t = t.replace(/[*](.+?)[*]/g, '<em>$1</em>');
-                  t = t.replace(/\n/g, '<br/>');
-                  return t;
-                })() }} />
-          </div>)}
+          {/* Expanded content */}
+          {isOpen && (
+            <div style={{ background: C.surface, padding: "0 20px 20px" }} className="fade-in">
+              {a.video_url && <div style={{ marginBottom: 14, marginTop: 14 }}><VideoPlayer url={a.video_url} /></div>}
+              <div style={{ background: C.bg, borderRadius: 16, padding: 22, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14, lineHeight: 1.9, marginTop: a.video_url ? 0 : 14 }} dangerouslySetInnerHTML={{ __html: (() => {
+                let t = a.content;
+                t = t.replace(/^## (.+)$/gm, '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:20px 0 10px">$1</h2>');
+                t = t.replace(/^### (.+)$/gm, '<h3 style="font-size:18px;font-weight:700;color:#fff;margin:16px 0 8px">$1</h3>');
+                t = t.replace(/^- (.+)$/gm, '<div style="padding-left:16px;margin:4px 0">• $1</div>');
+                t = t.replace(/[*][*](.+?)[*][*]/g, '<strong style="color:#fff;font-weight:700">$1</strong>');
+                t = t.replace(/[*](.+?)[*]/g, '<em>$1</em>');
+                t = t.replace(/\n/g, '<br/>');
+                return t;
+              })() }} />
+              <button onClick={() => setExpanded(null)} style={{ marginTop: 14, background: "none", border: `1px solid ${cs.tagColor}33`, borderRadius: 10, padding: "8px 16px", color: cs.tagColor, fontSize: 11, cursor: "pointer", fontFamily: DISPLAY, fontWeight: 600, letterSpacing: 0.5 }}>Close ↑</button>
+            </div>
+          )}
         </div>
         );
-      })}
+      })} })}
     </div>
   );
 }
@@ -1802,35 +1833,18 @@ function Admin({ token }) {
             <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{artEditing ? "EDIT" : "NEW"} ARTICLE</h3>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={artForm.title} onChange={e=>setArtForm({...artForm,title:e.target.value})} style={inp} placeholder="Article title..." /></div>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label>
-              <div style={{ display: "flex", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
-                {[
-                  { label: "B", fmt: "bold", style: { fontWeight: 800 } },
-                  { label: "I", fmt: "italic", style: { fontStyle: "italic" } },
-                  { label: "H1", fmt: "h1" },
-                  { label: "H2", fmt: "h2" },
-                  { label: "• List", fmt: "bullet" },
-                ].map(btn => (
-                  <button key={btn.label} onClick={() => {
-                    const ta = document.getElementById("article-editor2");
-                    const start = ta.selectionStart;
-                    const end = ta.selectionEnd;
-                    const text = artForm.content;
-                    const selected = text.substring(start, end);
-                    let newText;
-                    if (btn.fmt === "bold") newText = text.substring(0, start) + "**" + (selected || "bold text") + "**" + text.substring(end);
-                    else if (btn.fmt === "italic") newText = text.substring(0, start) + "*" + (selected || "italic text") + "*" + text.substring(end);
-                    else if (btn.fmt === "h1") newText = text.substring(0, start) + "## " + (selected || "Heading") + text.substring(end);
-                    else if (btn.fmt === "h2") newText = text.substring(0, start) + "### " + (selected || "Subheading") + text.substring(end);
-                    else if (btn.fmt === "bullet") newText = text.substring(0, start) + "- " + (selected || "List item") + text.substring(end);
-                    setArtForm({...artForm, content: newText});
-                  }} style={{ background: "#222", border: "1px solid #444", borderRadius: 6, padding: "4px 10px", color: "#fff", fontSize: 11, cursor: "pointer", fontFamily: F, ...btn.style }}>{btn.label}</button>
-                ))}
+              <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap", background: "#222", padding: 8, borderRadius: 8, border: "1px solid #444" }}>
+                <button type="button" onClick={() => { const ta = document.getElementById("art-ed"); if(!ta) return; const s = ta.selectionStart, e = ta.selectionEnd, t = artForm.content, sel = t.substring(s,e); setArtForm({...artForm, content: t.substring(0,s)+"**"+(sel||"bold text")+"**"+t.substring(e)}); }} style={{ background: "#FF6D00", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>B</button>
+                <button type="button" onClick={() => { const ta = document.getElementById("art-ed"); if(!ta) return; const s = ta.selectionStart, e = ta.selectionEnd, t = artForm.content, sel = t.substring(s,e); setArtForm({...artForm, content: t.substring(0,s)+"*"+(sel||"italic text")+"*"+t.substring(e)}); }} style={{ background: "#3B82F6", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontStyle: "italic" }}>I</button>
+                <button type="button" onClick={() => { const ta = document.getElementById("art-ed"); if(!ta) return; const s = ta.selectionStart, e = ta.selectionEnd, t = artForm.content, sel = t.substring(s,e); setArtForm({...artForm, content: t.substring(0,s)+"## "+(sel||"Heading")+t.substring(e)}); }} style={{ background: "#A855F7", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>H1</button>
+                <button type="button" onClick={() => { const ta = document.getElementById("art-ed"); if(!ta) return; const s = ta.selectionStart, e = ta.selectionEnd, t = artForm.content, sel = t.substring(s,e); setArtForm({...artForm, content: t.substring(0,s)+"### "+(sel||"Subheading")+t.substring(e)}); }} style={{ background: "#22C55E", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>H2</button>
+                <button type="button" onClick={() => { const ta = document.getElementById("art-ed"); if(!ta) return; const s = ta.selectionStart, e = ta.selectionEnd, t = artForm.content, sel = t.substring(s,e); setArtForm({...artForm, content: t.substring(0,s)+"- "+(sel||"List item")+t.substring(e)}); }} style={{ background: "#F59E0B", border: "none", borderRadius: 6, padding: "6px 14px", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>• List</button>
               </div>
-              <textarea id="article-editor2" value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." />
+              <textarea id="art-ed" value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." />
               {artForm.content && (
-                <div style={{ marginTop: 8 }}>
-                  <p style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 4 }}>PREVIEW</p>
-                  <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 14, border: "1px solid #222", color: "#aaa", fontSize: 13, lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: (() => {
+                <div style={{ marginTop: 10 }}>
+                  <p style={{ fontSize: 10, color: "#FF6D00", letterSpacing: 1, marginBottom: 6, fontWeight: 700 }}>📝 LIVE PREVIEW</p>
+                  <div style={{ background: "#0a0a0a", borderRadius: 12, padding: 16, border: "1px solid #333", color: "#aaa", fontSize: 13, lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: (() => {
                     let t = artForm.content;
                     t = t.replace(/^## (.+)$/gm, '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:16px 0 8px">$1</h2>');
                     t = t.replace(/^### (.+)$/gm, '<h3 style="font-size:18px;font-weight:700;color:#fff;margin:12px 0 6px">$1</h3>');
@@ -2392,6 +2406,7 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
                   </div>
                 </div>
                 {drill.demo_video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DEMO</p><VideoPlayer url={drill.demo_video_url} /></div>}
+                {drill.image_url && <div style={{ marginBottom: 10 }}><img src={drill.image_url} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
                 {!isApproved && xpUnlocked && (
@@ -2534,6 +2549,7 @@ function AdminLevelUp({ token }) {
           </div>
           <div style={{ marginBottom: 8 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea defaultValue={d.description} onBlur={e => updateDrill(d.id, "description", e.target.value)} style={{ ...inp, minHeight: 60 }} /></div>
           <div style={{ marginBottom: 8 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input defaultValue={d.demo_video_url} onBlur={e => updateDrill(d.id, "demo_video_url", e.target.value)} style={inp} placeholder="https://youtube.com/watch?v=..." /></div>
+          <div style={{ marginBottom: 8 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>IMAGE URL</label><input defaultValue={d.image_url} onBlur={e => updateDrill(d.id, "image_url", e.target.value)} style={inp} placeholder="https://i.imgur.com/..." /></div>
           <button onClick={() => deleteDrill(d.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 14px", color: "#ff4444", fontFamily: F, fontSize: 10, cursor: "pointer" }}>DELETE</button>
         </div>
       ))}
