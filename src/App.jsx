@@ -59,8 +59,8 @@ const supabase = {
 // ============================================================
 const BELT_LEVELS = [
   { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, weeks: 3, workoutsPerWeek: 3, code: "WHITE2026" },
-  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1200, weeks: 4, workoutsPerWeek: 3, code: "BLUE2026" },
-  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 1400, weeks: 5, workoutsPerWeek: 3, code: "PURPLE2026" },
+  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, weeks: 4, workoutsPerWeek: 3, code: "BLUE2026" },
+  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, phases: [{ name: "Level 3A", workouts: 4, weeks: 3 }, { name: "Level 3B", workoutStart: 4, workouts: 4, weeks: 3 }], code: "PURPLE2026" },
   { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 1600, weeks: 6, workoutsPerWeek: 3, code: "BROWN2026" },
   { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
 ];
@@ -430,7 +430,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
-  const totalWeeks = belt.weeks || 1;
+  const totalWeeks = belt.phases ? belt.phases.reduce((s, p) => s + p.weeks, 0) : (belt.weeks || 1);
   const wpw = belt.workoutsPerWeek || workoutsData.length || 3;
 
   const isSlotDone = (workoutId, week) => weekCompletions.some(wc => wc.workout_id === workoutId && wc.week_number === week);
@@ -447,10 +447,12 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
   };
   const unlockedSet = getUnlocked();
 
-  // Group by week
+  // Group by week, with phase headers
   const weeks = [];
   for (let w = 1; w <= totalWeeks; w++) {
-    weeks.push({ week: w, slots: weekSlots.filter(s => s.week === w) });
+    const wSlots = weekSlots.filter(s => s.week === w);
+    const phase = wSlots[0]?.phase || null;
+    weeks.push({ week: w, phaseWeek: wSlots[0]?.phaseWeek || w, phase, slots: wSlots });
   }
 
   return (
@@ -463,10 +465,16 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
           {weeks.map((weekGroup, wi) => (
             <div key={wi} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              {/* Phase header - show when first week of a new phase */}
+              {weekGroup.phase && weekGroup.phaseWeek === 1 && (
+                <div style={{ background: `${bc}15`, borderRadius: 12, padding: "10px 20px", marginBottom: 12, marginTop: wi > 0 ? 24 : 0, border: `1px solid ${bc}33`, textAlign: "center" }}>
+                  <span style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 800, color: bc, letterSpacing: 2 }}>{weekGroup.phase.toUpperCase()}</span>
+                </div>
+              )}
               {/* Week header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: wi > 0 ? 20 : 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: (!weekGroup.phase || weekGroup.phaseWeek !== 1) && wi > 0 ? 20 : 8 }}>
                 <div style={{ height: 1, width: 40, background: C.border }} />
-                <span style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, color: bc, letterSpacing: 2, textTransform: "uppercase" }}>Week {weekGroup.week}</span>
+                <span style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, color: bc, letterSpacing: 2, textTransform: "uppercase" }}>Week {weekGroup.phaseWeek || weekGroup.week}</span>
                 <div style={{ height: 1, width: 40, background: C.border }} />
               </div>
               {weekGroup.slots.map((slot, si) => {
@@ -1668,17 +1676,35 @@ function StudentLayout({ profile, token, onLogout }) {
   const [activeWeek, setActiveWeek] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
-  const totalWeeks = belt.weeks || 1;
-  // Build virtual workout slots: each workout repeated across weeks
+  const totalWeeks = belt.phases ? belt.phases.reduce((s, p) => s + p.weeks, 0) : (belt.weeks || 1);
+  // Build virtual workout slots: supports phases (e.g. 3A/3B) or simple week cycling
   const buildWeekSlots = () => {
     const bw = workoutsData || [];
-    const wpw = belt.workoutsPerWeek || bw.length || 3;
     const slots = [];
-    for (let week = 1; week <= totalWeeks; week++) {
-      for (let i = 0; i < Math.min(wpw, bw.length); i++) {
-        const w = bw[i % bw.length];
-        const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === week);
-        slots.push({ ...w, week, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: i });
+    if (belt.phases) {
+      // Phase-based belt (e.g. Purple with 3A and 3B)
+      let globalWeek = 1;
+      belt.phases.forEach(phase => {
+        const startIdx = phase.workoutStart || 0;
+        const phaseWorkouts = bw.slice(startIdx, startIdx + phase.workouts);
+        for (let week = 1; week <= phase.weeks; week++) {
+          for (let i = 0; i < phaseWorkouts.length; i++) {
+            const w = phaseWorkouts[i];
+            const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === globalWeek);
+            slots.push({ ...w, week: globalWeek, phaseWeek: week, phase: phase.name, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: i });
+          }
+          globalWeek++;
+        }
+      });
+    } else {
+      // Simple cycling
+      const wpw = belt.workoutsPerWeek || bw.length || 3;
+      for (let week = 1; week <= totalWeeks; week++) {
+        for (let i = 0; i < Math.min(wpw, bw.length); i++) {
+          const w = bw[i % bw.length];
+          const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === week);
+          slots.push({ ...w, week, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: i });
+        }
       }
     }
     return slots;
