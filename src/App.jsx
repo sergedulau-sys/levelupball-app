@@ -1020,7 +1020,7 @@ function StudentChallenges({ token, profile, trialMode }) {
           </div>
           <p style={{ fontSize: 18, color: "#fff", fontWeight: 700, marginBottom: 14, fontFamily: DISPLAY }}>{challenge.prize_description}</p>
           {challenge.prize_image_url && (
-            <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #F59E0B22", maxWidth: 80 }}>
+            <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #F59E0B22", maxWidth: 400 }}>
               <img src={fixImgurUrl(challenge.prize_image_url)} alt="Prize" style={{ width: "100%", display: "block", borderRadius: 14 }} />
             </div>
           )}
