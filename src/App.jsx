@@ -114,6 +114,26 @@ function getDailyQuote() {
 }
 
 // Auto-fix imgur URLs: convert page URLs to direct image URLs
+
+// Timer beep sound using Web Audio API
+function playTimerBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Play 3 short beeps
+    [0, 0.2, 0.4].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.value = 0.3;
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.15);
+    });
+  } catch(e) {}
+}
+
 function fixImgurUrl(url) {
   if (!url) return url;
   // Already a direct link
@@ -303,7 +323,7 @@ function Login({ onLogin }) {
 // ============================================================
 // SIDEBAR
 // ============================================================
-function Sidebar({ activeTab, setActiveTab, profile, onLogout }) {
+function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
   const tabs = [
     { id: "dashboard", icon: "⚡", label: "Dashboard" },
@@ -311,8 +331,8 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout }) {
     { id: "challenges", icon: "🏆", label: "Challenge" },
     { id: "resources", icon: "📖", label: "Resources" },
     { id: "levelup", icon: "🔥", label: "Level Up" },
-    { id: "messages", icon: "💬", label: "Messages" },
-  ];
+    { id: "messages", icon: "💬", label: "Messages", hideInTrial: true },
+  ].filter(t => !trialMode || !t.hideInTrial);
   return (
     <>
       <div style={{ width: 240, flexShrink: 0, background: C.surface, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0 }} className="sidebar-desktop">
@@ -442,7 +462,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 // ============================================================
 // WORKOUTS LIST — #3 numbered, #4/#6 show completion status
 // ============================================================
-function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile }) {
+function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile, trialMode }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
   const totalWeeks = belt.phases ? belt.phases.reduce((s, p) => s + p.weeks, 0) : (belt.weeks || 1);
@@ -453,6 +473,11 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
   // Rolling unlock: first week's workouts visible, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
+    if (trialMode) {
+      // Trial: only first workout
+      if (weekSlots.length > 0) unlocked.add(0);
+      return unlocked;
+    }
     // Find how many workouts are in the first week (or first phase week)
     const firstWeek = weekSlots.length > 0 ? weekSlots[0].week : 1;
     const firstWeekCount = weekSlots.filter(s => s.week === firstWeek).length;
@@ -990,7 +1015,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
       {(workout.cats || []).map(cat => (
         <div key={cat.id} style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 3, height: 18, borderRadius: 2, background: C.accent }} />
+            <div style={{ width: 4, height: 24, borderRadius: 2, background: C.accent }} />
             <h3 style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: 0.5, textTransform: "uppercase" }}>{cat.name}</h3>
           </div>
           {renderCategory(cat)}
@@ -1009,7 +1034,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
 // ============================================================
 // #11 CHALLENGES — with social submissions feed
 // ============================================================
-function StudentChallenges({ token, profile }) {
+function StudentChallenges({ token, profile, trialMode }) {
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
@@ -1133,11 +1158,15 @@ function StudentChallenges({ token, profile }) {
 // ============================================================
 // RESOURCES — #2 with video support
 // ============================================================
-function StudentResources({ token, profile }) {
+function StudentResources({ token, profile, trialMode }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
-  useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); const filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
+  useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); let filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
+        if (trialMode) {
+          const hiddenTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
+          filtered = filtered.filter(a => !hiddenTitles.some(h => a.title.includes(h)));
+        }
         filtered.sort((a, b) => {
           const aSpecific = a.belt_id && a.belt_id !== "all" ? 0 : 1;
           const bSpecific = b.belt_id && b.belt_id !== "all" ? 0 : 1;
@@ -2101,7 +2130,7 @@ function StudentMessages({ token, profile }) {
 // ============================================================
 // STUDENT LAYOUT
 // ============================================================
-function StudentLayout({ profile, token, onLogout }) {
+function StudentLayout({ profile, token, onLogout, trialMode }) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [workoutsData, setWorkoutsData] = useState([]);
   const [completedIds, setCompletedIds] = useState(new Set());
@@ -2153,6 +2182,21 @@ function StudentLayout({ profile, token, onLogout }) {
     (async () => {
       // Load all data in parallel for speed
       try {
+        if (trialMode) {
+          // Trial mode: load workouts only via public access
+          try {
+            const wks = await supabase.from("workouts").select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`);
+            const allCats = await Promise.all(wks.map(w => supabase.from("categories").select("*", `&workout_id=eq.${w.id}&order=sort_order`)));
+            wks.forEach((w, i) => w.cats = allCats[i]);
+            const allCatIds = wks.flatMap(w => (w.cats || []).map(c => c.id));
+            const allExs = await Promise.all(allCatIds.map(cid => supabase.from("exercises").select("*", `&category_id=eq.${cid}&order=sort_order`)));
+            let idx = 0;
+            wks.forEach(w => (w.cats || []).forEach(c => { c.exercises = allExs[idx++]; }));
+            setWorkoutsData(wks);
+          } catch(e) { console.error("Trial load error:", e); }
+          setLoaded(true);
+          return;
+        }
         const [wks, comps, wComps, weekComps, cResults] = await Promise.all([
           supabase.from("workouts")._token(token).select("*", `&belt_id=eq.${profile.belt_id}&order=sort_order`),
           supabase.from("completed_exercises")._token(token).select("exercise_id", `&student_id=eq.${profile.id}`).catch(() => []),
@@ -2212,21 +2256,28 @@ function StudentLayout({ profile, token, onLogout }) {
         @media (max-width: 768px) { .sidebar-desktop { display: none !important; } .mobile-nav { display: flex !important; } .main-content { padding-bottom: 80px !important; } }
         @media (min-width: 769px) { .sidebar-desktop { display: flex !important; } .mobile-nav { display: none !important; } }
       `}</style>
+      {trialMode && (
+        <div style={{ background: "linear-gradient(135deg, #FF6D00, #EA580C)", padding: "10px 20px", textAlign: "center", position: "sticky", top: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <span style={{ fontSize: 14 }}>🔥</span>
+          <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: "#fff" }}>You're previewing LevelUpBall! Get the full program to unlock all workouts and features.</span>
+          <a href="https://levelupball.com" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, padding: "6px 16px", borderRadius: 8, textDecoration: "none", letterSpacing: 0.5 }}>GET FULL ACCESS</a>
+        </div>
+      )}
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        <Sidebar activeTab={activeWorkout ? "workouts" : activeTab} setActiveTab={(t) => { setActiveTab(t); setActiveWorkout(null); }} profile={profile} onLogout={onLogout} />
+        <Sidebar activeTab={activeWorkout ? "workouts" : activeTab} setActiveTab={(t) => { setActiveTab(t); setActiveWorkout(null); }} profile={profile} onLogout={onLogout} trialMode={trialMode} />
         <main className="main-content" style={{ flex: 1, padding: "32px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
           {activeWorkout ? (
             <WorkoutView workout={activeWorkout} weekNum={activeWeek} onBack={() => { setActiveWorkout(null); setActiveWeek(null); }} completedIds={completedIds} onToggle={toggleComplete} token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} weekCompletions={weekCompletions} onCompleteWorkout={completeWeekWorkout} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
           ) : activeTab === "dashboard" ? (
             <DashboardView profile={profile} workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} totalWeekCompletions={totalWeekCompletions} onSelectWorkout={(w, week) => { setActiveWorkout(w); setActiveWeek(week); setActiveTab("workouts"); }} />
           ) : activeTab === "workouts" ? (
-            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} />
+            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} />
           ) : activeTab === "challenges" ? (
-            <StudentChallenges token={token} profile={profile} />
+            <StudentChallenges token={token} profile={profile} trialMode={trialMode} />
           ) : activeTab === "resources" ? (
-            <StudentResources token={token} profile={profile} />
+            <StudentResources token={token} profile={profile} trialMode={trialMode} />
           ) : activeTab === "levelup" ? (
-            <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} totalWeekCompletions={totalWeekCompletions} />
+            <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} totalWeekCompletions={totalWeekCompletions} trialMode={trialMode} />
           ) : activeTab === "messages" ? (
             <StudentMessages token={token} profile={profile} />
           ) : null}
@@ -2258,6 +2309,7 @@ function AdminHeader({ onLogout }) {
 export default function LevelUpBallApp() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [trialMode, setTrialMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (data) => {
@@ -2269,7 +2321,7 @@ export default function LevelUpBallApp() {
     setLoading(false);
   };
 
-  const logout = () => { setSession(null); setProfile(null); };
+  const logout = () => { setSession(null); setProfile(null); setTrialMode(false); };
 
   if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 120, height: 120, animation: "pulse 1.5s infinite" }} /></div></>;
 
@@ -2278,7 +2330,7 @@ export default function LevelUpBallApp() {
       <style>{GLOBAL_CSS}</style>
       {!session && <Login onLogin={handleLogin} />}
       {session && profile?.role === "admin" && <><AdminHeader onLogout={logout} /><Admin token={session.access_token} /></>}
-      {session && profile?.role === "student" && <StudentLayout profile={profile} token={session.access_token} onLogout={logout} />}
+      {session && profile?.role === "student" && <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />}
     </div>
   );
 }
@@ -2286,7 +2338,7 @@ export default function LevelUpBallApp() {
 // ============================================================
 // STUDENT: LEVEL UP
 // ============================================================
-function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), workoutsData = [], totalWeekCompletions = 0 }) {
+function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), workoutsData = [], totalWeekCompletions = 0, trialMode }) {
   const [drills, setDrills] = useState([]);
   const [submissions, setSubmissions] = useState({});
   const [loading, setLoading] = useState(true);
@@ -2396,8 +2448,8 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
       ) : Object.entries(categories).map(([catName, catDrills]) => (
         <div key={catName} style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 3, height: 18, borderRadius: 2, background: C.accent }} />
-            <h3 style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{catName}</h3>
+            <div style={{ width: 4, height: 24, borderRadius: 2, background: C.accent }} />
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>{catName}</h3>
           </div>
           {catDrills.map(drill => {
             const sub = submissions[drill.id];
