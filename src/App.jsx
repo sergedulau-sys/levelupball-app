@@ -112,6 +112,18 @@ function getDailyQuote() {
   const d = new Date(); const i = (d.getFullYear() * 366 + d.getMonth() * 31 + d.getDate()) % QUOTES.length;
   return QUOTES[i];
 }
+
+// Auto-fix imgur URLs: convert page URLs to direct image URLs
+function fixImgurUrl(url) {
+  if (!url) return url;
+  // Already a direct link
+  if (url.match(/i\.imgur\.com\/.+\.(png|jpg|jpeg|gif|webp)/i)) return url;
+  // Page URL like https://imgur.com/xCgK9zZ -> https://i.imgur.com/xCgK9zZ.png
+  const match = url.match(/imgur\.com\/([a-zA-Z0-9]+)$/);
+  if (match) return `https://i.imgur.com/${match[1]}.png`;
+  return url;
+}
+
 const DISPLAY = `'Bricolage Grotesque', sans-serif`;
 const F = DISPLAY; // alias for admin
 
@@ -769,7 +781,7 @@ function FollowAlongMode({ workout, weekNum, completedIds, onToggle, challengeRe
 
         {/* Image */}
         {ex.image_url && phase !== "rest" && (
-          <img src={ex.image_url} alt="" style={{ width: "100%", maxWidth: 400, borderRadius: 14, marginBottom: 16, border: "1px solid #333" }} />
+          <img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", maxWidth: 400, borderRadius: 14, marginBottom: 16, border: "1px solid #333" }} />
         )}
 
         {/* Instructions */}
@@ -919,7 +931,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
                     <div style={{ padding: "0 16px 14px" }} className="fade-in">
                       <VideoPlayer url={ex.video_url} />
                       {ex.instructions && (<div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instructions</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.instructions}</p></div>)}
-                      {ex.image_url && <img src={ex.image_url} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10, border: `1px solid ${C.border}` }} />}
+                      {ex.image_url && <img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10, border: `1px solid ${C.border}` }} />}
                       <div style={{ display: "grid", gridTemplateColumns: `repeat(${[!ex.hide_sets, !ex.hide_reps, (ex.time_seconds || 0) > 0 && !ex.hide_time, showRest && !ex.hide_rest].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
                         {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.both_sides ? ex.reps + " each side" : ex.reps], (ex.time_seconds || 0) > 0 && !ex.hide_time && ["Time", ex.time_seconds + "s"], showRest && !ex.hide_rest && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
                       </div>
@@ -1069,7 +1081,7 @@ function StudentChallenges({ token, profile }) {
           </div>
           {challenge.prize_image_url && (
             <div style={{ borderRadius: 14, overflow: "hidden", marginBottom: 12, border: "1px solid #F59E0B22" }}>
-              <img src={challenge.prize_image_url} alt="Prize" style={{ width: "100%", display: "block", borderRadius: 14 }} />
+              <img src={fixImgurUrl(challenge.prize_image_url)} alt="Prize" style={{ width: "100%", display: "block", borderRadius: 14 }} />
             </div>
           )}
           <p style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{challenge.prize_description}</p>
@@ -2406,7 +2418,7 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
                   </div>
                 </div>
                 {drill.demo_video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DEMO</p><VideoPlayer url={drill.demo_video_url} /></div>}
-                {drill.image_url ? <div style={{ marginBottom: 10 }}><img src={drill.image_url} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div> : <p style={{ fontSize: 9, color: "#ff4444" }}>DEBUG: no image_url — keys: {Object.keys(drill).join(", ")}</p>}
+                {drill.image_url && <div style={{ marginBottom: 10 }}><img src={fixImgurUrl(drill.image_url)} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
                 {!isApproved && xpUnlocked && (
