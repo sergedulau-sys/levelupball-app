@@ -324,7 +324,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
               <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.full_name.split(" ")[0]}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {BELT_LEVELS.map((b, i) => (<div key={b.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < belt.level ? b.color : C.border }} />))}
+              {BELT_LEVELS.map((b, i) => (<div key={b.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < belt.level ? belt.color : C.border }} />))}
             </div>
           </div>
         </div>
@@ -1013,17 +1013,17 @@ function StudentChallenges({ token, profile, trialMode }) {
       {challenge.video_url && (<div style={{ marginBottom: 14 }}><VideoPlayer url={challenge.video_url} /></div>)}
       {/* Weekly Prize */}
       {challenge.prize_description && (
-        <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 18, padding: 20, marginBottom: 20, border: "1px solid #F59E0B33" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: 22 }}>🏆</span>
-            <h3 style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: "#F59E0B" }}>This Week's Prize</h3>
+        <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 18, padding: 22, marginBottom: 20, border: "1px solid #F59E0B33" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 26 }}>🏆</span>
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#F59E0B" }}>This Week's Prize</h3>
           </div>
+          <p style={{ fontSize: 18, color: "#fff", fontWeight: 700, marginBottom: 14, fontFamily: DISPLAY }}>{challenge.prize_description}</p>
           {challenge.prize_image_url && (
-            <div style={{ borderRadius: 14, overflow: "hidden", marginBottom: 12, border: "1px solid #F59E0B22" }}>
+            <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #F59E0B22", maxWidth: 80 }}>
               <img src={fixImgurUrl(challenge.prize_image_url)} alt="Prize" style={{ width: "100%", display: "block", borderRadius: 14 }} />
             </div>
           )}
-          <p style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{challenge.prize_description}</p>
         </div>
       )}
       {/* #11 Social submissions */}
