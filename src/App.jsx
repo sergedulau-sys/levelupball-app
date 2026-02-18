@@ -1118,12 +1118,19 @@ function StudentChallenges({ token, profile, trialMode }) {
         <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>
 
         {/* Submit form */}
-        {!isExpired && !submissions.find(s => s.student_id === profile.id) && (
+        {!isExpired && !trialMode && !submissions.find(s => s.student_id === profile.id) && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 10 }}>Share your attempt</p>
             <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="Paste YouTube/Vimeo link..." style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.text, fontSize: 13, outline: "none", fontFamily: FONTS, marginBottom: 8 }} />
             <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Add a caption (optional)" style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.text, fontSize: 13, outline: "none", fontFamily: FONTS, marginBottom: 10 }} />
             <button onClick={submitVideo} disabled={!videoUrl || submitting} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12, fontWeight: 600, cursor: videoUrl ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrl ? 1 : 0.5 }}>{submitting ? "Posting..." : "Post"}</button>
+          </div>
+        )}
+
+        {trialMode && !isExpired && (
+          <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20, textAlign: "center" }}>
+            <span style={{ fontSize: 20 }}>🔒</span>
+            <p style={{ fontSize: 13, color: C.textDim, marginTop: 6 }}>Sign up for full access to submit challenge videos</p>
           </div>
         )}
 
@@ -1163,9 +1170,9 @@ function StudentResources({ token, profile, trialMode }) {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); let filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
+        const lockedTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
         if (trialMode) {
-          const hiddenTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
-          filtered = filtered.filter(a => !hiddenTitles.some(h => a.title.includes(h)));
+          filtered = filtered.map(a => ({ ...a, _locked: lockedTitles.some(h => a.title.includes(h)) }));
         }
         filtered.sort((a, b) => {
           const aSpecific = a.belt_id && a.belt_id !== "all" ? 0 : 1;
@@ -1195,9 +1202,9 @@ function StudentResources({ token, profile, trialMode }) {
         const isOpen = expanded === a.id;
         const readTime = Math.max(1, Math.ceil(a.content.length / 900));
         return (
-        <div key={a.id} style={{ marginBottom: 14, borderRadius: 20, overflow: "hidden", border: `1px solid ${cs.tagColor}22`, transition: "transform 0.2s, box-shadow 0.2s" }}>
+        <div key={a.id} style={{ marginBottom: 14, borderRadius: 20, overflow: "hidden", border: `1px solid ${a._locked ? "#33333344" : cs.tagColor + "22"}`, transition: "transform 0.2s, box-shadow 0.2s", opacity: a._locked ? 0.55 : 1, filter: a._locked ? "grayscale(0.5)" : "none" }}>
           {/* Card header - clickable */}
-          <div onClick={() => setExpanded(isOpen ? null : a.id)} style={{ cursor: "pointer", position: "relative", overflow: "hidden" }}>
+          <div onClick={() => !a._locked && setExpanded(isOpen ? null : a.id)} style={{ cursor: a._locked ? "default" : "pointer", position: "relative", overflow: "hidden" }}>
             {/* Gradient banner */}
             <div style={{ background: cs.gradient, padding: "20px 20px 14px", position: "relative" }}>
               <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.12, transform: "rotate(15deg)" }}>{cs.icon}</div>
@@ -1215,8 +1222,10 @@ function StudentResources({ token, profile, trialMode }) {
             {/* Preview strip */}
             {!isOpen && (
               <div style={{ background: C.surface, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <p style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{a.content.replace(/[*#-]/g, "").substring(0, 90)}...</p>
-                <span style={{ background: cs.tagBg, color: cs.tagColor, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>READ</span>
+                <p style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{a._locked ? "Sign up for full access to read this article" : a.content.replace(/[*#-]/g, "").substring(0, 90) + "..."}</p>
+                {a._locked 
+                  ? <span style={{ background: "#33333388", color: "#888", fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>🔒 LOCKED</span>
+                  : <span style={{ background: cs.tagBg, color: cs.tagColor, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>READ</span>}
               </div>
             )}
           </div>
