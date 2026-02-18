@@ -1125,7 +1125,14 @@ function StudentResources({ token, profile }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
-  useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); setArticles(allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id)); } catch(e){} setLoading(false); })(); }, [token]);
+  useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); const filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
+        filtered.sort((a, b) => {
+          const aSpecific = a.belt_id && a.belt_id !== "all" ? 0 : 1;
+          const bSpecific = b.belt_id && b.belt_id !== "all" ? 0 : 1;
+          if (aSpecific !== bSpecific) return aSpecific - bSpecific;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+        setArticles(filtered); } catch(e){} setLoading(false); })(); }, [token]);
   if (loading) return <div style={{ textAlign: "center", padding: 40, color: C.textDim }}>Loading...</div>;
   return (
     <div className="fade-in">
