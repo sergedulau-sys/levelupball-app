@@ -1801,7 +1801,48 @@ function Admin({ token }) {
           <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
             <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{artEditing ? "EDIT" : "NEW"} ARTICLE</h3>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>TITLE *</label><input value={artForm.title} onChange={e=>setArtForm({...artForm,title:e.target.value})} style={inp} placeholder="Article title..." /></div>
-            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label><textarea value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." /></div>
+            <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CONTENT</label>
+              <div style={{ display: "flex", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
+                {[
+                  { label: "B", fmt: "bold", style: { fontWeight: 800 } },
+                  { label: "I", fmt: "italic", style: { fontStyle: "italic" } },
+                  { label: "H1", fmt: "h1" },
+                  { label: "H2", fmt: "h2" },
+                  { label: "• List", fmt: "bullet" },
+                ].map(btn => (
+                  <button key={btn.label} onClick={() => {
+                    const ta = document.getElementById("article-editor2");
+                    const start = ta.selectionStart;
+                    const end = ta.selectionEnd;
+                    const text = artForm.content;
+                    const selected = text.substring(start, end);
+                    let newText;
+                    if (btn.fmt === "bold") newText = text.substring(0, start) + "**" + (selected || "bold text") + "**" + text.substring(end);
+                    else if (btn.fmt === "italic") newText = text.substring(0, start) + "*" + (selected || "italic text") + "*" + text.substring(end);
+                    else if (btn.fmt === "h1") newText = text.substring(0, start) + "## " + (selected || "Heading") + text.substring(end);
+                    else if (btn.fmt === "h2") newText = text.substring(0, start) + "### " + (selected || "Subheading") + text.substring(end);
+                    else if (btn.fmt === "bullet") newText = text.substring(0, start) + "- " + (selected || "List item") + text.substring(end);
+                    setArtForm({...artForm, content: newText});
+                  }} style={{ background: "#222", border: "1px solid #444", borderRadius: 6, padding: "4px 10px", color: "#fff", fontSize: 11, cursor: "pointer", fontFamily: F, ...btn.style }}>{btn.label}</button>
+                ))}
+              </div>
+              <textarea id="article-editor2" value={artForm.content} onChange={e=>setArtForm({...artForm,content:e.target.value})} style={{ ...inp, minHeight: 200, resize: "vertical" }} placeholder="Write your article here..." />
+              {artForm.content && (
+                <div style={{ marginTop: 8 }}>
+                  <p style={{ fontSize: 9, color: "#555", letterSpacing: 1, marginBottom: 4 }}>PREVIEW</p>
+                  <div style={{ background: "#0a0a0a", borderRadius: 10, padding: 14, border: "1px solid #222", color: "#aaa", fontSize: 13, lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: (() => {
+                    let t = artForm.content;
+                    t = t.replace(/^## (.+)$/gm, '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:16px 0 8px">$1</h2>');
+                    t = t.replace(/^### (.+)$/gm, '<h3 style="font-size:18px;font-weight:700;color:#fff;margin:12px 0 6px">$1</h3>');
+                    t = t.replace(/^- (.+)$/gm, '<div style="padding-left:16px;margin:4px 0">• $1</div>');
+                    t = t.replace(/[*][*](.+?)[*][*]/g, '<strong style="color:#fff;font-weight:700">$1</strong>');
+                    t = t.replace(/[*](.+?)[*]/g, '<em>$1</em>');
+                    t = t.replace(/\n/g, '<br/>');
+                    return t;
+                  })() }} />
+                </div>
+              )}
+            </div>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL (optional)</label><input value={artForm.video_url} onChange={e=>setArtForm({...artForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/watch?v=..." /></div>
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>BELT LEVEL</label><select value={artForm.belt_id} onChange={e=>setArtForm({...artForm,belt_id:e.target.value})} style={{ ...inp, cursor: "pointer" }}><option value="all">All Belts</option>{BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
             <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>PUBLISHED</label><input type="checkbox" checked={artForm.published} onChange={e=>setArtForm({...artForm,published:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /></div>
