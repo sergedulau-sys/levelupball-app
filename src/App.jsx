@@ -2406,7 +2406,7 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
                   </div>
                 </div>
                 {drill.demo_video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>DEMO</p><VideoPlayer url={drill.demo_video_url} /></div>}
-                {drill.image_url && <div style={{ marginBottom: 10 }}><img src={drill.image_url} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
+                {drill.image_url ? <div style={{ marginBottom: 10 }}><img src={drill.image_url} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div> : <p style={{ fontSize: 9, color: "#ff4444" }}>DEBUG: no image_url — keys: {Object.keys(drill).join(", ")}</p>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
                 {!isApproved && xpUnlocked && (
