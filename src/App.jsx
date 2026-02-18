@@ -435,10 +435,13 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
 
   const isSlotDone = (workoutId, week) => weekCompletions.some(wc => wc.workout_id === workoutId && wc.week_number === week);
 
-  // Rolling unlock: first 3 (workoutsPerWeek) unlocked, then 1 unlocks per completion
+  // Rolling unlock: first week's workouts visible, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
-    let budget = wpw; // start with first week unlocked
+    // Find how many workouts are in the first week (or first phase week)
+    const firstWeek = weekSlots.length > 0 ? weekSlots[0].week : 1;
+    const firstWeekCount = weekSlots.filter(s => s.week === firstWeek).length;
+    let budget = firstWeekCount; // start with first week's workouts unlocked
     for (let i = 0; i < weekSlots.length; i++) {
       if (i < budget) unlocked.add(i);
       if (weekSlots[i].isWeekCompleted && i < budget) budget++;
@@ -467,8 +470,8 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
             <div key={wi} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
               {/* Phase header - show when first week of a new phase */}
               {weekGroup.phase && weekGroup.phaseWeek === 1 && (
-                <div style={{ background: `${bc}15`, borderRadius: 12, padding: "10px 20px", marginBottom: 12, marginTop: wi > 0 ? 24 : 0, border: `1px solid ${bc}33`, textAlign: "center" }}>
-                  <span style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 800, color: bc, letterSpacing: 2 }}>{weekGroup.phase.toUpperCase()}</span>
+                <div style={{ background: `linear-gradient(135deg, ${bc}22, ${bc}11)`, borderRadius: 18, padding: "18px 28px", marginBottom: 16, marginTop: wi > 0 ? 32 : 0, border: `2px solid ${bc}44`, textAlign: "center" }}>
+                  <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: bc, letterSpacing: 3 }}>{weekGroup.phase.toUpperCase()}</span>
                 </div>
               )}
               {/* Week header */}
