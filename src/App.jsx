@@ -357,10 +357,10 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
       <div style={{ marginBottom: 32 }}>
         <p style={{ color: C.textDim, fontSize: 14, marginBottom: 4 }}>{greeting}</p>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{(profile.full_name && !profile.full_name.includes("@") ? profile.full_name.split(" ")[0] : "Player")} 👊</h1>
-        {(() => { const [q, a] = getDailyQuote(); return (
+        {(() => { const q = getDailyQuote(); return (
           <div style={{ background: C.surface, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.border}`, marginTop: 12, display: "flex", alignItems: "flex-start", gap: 10 }}>
             <span style={{ fontSize: 18, flexShrink: 0 }}>🔥</span>
-            <div><p style={{ fontSize: 13, color: C.text, fontStyle: "italic", lineHeight: 1.5 }}>"{q}"</p><p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>— {a}</p></div>
+            <div><p style={{ fontSize: 13, color: C.text, fontStyle: "italic", lineHeight: 1.5 }}>"{q.text}"</p><p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>— {q.author}</p></div>
           </div>
         ); })()}
       </div>
