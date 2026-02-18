@@ -557,7 +557,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
               const done = completedIds.has(ex.id);
               const isChallenge = ex.is_challenge;
               // #5 get previous result for challenge exercise
-              const allResults = isChallenge ? challengeResults.filter(r => r.exercise_id === ex.id) : [];
+              const allResults = isChallenge ? challengeResults.filter(r => r.exercise_id === ex.id || (ex.name && r.exercise_name === ex.name)) : [];
               const prevResult = allResults.length > 0 ? allResults.reduce((best, r) => (!best || r.reps_completed > best.reps_completed) ? r : best, null) : null;
               const showRest = !ex.superset_group || ei === group.exercises.length - 1;
               return (
@@ -1734,9 +1734,9 @@ function StudentLayout({ profile, token, onLogout }) {
     } catch(e) { console.error(e); }
   };
 
-  const saveChallengeResult = async (exerciseId, workoutId, reps) => {
+  const saveChallengeResult = async (exerciseId, workoutId, reps, exerciseName) => {
     try {
-      await supabase.from("challenge_results")._token(token).upsert({ student_id: profile.id, exercise_id: exerciseId, workout_id: workoutId, week_number: activeWeek || 1, reps_completed: reps });
+      await supabase.from("challenge_results")._token(token).upsert({ student_id: profile.id, exercise_id: exerciseId, workout_id: workoutId, week_number: activeWeek || 1, reps_completed: reps, exercise_name: exerciseName || "" });
       const updated = await supabase.from("challenge_results")._token(token).select("*", `&student_id=eq.${profile.id}`);
       setChallengeResults(updated);
     } catch (e) { console.error(e); }
