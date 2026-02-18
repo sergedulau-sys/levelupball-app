@@ -1146,7 +1146,17 @@ function StudentResources({ token, profile }) {
           {expanded === a.id && (<div style={{ padding: "0 20px 20px" }} className="fade-in">
             {/* #2 article video */}
             {a.video_url && <div style={{ marginBottom: 12 }}><VideoPlayer url={a.video_url} /></div>}
-            <div style={{ background: C.bg, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14, lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: a.content.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#fff;font-weight:700">$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/^### (.+)$/gm, '<h3 style="font-family:'+DISPLAY+';font-size:18px;font-weight:700;color:#fff;margin:16px 0 8px">$1</h3>').replace(/^## (.+)$/gm, '<h2 style="font-family:'+DISPLAY+';font-size:20px;font-weight:800;color:#fff;margin:20px 0 10px">$1</h2>').replace(/^- (.+)$/gm, '<div style="padding-left:16px;margin:4px 0">• $1</div>').replace(/\n/g, '<br/>') }} />
+            <div style={{ background: C.bg, borderRadius: 14, padding: 20, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 14, lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: (() => {
+                  let t = a.content;
+                  t = t.replace(/\n/g, "\n");
+                  t = t.replace(/^## (.+)$/gm, '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:20px 0 10px">$1</h2>');
+                  t = t.replace(/^### (.+)$/gm, '<h3 style="font-size:18px;font-weight:700;color:#fff;margin:16px 0 8px">$1</h3>');
+                  t = t.replace(/^- (.+)$/gm, '<div style="padding-left:16px;margin:4px 0">• $1</div>');
+                  t = t.replace(/[*][*](.+?)[*][*]/g, '<strong style="color:#fff;font-weight:700">$1</strong>');
+                  t = t.replace(/[*](.+?)[*]/g, '<em>$1</em>');
+                  t = t.replace(/\n/g, '<br/>');
+                  return t;
+                })() }} />
           </div>)}
         </div>
         );
