@@ -1041,7 +1041,7 @@ function StudentChallenges({ token, profile, trialMode }) {
         {trialMode && !isExpired && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20, textAlign: "center" }}>
             <span style={{ fontSize: 20 }}>🔒</span>
-            <p style={{ fontSize: 13, color: C.textDim, marginTop: 6 }}>Sign up for full access to submit challenge videos</p>
+            <p style={{ fontSize: 15, color: "#fff", marginTop: 6, fontWeight: 700, fontFamily: DISPLAY }}>Sign up for full access to submit challenge videos</p>
           </div>
         )}
         {!trialMode && !isExpired && submissions.find(s => s.student_id === profile.id) && (
