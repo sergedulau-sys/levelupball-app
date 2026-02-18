@@ -2309,8 +2309,22 @@ function AdminHeader({ onLogout }) {
 export default function LevelUpBallApp() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [trialMode, setTrialMode] = useState(false);
+  const [trialMode, setTrialMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.has("trial");
+  });
   const [loading, setLoading] = useState(false);
+
+  // Trial mode: skip login, create fake session
+  useEffect(() => {
+    if (trialMode && !session) {
+      const params = new URLSearchParams(window.location.search);
+      const belt = params.get("belt") || "white";
+      setProfile({ id: "trial", full_name: "Player", role: "student", belt_id: belt, xp: 0 });
+      setSession({ access_token: null, user: { id: "trial" } });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [trialMode]);
 
   const handleLogin = async (data) => {
     setSession(data); setLoading(true);
