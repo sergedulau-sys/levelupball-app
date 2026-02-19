@@ -246,13 +246,13 @@ function ProgressRing({ percent, size = 56, strokeWidth = 4, color = C.accent })
 // ============================================================
 // BELT PLACEMENT QUIZ
 // ============================================================
-function BeltQuiz({ onStartTrial }) {
+function BeltQuiz({ onStartTrial, quiz30Mode }) {
   const MAILER_LITE_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiODJjZGJmMzhmMzM4MmNmN2Q4MjM4MTc2OTJhYWM4ZjNkNWRhZDM0ODY5ZDBjNWYxNGRlMzVjZWY2Nzc4ZWM2MjQ0OTUyYzZmODdkNmY3MjgiLCJpYXQiOjE3NzE1MDA2MjYuOTE3MjEzLCJuYmYiOjE3NzE1MDA2MjYuOTE3MjE3LCJleHAiOjQ5MjcxNzQyMjYuOTAyODI5LCJzdWIiOiIyMTI3ODQ5Iiwic2NvcGVzIjpbXX0.RA-p19ueL2qRJN9_OnSxXxFAhHGjwipSkhjtAmR-1BR8NekWNe7ttexBwCc_vYrm06AqRDkRYBkE_YkMvhGE-_OXXODadSfZENDwssc5DrFiq4Q7xrE459TaQZk7iuUZnrQBLtLCnQZMqdMijTiKGd53bwNuDirNKKX5TsZ3RUB4X7jbylFmcwHlNhNyxPs1WZeRSMd27X0MxVISbQvNcn_p6KmqBXn3oRXdEXDUF0f2bhfbaLWpzJGuYfarwY5ui7I8yxtHhh7dFaa8QcXYo24NB9u5ViTXK7IjrXfKpF4kPJqISaTm3QEtiqMzVz5tbM2lj3jXg1_B6a9fiMHRz1RaQbqSrkzTOy17NVMKKrqGbPJ95B7F9NKibwPhzcOU30lxH0PInRAa1hWJs7HPicQzcKgdEay9UYUdy-sDIVj48Rzlbe1bexumJ5juJ6sHqtofP6Vuc5vIYas343BWY3ZMy_s4LmS288gO15DjOziTI3j5hwL8-BRH0-mW5P93XZ2t2y2d0M-I0R7cgk3plyeEQnojKBypqEaechFyAJLrgkfwdgjW5lykr7agpqrqIZclQJMaZ-hf1NfH9lLvumztJ29hE8uAFIt3ovgLeMBbYxn6L5swTtSfKJpM2JKXdlMZuK_oWZyJwBawr5KyKYNwZ-C4XpHwxZesb9LjoOQ"; // replace with your key
   const MAILER_LITE_GROUP_ID = "179197594118915541"; // replace with your MailerLite group ID
 
   const QUESTIONS = [
     {
-      id: "q1", label: "How long has your player been playing basketball?",
+      id: "q1", label: "How long has your player been playing competitive basketball?",
       options: ["Less than 6 months", "6-12 months", "1-2 Years", "2-4 Years", "4+ Years"],
       scores: [1, 2, 3, 4, 5],
     },
@@ -297,11 +297,48 @@ function BeltQuiz({ onStartTrial }) {
 
   const [step, setStep] = useState("intro"); // intro | q0..q3 | info | result
   const [answers, setAnswers] = useState([null, null, null, null]);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefillName || "");
   const [email, setEmail] = useState("");
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resultBelt, setResultBelt] = useState(null);
+  const [signup30Pw, setSignup30Pw] = useState("");
+
+  const handleSignup30 = async () => {
+    setErr("");
+    if (signup30Pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
+    setSubmitting(true);
+    try {
+      const trialExpires = new Date();
+      trialExpires.setDate(trialExpires.getDate() + 30);
+      const trialExpiresStr = trialExpires.toISOString();
+      const data = await supabase.auth.signUp(email.trim(), signup30Pw, {
+        full_name: name.trim(),
+        role: "student",
+        belt_id: resultBelt,
+        trial_expires_at: trialExpiresStr,
+      });
+      if (!data?.access_token) { setErr("Signup failed. Please try again."); setSubmitting(false); return; }
+      // Store pending trial expiry for profile update
+      sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
+      sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
+      // MailerLite
+      try {
+        const beltObj = BELT_LEVELS.find(b => b.id === resultBelt);
+        await fetch("https://connect.mailerlite.com/api/subscribers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MAILER_LITE_API_KEY}` },
+          body: JSON.stringify({
+            email: email.trim(),
+            fields: { name: name.trim(), belt_level: beltObj?.name || resultBelt, trial_start: new Date().toISOString().split("T")[0] },
+            groups: [MAILER_LITE_GROUP_ID],
+          }),
+        });
+      } catch(e) { /* silently continue */ }
+      onStartTrial(data);
+    } catch(e) { setErr(e.message || "Signup failed. Please try again."); }
+    setSubmitting(false);
+  };
 
   const currentQIdx = ["q0","q1","q2","q3"].indexOf(step);
   const questionStep = parseInt(step.replace("q",""));
@@ -381,6 +418,51 @@ function BeltQuiz({ onStartTrial }) {
   // ---- LOGIN PASSTHROUGH ----
   if (step === "login") return <Login onLogin={onStartTrial} isLogin={true} />;
 
+  // ---- SIGNUP30 — 30-day trial account after quiz ----
+  if (step === "signup30" && resultBelt) {
+    const beltObj = BELT_LEVELS.find(b => b.id === resultBelt) || BELT_LEVELS[0];
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)", width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${beltObj.color}12, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none" }} />
+        <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <BeltIcon beltId={resultBelt} size={56} />
+            <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, marginTop: 16, marginBottom: 6 }}>One last step!</h1>
+            <p style={{ color: C.textMuted, fontSize: 14 }}>Create a password to save your <span style={{ color: beltObj.color, fontWeight: 700 }}>{beltObj.name}</span> account.</p>
+          </div>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
+            {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
+            <div style={{ marginBottom: 8, background: C.bg, borderRadius: 12, padding: "12px 16px", border: `1px solid ${C.border}`, marginBottom: 16 }}>
+              <p style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Signing up as</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{name} · {email}</p>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Create Password</label>
+              <input
+                type="password"
+                value={signup30Pw}
+                onChange={e => setSignup30Pw(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSignup30()}
+                style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS, boxSizing: "border-box" }}
+                placeholder="At least 6 characters"
+              />
+            </div>
+            <button onClick={handleSignup30} disabled={submitting} style={{ width: "100%", background: `linear-gradient(135deg, ${beltObj.color}, ${beltObj.color}cc)`, color: beltObj.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 20px ${beltObj.color}40` }}>
+              {submitting ? "Creating your account..." : "Start 30-Day Free Trial 🏀"}
+            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, justifyContent: "center" }}>
+              <span style={{ fontSize: 11, color: C.textDim }}>✓ Full access</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>✓ No credit card</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>✓ 30 days free</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ---- RESULT ----
   if (step === "result" && resultBelt) {
     const belt = BELT_LEVELS.find(b => b.id === resultBelt);
@@ -394,14 +476,22 @@ function BeltQuiz({ onStartTrial }) {
           <h2 style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>Your player is a</h2>
           <h1 style={{ fontFamily: DISPLAY, fontSize: 42, fontWeight: 900, color: belt.color, letterSpacing: -1, marginBottom: 12 }}>{belt.name}</h1>
           <p style={{ color: C.textMuted, fontSize: 15, lineHeight: 1.6, maxWidth: 360, margin: "0 auto 32px" }}>
-            We've matched your player to the {belt.name} curriculum. Try the first workout free — no password needed.
+            {quiz30Mode ? `We matched your player to the ${belt.name} curriculum. Create a free account to start your 30-day trial.` : `We've matched your player to the ${belt.name} curriculum. Try the first workout free — no password needed.`}
           </p>
-          <button
-            onClick={() => onStartTrial({ name: name.trim(), belt: resultBelt })}
-            style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 6px 24px ${belt.color}40`, letterSpacing: 0.5, marginBottom: 12 }}>
-            Start Free Trial 🏀
-          </button>
-          <p style={{ fontSize: 12, color: C.textDim }}>No account required · No credit card</p>
+          {quiz30Mode ? (
+            <button
+              onClick={() => setStep("signup30")}
+              style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 6px 24px ${belt.color}40`, letterSpacing: 0.5, marginBottom: 12 }}>
+              Start 30-Day Free Trial 🏀
+            </button>
+          ) : (
+            <button
+              onClick={() => onStartTrial({ name: name.trim(), belt: resultBelt })}
+              style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 6px 24px ${belt.color}40`, letterSpacing: 0.5, marginBottom: 12 }}>
+              Start Free Trial 🏀
+            </button>
+          )}
+          <p style={{ fontSize: 12, color: C.textDim }}>{quiz30Mode ? "No credit card required · Full access for 30 days" : "No account required · No credit card"}</p>
         </div>
       </div>
     );
@@ -2813,13 +2903,13 @@ function AdminHeader({ onLogout }) {
 // ============================================================
 // INVITE SIGNUP — 30-day full access trial
 // ============================================================
-function InviteSignup({ belt: inviteBelt, onLogin }) {
+function InviteSignup({ belt: inviteBelt, onLogin, prefillName }) {
   const ENROLL_URL = "https://www.levelupballacademy.com/enroll"; // unused - Stripe handles checkout
   const MAILER_LITE_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiODJjZGJmMzhmMzM4MmNmN2Q4MjM4MTc2OTJhYWM4ZjNkNWRhZDM0ODY5ZDBjNWYxNGRlMzVjZWY2Nzc4ZWM2MjQ0OTUyYzZmODdkNmY3MjgiLCJpYXQiOjE3NzE1MDA2MjYuOTE3MjEzLCJuYmYiOjE3NzE1MDA2MjYuOTE3MjE3LCJleHAiOjQ5MjcxNzQyMjYuOTAyODI5LCJzdWIiOiIyMTI3ODQ5Iiwic2NvcGVzIjpbXX0.RA-p19ueL2qRJN9_OnSxXxFAhHGjwipSkhjtAmR-1BR8NekWNe7ttexBwCc_vYrm06AqRDkRYBkE_YkMvhGE-_OXXODadSfZENDwssc5DrFiq4Q7xrE459TaQZk7iuUZnrQBLtLCnQZMqdMijTiKGd53bwNuDirNKKX5TsZ3RUB4X7jbylFmcwHlNhNyxPs1WZeRSMd27X0MxVISbQvNcn_p6KmqBXn3oRXdEXDUF0f2bhfbaLWpzJGuYfarwY5ui7I8yxtHhh7dFaa8QcXYo24NB9u5ViTXK7IjrXfKpF4kPJqISaTm3QEtiqMzVz5tbM2lj3jXg1_B6a9fiMHRz1RaQbqSrkzTOy17NVMKKrqGbPJ95B7F9NKibwPhzcOU30lxH0PInRAa1hWJs7HPicQzcKgdEay9UYUdy-sDIVj48Rzlbe1bexumJ5juJ6sHqtofP6Vuc5vIYas343BWY3ZMy_s4LmS288gO15DjOziTI3j5hwL8-BRH0-mW5P93XZ2t2y2d0M-I0R7cgk3plyeEQnojKBypqEaechFyAJLrgkfwdgjW5lykr7agpqrqIZclQJMaZ-hf1NfH9lLvumztJ29hE8uAFIt3ovgLeMBbYxn6L5swTtSfKJpM2JKXdlMZuK_oWZyJwBawr5KyKYNwZ-C4XpHwxZesb9LjoOQ";
   const MAILER_LITE_GROUP_ID = "179197594118915541";
 
   const belt = BELT_LEVELS.find(b => b.id === inviteBelt) || BELT_LEVELS[0];
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefillName || "");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -2843,6 +2933,7 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
         belt_id: inviteBelt,
         trial_expires_at: trialExpiresStr,
       });
+      console.log("SIGNUP RESPONSE:", JSON.stringify(data));
       // Store trial expiry in sessionStorage — will be applied when profile loads
       sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
       sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
@@ -2858,8 +2949,20 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
           }),
         });
       } catch(e) { /* silently continue */ }
+      // Handle email confirmation requirement
+      if (!data?.access_token && data?.user?.identities?.length === 0) {
+        setErr("This email is already registered. Please use a different email.");
+        setLoading(false);
+        return;
+      }
+      if (!data?.access_token) {
+        // Email confirmation required - show message
+        setErr("✅ Account created! Please check your email to confirm your account, then sign in.");
+        setLoading(false);
+        return;
+      }
       onLogin(data);
-    } catch(e) { setErr(e.message); }
+    } catch(e) { setErr(e.message || "Signup failed. Please try again."); console.error('Signup error:', e); }
     setLoading(false);
   };
 
@@ -3019,7 +3122,7 @@ export default function LevelUpBallApp() {
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <style>{GLOBAL_CSS}</style>
       {!session && validInvite && <InviteSignup belt={inviteBelt} onLogin={handleLogin} />}
-      {!session && !validInvite && <BeltQuiz onStartTrial={(data) => {
+      {!session && !validInvite && <BeltQuiz quiz30Mode={!!new URLSearchParams(window.location.search).get("quiz30")} onStartTrial={(data) => {
         if (data?.access_token) { handleLogin(data); }
         else { handleTrialStart(data); }
       }} />}
