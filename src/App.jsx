@@ -3173,36 +3173,29 @@ export default function LevelUpBallApp() {
   const handleLogin = async (data) => {
     setSession(data); setLoading(true);
     try {
-      const token = data.access_token;
-      const userId = data.user?.id;
-      const metaRole = data.user?.user_metadata?.role || data.user?.app_metadata?.role;
-      if (!token || !userId) { setLoading(false); return; }
-      let profile = null;
-      try {
-        const profiles = await supabase.from("profiles")._token(token).select("*", `&id=eq.${userId}`);
-        if (Array.isArray(profiles) && profiles.length > 0) {
-          profile = profiles[0];
-          const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
-          const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
-          if (pendingExpiry && pendingUserId === userId && !profile.trial_expires_at) {
-            try {
-              await supabase.from("profiles")._token(token).update({ trial_expires_at: pendingExpiry }, { id: userId });
-              profile.trial_expires_at = pendingExpiry;
-            } catch(e) {}
-            sessionStorage.removeItem("pending_trial_expires");
-            sessionStorage.removeItem("pending_trial_user_id");
-          }
+      const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
+      if (profiles.length > 0) {
+        const profile = profiles[0];
+        const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
+        const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
+        if (pendingExpiry && pendingUserId === data.user.id && !profile.trial_expires_at) {
+          try {
+            await supabase.from("profiles")._token(data.access_token).update(
+              { trial_expires_at: pendingExpiry },
+              { id: data.user.id }
+            );
+            profile.trial_expires_at = pendingExpiry;
+          } catch(e) { console.error(e); }
+          sessionStorage.removeItem("pending_trial_expires");
+          sessionStorage.removeItem("pending_trial_user_id");
         }
-      } catch(e) { console.error("Profile fetch error:", e); }
-      // Fallback: build profile from auth metadata if DB row missing (e.g. admin)
-      if (!profile && metaRole) {
-        profile = { id: userId, role: metaRole, full_name: data.user?.user_metadata?.full_name || "" };
+        setProfile(profile);
       }
-      if (profile) setProfile(profile);
       window.history.replaceState({}, "", window.location.pathname);
-    } catch (e) { console.error("handleLogin error:", e); }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
+
 
   const logout = () => { setSession(null); setProfile(null); setTrialMode(false); };
 
@@ -3211,7 +3204,7 @@ export default function LevelUpBallApp() {
     ? new Date(profile.trial_expires_at) < new Date()
     : false;
 
-  const quiz30Mode = window.location.search.includes("quiz30");
+  const quiz30Mode = !!new URLSearchParams(window.location.search).get("quiz30");
   if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 120, height: 120, animation: "pulse 1.5s infinite" }} /></div></>;
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
@@ -3228,19 +3221,7 @@ export default function LevelUpBallApp() {
           <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />
         </>
       )}
-      {session && profile && profile.role !== "admin" && profile.role !== "student" && (
-        <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-          <p style={{ color: C.danger, fontSize: 14, fontFamily: FONTS }}>Unknown account role: "{profile.role}"</p>
-          <button onClick={logout} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 16px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS }}>Sign out</button>
-        </div>
-      )}
-      {session && !profile && (
-        <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-          <img src={LOGO_LG} alt="" style={{ width: 80, height: 80, opacity: 0.5 }} />
-          <p style={{ color: C.textDim, fontSize: 14, fontFamily: FONTS }}>Loading your account...</p>
-          <button onClick={logout} style={{ marginTop: 8, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 16px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS }}>Sign out and try again</button>
-        </div>
-      )}
+
     </div>
   );
 }
