@@ -295,10 +295,11 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
     return "black";
   };
 
-  const [step, setStep] = useState("intro"); // intro | q0..q3 | info | result
+  const [step, setStep] = useState("intro"); // intro | q0..q3 | type | info | result
   const [answers, setAnswers] = useState([null, null, null, null]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [userType, setUserType] = useState(null); // "parent" | "player"
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resultBelt, setResultBelt] = useState(null);
@@ -312,11 +313,12 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
       trialExpires.setDate(trialExpires.getDate() + 30);
       const trialExpiresStr = trialExpires.toISOString();
       const data = await supabase.auth.signUp(email.trim(), signup30Pw, {
-        full_name: name.trim(), role: "student", belt_id: resultBelt, trial_expires_at: trialExpiresStr,
+        full_name: name.trim(), role: "student", belt_id: resultBelt, trial_expires_at: trialExpiresStr, user_type: userType || "parent",
       });
       if (!data?.access_token) { setErr("Signup failed. Please try again."); setSubmitting(false); return; }
       sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
       sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
+      sessionStorage.setItem("quiz_user_type", userType || "parent");
       onStartTrial(data);
     } catch(e) { setErr(e.message || "Signup failed."); }
     setSubmitting(false);
@@ -332,7 +334,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
     // Auto-advance after short delay
     setTimeout(() => {
       if (qIdx < QUESTIONS.length - 1) setStep(`q${qIdx + 1}`);
-      else setStep("info");
+      else setStep("type");
     }, 320);
   };
 
@@ -340,7 +342,8 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
 
   const handleSubmit = async () => {
     setErr("");
-    if (!name.trim()) { setErr("Please enter the player's name."); return; }
+    if (userType === "player" && !name.trim()) { setErr("Please enter your name."); return; }
+    if (userType === "parent" && !name.trim()) { setErr("Please enter your first name."); return; }
     if (!email.trim() || !email.includes("@")) { setErr("Please enter a valid email."); return; }
     setSubmitting(true);
     const score = calcScore();
@@ -354,20 +357,22 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MAILER_LITE_API_KEY}` },
         body: JSON.stringify({
           email: email.trim(),
-          fields: { name: name.trim(), belt_level: beltObj?.name || belt },
+          fields: { name: name.trim(), belt_level: beltObj?.name || belt, user_type: userType || "parent" },
           groups: [MAILER_LITE_GROUP_ID],
         }),
       });
     } catch(e) { /* silently continue */ }
 
     setResultBelt(belt);
+    // Store user_type in sessionStorage for session trial display
+    sessionStorage.setItem("quiz_user_type", userType || "parent");
     setStep("result");
     setSubmitting(false);
   };
 
   const inp = { width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS, boxSizing: "border-box" };
 
-  const progressPct = step === "intro" ? 0 : step === "info" || step === "result" ? 100 : ((parseInt(step.replace("q","")) / QUESTIONS.length) * 100);
+  const progressPct = step === "intro" ? 0 : step === "type" ? 90 : step === "info" || step === "result" ? 100 : ((parseInt(step.replace("q","")) / QUESTIONS.length) * 100);
 
   // ---- INTRO ----
   if (step === "intro") return (
@@ -447,7 +452,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
             We've matched your player to the {belt.name} curriculum. Try the first workout free — no password needed.
           </p>
           <button
-            onClick={() => quiz30Mode ? setStep("signup30") : onStartTrial({ name: name.trim(), belt: resultBelt })}
+            onClick={() => quiz30Mode ? setStep("signup30") : onStartTrial({ name: name.trim(), belt: resultBelt, userType: userType || "parent" })}
             style={{ width: "100%", background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "cc)", color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 6px 24px " + belt.color + "40", letterSpacing: 0.5, marginBottom: 12 }}>
             {quiz30Mode ? "Start 30-Day Free Trial 🏀" : "Start Free Trial 🏀"}
           </button>
@@ -458,28 +463,67 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
   }
 
   // ---- INFO COLLECTION ----
+  // ---- TYPE SELECTION ----
+  if (step === "type") return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
+      <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+        <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: "90%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
+        </div>
+        <button onClick={() => setStep(`q${QUESTIONS.length - 1}`)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, marginBottom: 24 }}>← Back</button>
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>One last thing! 🏀</h2>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Are you a parent signing up for your player, or are you the player?</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = `${C.accent}10`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>👨‍👧</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Parent</div>
+            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4 }}>I'm signing up my child for training</div>
+          </button>
+          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = `${C.accent}10`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🏀</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Player</div>
+            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4 }}>I'm the player signing up myself</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ---- INFO STEP ----
   if (step === "info") return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
       <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
         {/* Progress bar */}
         <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: "90%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
+          <div style={{ height: "100%", width: "100%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
         </div>
+        <button onClick={() => setStep("type")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, marginBottom: 24 }}>← Back</button>
         <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Almost there! 🏀</h2>
-        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Enter your info to see your player's belt level and start training.</p>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>
+          {userType === "player" ? "Enter your info to see your belt level and start training." : "Enter your info to see your player's belt level and start training."}
+        </p>
         <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
           {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Player's Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="First and last name" />
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
+              {userType === "player" ? "Your Name" : "Your First Name"}
+            </label>
+            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder={userType === "player" ? "First and last name" : "Your first name"} />
           </div>
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Parent Email</label>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
+              {userType === "player" ? "Your Email" : "Your Email"}
+            </label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inp} placeholder="your@email.com" />
           </div>
           <button onClick={handleSubmit} disabled={submitting} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>
-            {submitting ? "Finding your level..." : "See My Player's Level →"}
+            {submitting ? "Finding your level..." : (userType === "player" ? "See My Belt Level →" : "See My Player's Level →")}
           </button>
           <p style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: C.textDim }}>We'll only use your email to send training tips. No spam.</p>
         </div>
@@ -572,7 +616,7 @@ function Login({ onLogin, isLogin }) {
     if (!beltObj || accessCode.toUpperCase() !== beltObj.code) { setErr("Invalid access code."); return; }
     setLoading(true);
     try {
-      await supabase.auth.signUp(email, pw, { full_name: playerName.trim(), role: "student", belt_id: startBelt, age: age ? parseInt(age) : null });
+      await supabase.auth.signUp(email, pw, { full_name: playerName.trim(), role: "student", belt_id: startBelt, age: age ? parseInt(age) : null, user_type: "player" });
       setSignupDone(true);
     } catch (e) { setErr(e.message); }
     setLoading(false);
@@ -645,7 +689,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
           <div style={{ background: C.bg, borderRadius: 14, padding: 14, border: `1px solid ${C.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <BeltIcon beltId={profile.belt_id} size={36} />
-              <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.full_name.split(" ")[0]}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
+              <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.user_type === "player" ? profile.full_name.split(" ")[0] : "Player"}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {BELT_LEVELS.map((b, i) => (<div key={b.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < belt.level ? belt.color : C.border }} />))}
@@ -685,7 +729,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
     <div className="fade-in">
       <div style={{ marginBottom: 32 }}>
         <p style={{ color: C.textDim, fontSize: 14, marginBottom: 4 }}>{greeting}</p>
-        <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{(profile.full_name && !profile.full_name.includes("@") ? profile.full_name.split(" ")[0] : "Player")} 👊</h1>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{profile.user_type === "player" ? (profile.full_name && !profile.full_name.includes("@") ? profile.full_name.split(" ")[0] : "Player") : "Player"} 👊</h1>
         {(() => { const q = getDailyQuote(); return (
           <div style={{ background: C.surface, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.border}`, marginTop: 12, display: "flex", alignItems: "flex-start", gap: 10 }}>
             <span style={{ fontSize: 18, flexShrink: 0 }}>🔥</span>
@@ -1489,6 +1533,7 @@ function QuickSessions({ token, profile, trialMode }) {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                     <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>⚡ {s.duration_min || "?"} min</span>
                     <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>🏀 {exCount} drill{exCount !== 1 ? "s" : ""}</span>
+                    {(s.xp_points > 0) && <span style={{ background: "rgba(34,197,94,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "#22C55E", border: "1px solid rgba(34,197,94,0.25)", fontWeight: 700 }}>⭐ {s.xp_points} XP</span>}
                     {targetBelt && <span style={{ background: `${targetBelt.color}15`, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: targetBelt.color, border: `1px solid ${targetBelt.color}30` }}>{targetBelt.name}</span>}
                   </div>
                 </div>
@@ -2231,7 +2276,7 @@ function Admin({ token }) {
     } catch (e) { console.error(e); }
   };
   // -- Student CRUD --
-  const addStudent = async () => { if (!ns.name || !ns.email || !ns.password) return; setSaving(true); try { await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId }); setNs({ name: "", email: "", password: "", beltId: "white" }); setShowAdd(false); await loadStudents(); flash("Student added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const addStudent = async () => { if (!ns.name || !ns.email || !ns.password) return; setSaving(true); try { await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId, user_type: "player" }); setNs({ name: "", email: "", password: "", beltId: "white" }); setShowAdd(false); await loadStudents(); flash("Student added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const demoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci <= 0) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci - 1].id }, { id: student.id }); await loadStudents(); flash("Demoted."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const promoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci >= BELT_LEVELS.length - 1) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci + 1].id }, { id: student.id }); await loadStudents(); flash("Student promoted!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const deleteStudent = async (id) => { setSaving(true); try { await supabase.from("profiles")._token(token).delete({ id }); await loadStudents(); flash("Student removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
@@ -2760,7 +2805,7 @@ function WelcomeModal({ profile, onDismiss }) {
           <div style={{ position: "absolute", top: -30, right: -20, fontSize: 120, opacity: 0.08 }}>🏀</div>
           <div style={{ position: "relative", zIndex: 1 }}>
             <p style={{ fontSize: 11, fontWeight: 700, color: belt.id === "white" ? "#111" : "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, textShadow: belt.id === "white" ? "none" : "0 1px 4px rgba(0,0,0,0.3)" }}>Welcome to LevelUpBall</p>
-            <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, color: belt.id === "white" ? "#111" : "#fff", marginBottom: 4, textShadow: belt.id === "white" ? "none" : "0 2px 8px rgba(0,0,0,0.3)" }}>Hey {profile.full_name}! 👋</h2>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, color: belt.id === "white" ? "#111" : "#fff", marginBottom: 4, textShadow: belt.id === "white" ? "none" : "0 2px 8px rgba(0,0,0,0.3)" }}>Hey {profile.user_type === "player" ? (profile.full_name || "Player") : "Player"}! 👋</h2>
             <p style={{ fontSize: 14, color: belt.id === "white" ? "#333" : "rgba(255,255,255,0.75)" }}>You have been matched to the <strong>{belt.name}</strong> belt. Watch this quick video to learn how the program works. <span style={{ opacity: 0.85 }}>You can also find this guide in the <strong>Resources</strong> tab if you don&apos;t want to watch it now.</span></p>
           </div>
         </div>
@@ -2989,6 +3034,7 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
       // Store trial expiry in sessionStorage — will be applied when profile loads
       sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
       sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
+      sessionStorage.setItem("quiz_user_type", userType || "parent");
       // MailerLite
       try {
         await fetch("https://connect.mailerlite.com/api/subscribers", {
@@ -3116,8 +3162,9 @@ export default function LevelUpBallApp() {
   const validInvite = inviteBelt && BELT_LEVELS.find(b => b.id === inviteBelt);
 
   // Handle trial start from quiz — no Supabase account created
-  const handleTrialStart = ({ name, belt }) => {
-    setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0 });
+  const handleTrialStart = ({ name, belt, userType: ut }) => {
+    const storedUserType = ut || sessionStorage.getItem("quiz_user_type") || "parent";
+    setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0, user_type: storedUserType });
     setSession({ access_token: null, user: { id: "trial" } });
     setTrialMode(true);
   };
