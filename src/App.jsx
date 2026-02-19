@@ -2832,12 +2832,16 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
     try {
       const trialExpires = new Date();
       trialExpires.setDate(trialExpires.getDate() + 30);
+      const trialExpiresStr = trialExpires.toISOString();
       const data = await supabase.auth.signUp(email.trim(), pw, {
         full_name: name.trim(),
         role: "student",
         belt_id: inviteBelt,
-        trial_expires_at: trialExpires.toISOString(),
+        trial_expires_at: trialExpiresStr,
       });
+      // Store trial expiry in sessionStorage — will be applied when profile loads
+      sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
+      sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
       // MailerLite
       try {
         await fetch("https://connect.mailerlite.com/api/subscribers", {
@@ -2976,7 +2980,24 @@ export default function LevelUpBallApp() {
     setSession(data); setLoading(true);
     try {
       const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
-      if (profiles.length > 0) setProfile(profiles[0]);
+      if (profiles.length > 0) {
+        const profile = profiles[0];
+        // Apply pending trial expiry from invite signup if present
+        const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
+        const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
+        if (pendingExpiry && pendingUserId === data.user.id && !profile.trial_expires_at) {
+          try {
+            await supabase.from("profiles")._token(data.access_token).update(
+              { trial_expires_at: pendingExpiry },
+              { id: data.user.id }
+            );
+            profile.trial_expires_at = pendingExpiry;
+          } catch(e) { console.error(e); }
+          sessionStorage.removeItem("pending_trial_expires");
+          sessionStorage.removeItem("pending_trial_user_id");
+        }
+        setProfile(profile);
+      }
       window.history.replaceState({}, "", window.location.pathname);
     } catch (e) { console.error(e); }
     setLoading(false);
