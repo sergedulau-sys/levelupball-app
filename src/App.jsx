@@ -3173,27 +3173,32 @@ export default function LevelUpBallApp() {
   const handleLogin = async (data) => {
     setSession(data); setLoading(true);
     try {
-      const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
-      if (profiles.length > 0) {
+      const token = data.access_token;
+      const userId = data.user?.id;
+      if (!token || !userId) { console.error("Login data missing token or user id", data); setLoading(false); return; }
+      const profiles = await supabase.from("profiles")._token(token).select("*", `&id=eq.${userId}`);
+      if (Array.isArray(profiles) && profiles.length > 0) {
         const profile = profiles[0];
         // Apply pending trial expiry from invite signup if present
         const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
         const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
-        if (pendingExpiry && pendingUserId === data.user.id && !profile.trial_expires_at) {
+        if (pendingExpiry && pendingUserId === userId && !profile.trial_expires_at) {
           try {
-            await supabase.from("profiles")._token(data.access_token).update(
+            await supabase.from("profiles")._token(token).update(
               { trial_expires_at: pendingExpiry },
-              { id: data.user.id }
+              { id: userId }
             );
             profile.trial_expires_at = pendingExpiry;
-          } catch(e) { console.error(e); }
+          } catch(e) { console.error("Trial expiry update failed:", e); }
           sessionStorage.removeItem("pending_trial_expires");
           sessionStorage.removeItem("pending_trial_user_id");
         }
         setProfile(profile);
+      } else {
+        console.error("No profile found for user", userId, profiles);
       }
       window.history.replaceState({}, "", window.location.pathname);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("handleLogin error:", e); }
     setLoading(false);
   };
 
@@ -3220,6 +3225,19 @@ export default function LevelUpBallApp() {
           {isTrialExpired && <TrialExpiredOverlay profile={profile} />}
           <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />
         </>
+      )}
+      {session && profile && profile.role !== "admin" && profile.role !== "student" && (
+        <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          <p style={{ color: C.danger, fontSize: 14, fontFamily: FONTS }}>Unknown account role: "{profile.role}"</p>
+          <button onClick={logout} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 16px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS }}>Sign out</button>
+        </div>
+      )}
+      {session && !profile && (
+        <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          <img src={LOGO_LG} alt="" style={{ width: 80, height: 80, opacity: 0.5 }} />
+          <p style={{ color: C.textDim, fontSize: 14, fontFamily: FONTS }}>Loading your account...</p>
+          <button onClick={logout} style={{ marginTop: 8, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 16px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS }}>Sign out and try again</button>
+        </div>
       )}
     </div>
   );
