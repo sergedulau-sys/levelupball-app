@@ -2138,6 +2138,7 @@ function Admin({ token }) {
   const demoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci <= 0) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci - 1].id }, { id: student.id }); await loadStudents(); flash("Demoted."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const promoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci >= BELT_LEVELS.length - 1) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci + 1].id }, { id: student.id }); await loadStudents(); flash("Student promoted!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const deleteStudent = async (id) => { setSaving(true); try { await supabase.from("profiles")._token(token).delete({ id }); await loadStudents(); flash("Student removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const grantFullAccess = async (student) => { setSaving(true); try { await supabase.from("profiles")._token(token).update({ trial_expires_at: null }, { id: student.id }); await loadStudents(); flash(student.full_name + " granted full access!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   // -- Library CRUD --
   const saveLibItem = async () => {
     if (!libForm.name || !libForm.category) { flash("Name and category required."); return; }
@@ -2441,11 +2442,11 @@ function Admin({ token }) {
       {tab === "quicksessions" && <AdminQuickSessions token={token} />}
       {/* ===== MESSAGES TAB ===== */}
       {tab === "messages" && <AdminMessages token={token} />}
-      {tab === "students" && <AdminStudents token={token} saving={saving} setSaving={setSaving} flash={flash} students={students} loadStudents={loadStudents} showAdd={showAdd} setShowAdd={setShowAdd} ns={ns} setNs={setNs} addStudent={addStudent} promoteStudent={promoteStudent} demoteStudent={demoteStudent} deleteStudent={deleteStudent} inp={inp} />}
+      {tab === "students" && <AdminStudents token={token} saving={saving} setSaving={setSaving} flash={flash} students={students} loadStudents={loadStudents} showAdd={showAdd} setShowAdd={setShowAdd} ns={ns} setNs={setNs} addStudent={addStudent} promoteStudent={promoteStudent} demoteStudent={demoteStudent} deleteStudent={deleteStudent} grantFullAccess={grantFullAccess} inp={inp} />}
     </div>
   );
 }
-function AdminStudents({ token, saving, setSaving, flash, students, loadStudents, showAdd, setShowAdd, ns, setNs, addStudent, promoteStudent, demoteStudent, deleteStudent, inp }) {
+function AdminStudents({ token, saving, setSaving, flash, students, loadStudents, showAdd, setShowAdd, ns, setNs, addStudent, promoteStudent, demoteStudent, deleteStudent, grantFullAccess, inp }) {
   const [viewSubs, setViewSubs] = useState(null);
   const [studentSubs, setStudentSubs] = useState([]);
   const [drills, setDrills] = useState([]);
@@ -2510,6 +2511,16 @@ function AdminStudents({ token, saving, setSaving, flash, students, loadStudents
                   <div style={{ width: 7, height: 7, borderRadius: "50%", background: sb.color }} />
                   <span style={{ fontFamily: F, fontSize: 10, color: sb.color, letterSpacing: 1 }}>{sb.name.toUpperCase()}</span>
                 </div>
+                {s.trial_expires_at && (() => {
+                  const daysLeft = Math.ceil((new Date(s.trial_expires_at) - new Date()) / (1000 * 60 * 60 * 24));
+                  const expired = daysLeft <= 0;
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: expired ? "#EF444418" : "#F9731618", padding: "4px 12px", borderRadius: 20, border: `1px solid ${expired ? "#EF4444" : "#F97316"}33` }}>
+                      <span style={{ fontFamily: F, fontSize: 10, color: expired ? "#EF4444" : "#F97316", letterSpacing: 1 }}>{expired ? "TRIAL EXPIRED" : `TRIAL • ${daysLeft}d LEFT`}</span>
+                    </div>
+                  );
+                })()}
+                {s.trial_expires_at && <button onClick={() => grantFullAccess(s)} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>✓ GRANT FULL ACCESS</button>}
                 <button onClick={() => viewStudentSubs(s)} style={{ background: viewSubs === s.id ? "#3B82F6" : "#222", border: viewSubs === s.id ? "none" : "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>LEVEL UP</button>
                 {s.belt_id !== "black" && <button onClick={() => promoteStudent(s)} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>PROMOTE ↑</button>}
                 {s.belt_id !== "white" && <button onClick={() => demoteStudent(s)} disabled={saving} style={{ background: "#F59E0B", border: "none", borderRadius: 8, padding: "5px 12px", color: "#fff", fontFamily: F, fontSize: 10, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>DEMOTE ↓</button>}
