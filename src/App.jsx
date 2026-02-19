@@ -582,7 +582,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
     { id: "challenges", icon: "🏆", label: "Challenge" },
     { id: "resources", icon: "📖", label: "Resources" },
     { id: "levelup", icon: "🔥", label: "Level Up" },
-    { id: "messages", icon: "💬", label: "Messages", hideInTrial: true },
+    { id: "messages", icon: "💬", label: "Messages" },
   ].filter(t => !trialMode || !t.hideInTrial);
   return (
     <>
@@ -2577,7 +2577,7 @@ function AdminStudents({ token, saving, setSaving, flash, students, loadStudents
 // ============================================================
 // STUDENT: MESSAGES
 // ============================================================
-function StudentMessages({ token, profile }) {
+function StudentMessages({ token, profile, trialMode }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [loading, setLoading] = useState(true);
@@ -2619,10 +2619,24 @@ function StudentMessages({ token, profile }) {
         ))}
         <div ref={bottomRef} />
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type a message..." style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 16px", color: C.text, fontSize: 14, outline: "none", fontFamily: FONTS }} />
-        <button onClick={send} disabled={!newMsg.trim() || sending} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 12, padding: "12px 20px", fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, cursor: newMsg.trim() ? "pointer" : "default", opacity: newMsg.trim() ? 1 : 0.5 }}>Send</button>
-      </div>
+      {(trialMode || profile?.trial_expires_at) ? (
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", gap: 8, opacity: 0.3, pointerEvents: "none" }}>
+            <input placeholder="Type a message..." style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 16px", color: C.text, fontSize: 14, outline: "none", fontFamily: FONTS }} />
+            <button style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 12, padding: "12px 20px", fontFamily: DISPLAY, fontSize: 13, fontWeight: 600 }}>Send</button>
+          </div>
+          <div style={{ position: "absolute", inset: 0, background: `${C.surface}cc`, borderRadius: 12, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, border: `1px solid ${C.border}`, padding: "12px 20px" }}>
+            <span style={{ fontSize: 18 }}>🔒</span>
+            <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: C.text }}>Enroll to message your coach</span>
+            <button onClick={() => openStripeCheckout(profile?.email, profile?.full_name)} style={{ background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 2px 8px ${C.accentGlow}` }}>Enroll Now →</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type a message..." style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 16px", color: C.text, fontSize: 14, outline: "none", fontFamily: FONTS }} />
+          <button onClick={send} disabled={!newMsg.trim() || sending} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 12, padding: "12px 20px", fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, cursor: newMsg.trim() ? "pointer" : "default", opacity: newMsg.trim() ? 1 : 0.5 }}>Send</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -2774,17 +2788,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
           ) : activeTab === "levelup" ? (
             <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} totalWeekCompletions={totalWeekCompletions} trialMode={trialMode} />
           ) : activeTab === "messages" ? (
-            trialMode ? (
-              <div className="fade-in" style={{ textAlign: "center", padding: "60px 20px" }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>💬</div>
-                <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Message Your Coach</h2>
-                <p style={{ fontSize: 15, color: C.textDim, marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>Get direct access to your coach for questions, feedback, and guidance on your training.</p>
-                <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}`, maxWidth: 400, margin: "0 auto" }}>
-                  <span style={{ fontSize: 28 }}>🔒</span>
-                  <p style={{ fontSize: 16, color: "#fff", fontWeight: 700, fontFamily: DISPLAY, marginTop: 10 }}>Sign up for full access to message your coach</p>
-                </div>
-              </div>
-            ) : <StudentMessages token={token} profile={profile} />
+            <StudentMessages token={token} profile={profile} trialMode={trialMode} />
           ) : null}
         </main>
       </div>
