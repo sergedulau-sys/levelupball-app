@@ -475,19 +475,19 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>One last thing! 🏀</h2>
         <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Are you a parent signing up for your player, or are you the player?</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}
+          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s", color: C.text }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = `${C.accent}10`; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>👨‍👧</div>
-            <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Parent</div>
-            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4 }}>I'm signing up my child for training</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Parent</div>
+            <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I'm signing up my child for training</div>
           </button>
-          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s" }}
+          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s", color: C.text }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = `${C.accent}10`; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🏀</div>
-            <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 6 }}>Player</div>
-            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.4 }}>I'm the player signing up myself</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Player</div>
+            <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I'm the player signing up myself</div>
           </button>
         </div>
       </div>
