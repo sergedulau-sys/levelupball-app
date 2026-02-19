@@ -228,18 +228,276 @@ function ProgressRing({ percent, size = 56, strokeWidth = 4, color = C.accent })
 // ============================================================
 // LOGIN
 // ============================================================
-function Login({ onLogin }) {
-  const [mode, setMode] = useState(window.location.search.includes("signup") ? "signup" : "login");
-  const params = new URLSearchParams(window.location.search);
-  const urlBelt = params.get("belt") || "white";
-  const urlCode = params.get("code") || "";
-  const startBelt = BELT_LEVELS.find(b => b.id === urlBelt) ? urlBelt : "white";
-  const belt = BELT_LEVELS.find(b => b.id === startBelt) || BELT_LEVELS[0];
+// ============================================================
+// BELT PLACEMENT QUIZ
+// ============================================================
+function BeltQuiz({ onStartTrial }) {
+  const MAILER_LITE_API_KEY = "YOUR_MAILERLITE_API_KEY"; // replace with your key
+  const MAILER_LITE_GROUP_ID = "YOUR_GROUP_ID"; // replace with your MailerLite group ID
+
+  const QUESTIONS = [
+    {
+      id: "q1", label: "How long has your player been playing basketball?",
+      options: ["Less than 6 months", "6-12 months", "1-2 Years", "2-4 Years", "4+ Years"],
+      scores: [1, 2, 3, 4, 5],
+    },
+    {
+      id: "q2", label: "How comfortable is your player dribbling with their weak hand?",
+      options: ["Not comfortable at all", "A little comfortable", "Comfortable", "Very comfortable"],
+      scores: [1, 2, 3, 4],
+    },
+    {
+      id: "q3", label: "Which example looks most like your player? (Dribbling)",
+      options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
+      scores: [1, 2, 3, 4, 5],
+      videos: [
+        "", // replace with actual video URLs
+        "",
+        "",
+        "",
+        "",
+      ],
+    },
+    {
+      id: "q4", label: "Which example looks most like your player? (Finishing)",
+      options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
+      scores: [1, 2, 3, 4, 5],
+      videos: [
+        "", // replace with actual video URLs
+        "",
+        "",
+        "",
+        "",
+      ],
+    },
+  ];
+
+  const scoreToBelt = (score) => {
+    if (score <= 6) return "white";
+    if (score <= 8) return "blue";
+    if (score <= 12) return "purple";
+    if (score <= 18) return "brown";
+    return "black";
+  };
+
+  const [step, setStep] = useState("intro"); // intro | q0..q3 | info | result
+  const [answers, setAnswers] = useState([null, null, null, null]);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [resultBelt, setResultBelt] = useState(null);
+
+  const currentQIdx = ["q0","q1","q2","q3"].indexOf(step);
+  const questionStep = parseInt(step.replace("q",""));
+
+  const selectAnswer = (qIdx, optIdx) => {
+    const newAnswers = [...answers];
+    newAnswers[qIdx] = optIdx;
+    setAnswers(newAnswers);
+    // Auto-advance after short delay
+    setTimeout(() => {
+      if (qIdx < QUESTIONS.length - 1) setStep(`q${qIdx + 1}`);
+      else setStep("info");
+    }, 320);
+  };
+
+  const calcScore = () => answers.reduce((sum, a, i) => sum + (a !== null ? QUESTIONS[i].scores[a] : 0), 0);
+
+  const handleSubmit = async () => {
+    setErr("");
+    if (!name.trim()) { setErr("Please enter the player's name."); return; }
+    if (!email.trim() || !email.includes("@")) { setErr("Please enter a valid email."); return; }
+    setSubmitting(true);
+    const score = calcScore();
+    const belt = scoreToBelt(score);
+    const beltObj = BELT_LEVELS.find(b => b.id === belt);
+
+    // MailerLite subscribe (best-effort, don't block on failure)
+    try {
+      await fetch("https://connect.mailerlite.com/api/subscribers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MAILER_LITE_API_KEY}` },
+        body: JSON.stringify({
+          email: email.trim(),
+          fields: { name: name.trim(), belt_level: beltObj?.name || belt },
+          groups: [MAILER_LITE_GROUP_ID],
+        }),
+      });
+    } catch(e) { /* silently continue */ }
+
+    setResultBelt(belt);
+    setStep("result");
+    setSubmitting(false);
+  };
+
+  const inp = { width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS, boxSizing: "border-box" };
+
+  const progressPct = step === "intro" ? 0 : step === "info" || step === "result" ? 100 : ((parseInt(step.replace("q","")) / QUESTIONS.length) * 100);
+
+  // ---- INTRO ----
+  if (step === "intro") return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "10%", left: "20%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.07), transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(${C.border} 1px, transparent 1px)`, backgroundSize: "28px 28px", opacity: 0.25, pointerEvents: "none" }} />
+      <div className="fade-in" style={{ width: "100%", maxWidth: 480, position: "relative", zIndex: 1, textAlign: "center" }}>
+        <img src={LOGO_LG} alt="LevelUpBall" style={{ width: "min(280px, 70vw)", height: "auto", marginBottom: -60, display: "block", margin: "0 auto -60px" }} />
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 38, fontWeight: 900, letterSpacing: -1, marginBottom: 6 }}>Level<span style={{ color: C.accent }}>Up</span>Ball</h1>
+        <p style={{ color: C.textMuted, fontSize: 16, marginBottom: 32, lineHeight: 1.6 }}>Find your player's belt level in 4 quick questions and try the program free.</p>
+        <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}`, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 20 }}>
+            {BELT_LEVELS.map(b => (
+              <div key={b.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <BeltIcon beltId={b.id} size={32} />
+                <span style={{ fontSize: 9, color: C.textDim, fontWeight: 600, letterSpacing: 0.5 }}>{b.name.split(" ")[0].toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 13, color: C.textDim, marginBottom: 20 }}>4 questions · takes about 2 minutes</p>
+          <button onClick={() => setStep("q0")} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${C.accentGlow}`, letterSpacing: 0.5 }}>
+            Find My Player's Level 🏀
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: C.textDim }}>Already have an account? <span onClick={() => setStep("login")} style={{ color: C.accent, cursor: "pointer", fontWeight: 600 }}>Sign In</span></p>
+      </div>
+    </div>
+  );
+
+  // ---- LOGIN PASSTHROUGH ----
+  if (step === "login") return <Login onLogin={onStartTrial} isLogin={true} />;
+
+  // ---- RESULT ----
+  if (step === "result" && resultBelt) {
+    const belt = BELT_LEVELS.find(b => b.id === resultBelt);
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${belt.color}15, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none" }} />
+        <div className="fade-in" style={{ width: "100%", maxWidth: 480, position: "relative", zIndex: 1, textAlign: "center" }}>
+          <div style={{ marginBottom: 24 }}>
+            <BeltIcon beltId={resultBelt} size={80} />
+          </div>
+          <h2 style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>Your player is a</h2>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: 42, fontWeight: 900, color: belt.color, letterSpacing: -1, marginBottom: 12 }}>{belt.name}</h1>
+          <p style={{ color: C.textMuted, fontSize: 15, lineHeight: 1.6, maxWidth: 360, margin: "0 auto 32px" }}>
+            We've matched your player to the {belt.name} curriculum. Try the first workout free — no password needed.
+          </p>
+          <button
+            onClick={() => onStartTrial({ name: name.trim(), belt: resultBelt })}
+            style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 6px 24px ${belt.color}40`, letterSpacing: 0.5, marginBottom: 12 }}>
+            Start Free Trial 🏀
+          </button>
+          <p style={{ fontSize: 12, color: C.textDim }}>No account required · No credit card</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- INFO COLLECTION ----
+  if (step === "info") return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
+      <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+        {/* Progress bar */}
+        <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: "90%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
+        </div>
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Almost there! 🏀</h2>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Enter your info to see your player's belt level and start training.</p>
+        <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
+          {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Player's Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="First and last name" />
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Parent Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inp} placeholder="your@email.com" />
+          </div>
+          <button onClick={handleSubmit} disabled={submitting} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>
+            {submitting ? "Finding your level..." : "See My Player's Level →"}
+          </button>
+          <p style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: C.textDim }}>We'll only use your email to send training tips. No spam.</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ---- QUESTION SCREENS ----
+  const qIdx = parseInt(step.replace("q", ""));
+  const q = QUESTIONS[qIdx];
+  if (!q) return null;
+  const hasVideos = q.videos && q.videos.some(v => v);
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(${C.border} 1px, transparent 1px)`, backgroundSize: "28px 28px", opacity: 0.2, pointerEvents: "none" }} />
+      <div className="fade-in" style={{ width: "100%", maxWidth: 640, position: "relative", zIndex: 1 }}>
+        {/* Progress */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+          <button onClick={() => setStep(qIdx > 0 ? `q${qIdx - 1}` : "intro")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, flexShrink: 0 }}>← Back</button>
+          <div style={{ flex: 1, height: 4, background: C.border, borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${((qIdx + 1) / QUESTIONS.length) * 100}%`, background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
+          </div>
+          <span style={{ fontSize: 12, color: C.textDim, flexShrink: 0 }}>{qIdx + 1} / {QUESTIONS.length}</span>
+        </div>
+
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: hasVideos ? 24 : 20, lineHeight: 1.3 }}>{q.label}</h2>
+
+        {hasVideos ? (
+          // Video grid for Q3/Q4
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
+            {q.options.map((opt, i) => {
+              const selected = answers[qIdx] === i;
+              return (
+                <div key={i} onClick={() => selectAnswer(qIdx, i)}
+                  style={{ background: selected ? `${C.accent}15` : C.surface, border: `2px solid ${selected ? C.accent : C.border}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", transition: "all 0.15s" }}>
+                  {q.videos[i] ? (
+                    <div style={{ aspectRatio: "16/9", background: C.bg }}>
+                      <VideoPlayer url={q.videos[i]} />
+                    </div>
+                  ) : (
+                    <div style={{ aspectRatio: "16/9", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 28 }}>🎬</span>
+                    </div>
+                  )}
+                  <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: selected ? C.accent : C.text }}>{opt}</span>
+                    {selected && <span style={{ color: C.accent, fontSize: 16 }}>✓</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          // Text options for Q1/Q2
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {q.options.map((opt, i) => {
+              const selected = answers[qIdx] === i;
+              return (
+                <button key={i} onClick={() => selectAnswer(qIdx, i)}
+                  style={{ width: "100%", background: selected ? `${C.accent}15` : C.surface, border: `2px solid ${selected ? C.accent : C.border}`, borderRadius: 14, padding: "16px 20px", color: selected ? C.accent : C.text, fontSize: 15, fontWeight: selected ? 700 : 400, cursor: "pointer", fontFamily: FONTS, textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.12s" }}>
+                  <span>{opt}</span>
+                  {selected && <span style={{ fontSize: 18 }}>✓</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Login({ onLogin, isLogin }) {
+  const [mode, setMode] = useState("login");
+  const urlBelt = "white";
+  const startBelt = "white";
+  const belt = BELT_LEVELS[0];
   const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [err, setErr] = useState(""); const [loading, setLoading] = useState(false);
   const [playerName, setPlayerName] = useState(""); const [age, setAge] = useState("");
   const [signupDone, setSignupDone] = useState(false);
   const go = async () => { setErr(""); setLoading(true); try { onLogin(await supabase.auth.signIn(email, pw)); } catch (e) { setErr(e.message); } setLoading(false); };
-  const [accessCode, setAccessCode] = useState(urlCode);
+  const [accessCode, setAccessCode] = useState("");
   const doSignup = async () => {
     setErr("");
     if (!playerName.trim()) { setErr("Please enter the player name."); return; }
@@ -305,7 +563,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
   const tabs = [
     { id: "dashboard", icon: "⚡", label: "Dashboard" },
     { id: "workouts", icon: "🏀", label: "Workouts" },
-    { id: "quick", icon: "⚡", label: "Quick Sessions" },
+    { id: "quick", icon: "⏱️", label: "Quick Sessions" },
     { id: "challenges", icon: "🏆", label: "Challenge" },
     { id: "resources", icon: "📖", label: "Resources" },
     { id: "levelup", icon: "🔥", label: "Level Up" },
@@ -2526,21 +2784,17 @@ function AdminHeader({ onLogout }) {
 export default function LevelUpBallApp() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [trialMode, setTrialMode] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.has("trial");
-  });
+  const [trialMode, setTrialMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  // Trial mode: skip login, create fake session
-  useEffect(() => {
-    if (trialMode && !session) {
-      const params = new URLSearchParams(window.location.search);
-      const belt = params.get("belt") || "white";
-      setProfile({ id: "trial", full_name: "Player", role: "student", belt_id: belt, xp: 0 });
-      setSession({ access_token: null, user: { id: "trial" } });
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, [trialMode]);
+
+  // Handle trial start from quiz — no Supabase account created
+  const handleTrialStart = ({ name, belt }) => {
+    setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0 });
+    setSession({ access_token: null, user: { id: "trial" } });
+    setTrialMode(true);
+  };
+
+  // Handle real login
   const handleLogin = async (data) => {
     setSession(data); setLoading(true);
     try {
@@ -2549,12 +2803,18 @@ export default function LevelUpBallApp() {
     } catch (e) { console.error(e); }
     setLoading(false);
   };
+
   const logout = () => { setSession(null); setProfile(null); setTrialMode(false); };
+
   if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 120, height: 120, animation: "pulse 1.5s infinite" }} /></div></>;
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <style>{GLOBAL_CSS}</style>
-      {!session && <Login onLogin={handleLogin} />}
+      {!session && <BeltQuiz onStartTrial={(data) => {
+        // data can be { name, belt } from quiz or a Supabase session from login
+        if (data?.access_token) { handleLogin(data); }
+        else { handleTrialStart(data); }
+      }} />}
       {session && profile?.role === "admin" && <><AdminHeader onLogout={logout} /><Admin token={session.access_token} /></>}
       {session && profile?.role === "student" && <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />}
     </div>
