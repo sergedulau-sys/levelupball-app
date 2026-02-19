@@ -1442,7 +1442,7 @@ function QuickSessions({ token, profile, trialMode }) {
     <div className="fade-in">
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 4 }}>⚡ Quick Sessions</h1>
-        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime — 5 to 15 minutes.</p>
+        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime — 10 to 30 minutes.</p>
       </div>
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.textDim }}>Loading sessions...</div>
@@ -2715,9 +2715,9 @@ function WelcomeModal({ profile, onDismiss }) {
         <div style={{ background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "99)", padding: "28px 28px 20px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -30, right: -20, fontSize: 120, opacity: 0.08 }}>🏀</div>
           <div style={{ position: "relative", zIndex: 1 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Welcome to LevelUpBall</p>
-            <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, color: "#fff", marginBottom: 4 }}>Hey {profile.full_name}! 👋</h2>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)" }}>You have been matched to the <strong>{belt.name}</strong> belt. Watch this quick video to learn how the program works.</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: belt.id === "white" ? "#111" : "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, textShadow: belt.id === "white" ? "none" : "0 1px 4px rgba(0,0,0,0.3)" }}>Welcome to LevelUpBall</p>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, color: belt.id === "white" ? "#111" : "#fff", marginBottom: 4, textShadow: belt.id === "white" ? "none" : "0 2px 8px rgba(0,0,0,0.3)" }}>Hey {profile.full_name}! 👋</h2>
+            <p style={{ fontSize: 14, color: belt.id === "white" ? "#333" : "rgba(255,255,255,0.75)" }}>You have been matched to the <strong>{belt.name}</strong> belt. Watch this quick video to learn how the program works. <span style={{ opacity: 0.85 }}>You can also find this guide in the <strong>Resources</strong> tab if you don&apos;t want to watch it now.</span></p>
           </div>
         </div>
         <div style={{ padding: 24 }}>
