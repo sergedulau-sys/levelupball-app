@@ -74,7 +74,7 @@ const BELT_LEVELS = [
   { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, weeks: 4, workoutsPerWeek: 3, code: "BLUE2026" },
   { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, phases: [{ name: "Level 3A", workouts: 4, weeks: 3 }, { name: "Level 3B", workoutStart: 4, workouts: 4, weeks: 3 }], code: "PURPLE2026" },
   { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, phases: [{ name: "Level 4A", workouts: 4, weeks: 5 }, { name: "Level 4B", workoutStart: 4, workouts: 4, weeks: 5 }], code: "BROWN2026" },
-  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
+  { id: "black", name: "Black Belt", color: "#4A4A4A", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
 ];
 const C = {
   bg: "#09090b", surface: "#18181b", surfaceHover: "#27272a", border: "#27272a", borderLight: "#3f3f46",
@@ -1292,6 +1292,7 @@ function QuickSessions({ token, profile, trialMode }) {
   const [restLeft, setRestLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [xpAwarded, setXpAwarded] = useState(0);
   const [doneSession, setDoneSession] = useState(null);
   const restTimerRef = useRef(null);
 
@@ -1359,6 +1360,17 @@ function QuickSessions({ token, profile, trialMode }) {
     try {
       await supabase.from("quick_session_completions")._token(token).insert({ session_id: activeSession.id, student_id: profile.id });
       setCompletions(prev => ({ ...prev, [activeSession.id]: (prev[activeSession.id] || 0) + 1 }));
+      // Award XP if session has xp_points set
+      const xpToAward = activeSession.xp_points || 0;
+      if (xpToAward > 0) {
+        try {
+          const profileData = await supabase.from("profiles")._token(token).select("*", `&id=eq.${profile.id}`);
+          const current = Array.isArray(profileData) ? profileData[0] : profileData;
+          const newXp = (current?.quick_session_xp || 0) + xpToAward;
+          await supabase.from("profiles")._token(token).update({ quick_session_xp: newXp }, { id: profile.id });
+          setXpAwarded(xpToAward);
+        } catch(e) {}
+      }
       setDoneSession(activeSession);
       setActiveSession(null);
     } catch(e) {}
@@ -1428,7 +1440,13 @@ function QuickSessions({ token, profile, trialMode }) {
       <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "60px 20px" }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Session Complete!</h1>
-        <p style={{ color: C.textDim, fontSize: 16, marginBottom: 32 }}>{doneSession.title} — great work!</p>
+        <p style={{ color: C.textDim, fontSize: 16, marginBottom: 16 }}>{doneSession.title} — great work!</p>
+        {xpAwarded > 0 && (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: "10px 20px", marginBottom: 24 }}>
+            <span style={{ fontSize: 20 }}>⭐</span>
+            <span style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 800, color: "#22C55E" }}>+{xpAwarded} XP Earned!</span>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
           <button onClick={() => startSession(doneSession)} style={{ background: C.accentGlow, border: `1px solid ${C.accent}`, borderRadius: 12, padding: "12px 24px", color: C.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Do It Again</button>
           <button onClick={() => setDoneSession(null)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 24px", color: C.text, fontSize: 14, cursor: "pointer", fontFamily: FONTS }}>All Sessions</button>
@@ -1574,7 +1592,7 @@ function AdminQuickSessions({ token }) {
         </div>
 
         <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>SESSION TITLE</label>
               <input defaultValue={editing.title} onBlur={e => saveSession(editing.id, "title", e.target.value)} style={inp} />
@@ -1582,6 +1600,10 @@ function AdminQuickSessions({ token }) {
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>DURATION (MINUTES)</label>
               <input type="number" min={1} max={60} defaultValue={editing.duration_min || 30} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 30)} style={inp} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>XP POINTS AWARDED</label>
+              <input type="number" min={0} max={500} defaultValue={editing.xp_points || 0} onBlur={e => saveSession(editing.id, "xp_points", parseInt(e.target.value) || 0)} style={inp} placeholder="0" />
             </div>
           </div>
           <div style={{ marginBottom: 14 }}>
@@ -1639,7 +1661,7 @@ function AdminQuickSessions({ token }) {
         <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600, marginBottom: 2 }}>{s.title}</p>
-            <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills {s.belt_id ? `· ${BELT_LEVELS.find(b=>b.id===s.belt_id)?.name||""}` : ""}</p>
+            <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills · ⭐ {s.xp_points || 0} XP {s.belt_id ? `· ${BELT_LEVELS.find(b=>b.id===s.belt_id)?.name||""}` : ""}</p>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => setEditing(s)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
@@ -1775,13 +1797,28 @@ function StudentResources({ token, profile, trialMode }) {
   const [expanded, setExpanded] = useState(null);
   useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); let filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
         const lockedTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
+        // Always include Demo Guide and Progression System regardless of belt/trial
+        const alwaysShow = allArts.filter(a =>
+          a.published && (a.title.includes("Platform Demo Guide") || a.title.includes("LevelUp Progression System"))
+        );
+        const alwaysIds = new Set(alwaysShow.map(a => a.id));
+        // Merge without duplicates
+        const merged = [...alwaysShow, ...filtered.filter(a => !alwaysIds.has(a.id))];
         if (trialMode) {
-          filtered = filtered.map(a => ({ ...a, _locked: lockedTitles.some(h => a.title.includes(h)) }));
+          filtered = merged.map(a => ({ ...a, _locked: lockedTitles.some(h => a.title.includes(h)) }));
+        } else {
+          filtered = merged;
         }
+        // Sort: Demo Guide first, Progression System second, then rest
         filtered.sort((a, b) => {
-          const aSpecific = a.belt_id && a.belt_id !== "all" ? 0 : 1;
-          const bSpecific = b.belt_id && b.belt_id !== "all" ? 0 : 1;
-          if (aSpecific !== bSpecific) return aSpecific - bSpecific;
+          const rank = (x) => {
+            if (x.title.includes("Platform Demo Guide")) return 0;
+            if (x.title.includes("LevelUp Progression System")) return 1;
+            const specific = x.belt_id && x.belt_id !== "all" ? 3 : 2;
+            return specific;
+          };
+          const ra = rank(a), rb = rank(b);
+          if (ra !== rb) return ra - rb;
           return (a.sort_order || 0) - (b.sort_order || 0);
         });
         setArticles(filtered); } catch(e){} setLoading(false); })(); }, [token]);
@@ -1796,9 +1833,16 @@ function StudentResources({ token, profile, trialMode }) {
         const bc = beltObj.color;
         const icons = ["🏀", "🎯", "💡", "🔥", "⭐", "💪", "📖", "🧠"];
         const isProgression = a.title && a.title.toLowerCase().includes("levelup progression");
-        const allBeltColors = BELT_LEVELS.map(b => b.color); // white, blue, purple, brown, black
+        const isDemoGuide = a.title && a.title.includes("Platform Demo Guide");
+        const allBeltColors = BELT_LEVELS.map(b => b.color);
         const progressionGradient = "linear-gradient(90deg, " + allBeltColors[0] + " 0%, " + allBeltColors[0] + " 20%, " + allBeltColors[1] + " 20%, " + allBeltColors[1] + " 40%, " + allBeltColors[2] + " 40%, " + allBeltColors[2] + " 60%, " + allBeltColors[3] + " 60%, " + allBeltColors[3] + " 80%, " + allBeltColors[4] + " 80%, " + allBeltColors[4] + " 100%)";
-        const cs = { gradient: isProgression ? progressionGradient : `linear-gradient(135deg, ${bc}, ${bc}CC)`, icon: icons[ai % icons.length], tagBg: bc + "33", tagColor: isProgression ? "#fff" : bc };
+        const demoGuideGradient = "linear-gradient(135deg, #DC2626, #991B1B)";
+        const cs = {
+          gradient: isDemoGuide ? demoGuideGradient : isProgression ? progressionGradient : `linear-gradient(135deg, ${bc}, ${bc}CC)`,
+          icon: isDemoGuide ? "🎬" : icons[ai % icons.length],
+          tagBg: isDemoGuide ? "#DC262633" : bc + "33",
+          tagColor: isDemoGuide ? "#fff" : isProgression ? "#fff" : bc
+        };
         const isOpen = expanded === a.id;
         const readTime = Math.max(1, Math.ceil(a.content.length / 900));
         return (
