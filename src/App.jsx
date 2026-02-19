@@ -251,11 +251,11 @@ function BeltQuiz({ onStartTrial }) {
       options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
       scores: [1, 2, 3, 4, 5],
       videos: [
-        "", // replace with actual video URLs
-        "",
-        "",
-        "",
-        "",
+        "https://youtu.be/Zg-knUYZZJc",
+        "https://youtu.be/KYX6VmdeLvI",
+        "https://youtu.be/2JrrrFtUrzY",
+        "https://youtu.be/9jGcwJqKrqk",
+        "https://youtu.be/qbXax7D-CRs",
       ],
     },
     {
@@ -263,11 +263,11 @@ function BeltQuiz({ onStartTrial }) {
       options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
       scores: [1, 2, 3, 4, 5],
       videos: [
-        "", // replace with actual video URLs
-        "",
-        "",
-        "",
-        "",
+        "https://youtu.be/IswbFmpOR7E",
+        "https://youtu.be/33Luz0FA9m0",
+        "https://youtu.be/8WDtkeqWy-k",
+        "https://youtu.be/3UtDlQGitLY",
+        "https://youtu.be/13IOpJqudR8",
       ],
     },
   ];
