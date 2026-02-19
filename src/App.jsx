@@ -1636,7 +1636,7 @@ function StudentChallenges({ token, profile, trialMode }) {
       {/* Challenge banner */}
       <div style={{ background: `linear-gradient(135deg, ${C.accent}, #EA580C, #DC2626)`, borderRadius: 20, padding: 28, marginBottom: 20, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -30, fontSize: 100, opacity: 0.1 }}>🏆</div>
-        <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>This Week</p>
+        <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>This Month</p>
         <h2 style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#fff" }}>{challenge.title}</h2>
         {deadlineStr && (<div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "5px 14px", marginTop: 12 }}><span style={{ fontSize: 11 }}>⏰</span><span style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{isExpired ? "Ended" : `Due ${deadlineStr}`}</span></div>)}
       </div>
@@ -1647,7 +1647,7 @@ function StudentChallenges({ token, profile, trialMode }) {
         <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 18, padding: 22, marginBottom: 20, border: "1px solid #F59E0B33" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <span style={{ fontSize: 26 }}>🏆</span>
-            <h3 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#F59E0B" }}>This Week's Prize</h3>
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#F59E0B" }}>This Month's Prize</h3>
           </div>
           <p style={{ fontSize: 18, color: "#fff", fontWeight: 700, marginBottom: 14, fontFamily: DISPLAY }}>{challenge.prize_description}</p>
           {challenge.prize_image_url && (
