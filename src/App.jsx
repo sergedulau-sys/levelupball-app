@@ -1661,7 +1661,7 @@ function StudentChallenges({ token, profile, trialMode }) {
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginTop: 8 }}>
         {!trialMode && <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>}
         {/* Submit form */}
-        {!isExpired && !trialMode && !submissions.find(s => s.student_id === profile.id) && (
+        {!isExpired && !trialMode && !profile?.trial_expires_at && !submissions.find(s => s.student_id === profile.id) && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 10 }}>Share your attempt</p>
             <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="Paste YouTube/Vimeo link..." style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.text, fontSize: 13, outline: "none", fontFamily: FONTS, marginBottom: 8 }} />
@@ -1669,10 +1669,10 @@ function StudentChallenges({ token, profile, trialMode }) {
             <button onClick={submitVideo} disabled={!videoUrl || submitting} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12, fontWeight: 600, cursor: videoUrl ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrl ? 1 : 0.5 }}>{submitting ? "Posting..." : "Post"}</button>
           </div>
         )}
-        {trialMode && !isExpired && (
+        {(trialMode || profile?.trial_expires_at) && !isExpired && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20, textAlign: "center" }}>
             <span style={{ fontSize: 20 }}>🔒</span>
-            <p style={{ fontSize: 15, color: "#fff", marginTop: 6, fontWeight: 700, fontFamily: DISPLAY }}>Sign up for full access to submit challenge videos</p>
+            <p style={{ fontSize: 15, color: "#fff", marginTop: 6, fontWeight: 700, fontFamily: DISPLAY }}>Enroll in the full program to submit challenge videos</p>
           </div>
         )}
         {!trialMode && !isExpired && submissions.find(s => s.student_id === profile.id) && (
@@ -3111,10 +3111,15 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
                 {drill.image_url && <div style={{ marginBottom: 10 }}><img src={fixImgurUrl(drill.image_url)} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
-                {!isApproved && xpUnlocked && (
+                {!isApproved && xpUnlocked && !profile?.trial_expires_at && (
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={videoUrls[drill.id] || ""} onChange={e => setVideoUrls({ ...videoUrls, [drill.id]: e.target.value })} placeholder="Paste your YouTube/Vimeo link..." style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", color: C.text, fontSize: 12, outline: "none", fontFamily: FONTS }} />
                     <button onClick={() => submitVideo(drill.id)} disabled={!videoUrls[drill.id] || submitting === drill.id} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, fontWeight: 600, cursor: videoUrls[drill.id] ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrls[drill.id] ? 1 : 0.5, whiteSpace: "nowrap" }}>{sub ? "Resubmit" : "Submit"}</button>
+                  </div>
+                )}
+                {!isApproved && xpUnlocked && profile?.trial_expires_at && (
+                  <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
+                    <p style={{ fontSize: 12, color: C.textDim }}>🔒 Enroll in the full program to submit Level Up videos</p>
                   </div>
                 )}
                 {!isApproved && !xpUnlocked && (
