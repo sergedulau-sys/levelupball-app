@@ -432,7 +432,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
           </div>
           <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
             {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
-            <div style={{ marginBottom: 8, background: C.bg, borderRadius: 12, padding: "12px 16px", border: `1px solid ${C.border}`, marginBottom: 16 }}>
+            <div style={{ marginBottom: 16, background: C.bg, borderRadius: 12, padding: "12px 16px", border: `1px solid ${C.border}` }}>
               <p style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Signing up as</p>
               <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{name} · {email}</p>
             </div>
