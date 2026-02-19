@@ -1239,7 +1239,8 @@ function QuickSessions({ token, profile, trialMode }) {
     setLoading(true);
     try {
       const allSessions = await supabase.from("quick_sessions")._token(token).select("*", "&order=created_at.asc");
-      setSessions(Array.isArray(allSessions) ? allSessions : []);
+      const filtered = (Array.isArray(allSessions) ? allSessions : []).filter(s => !s.belt_id || s.belt_id === "all" || s.belt_id === profile.belt_id);
+      setSessions(filtered);
       const comps = await supabase.from("quick_session_completions")._token(token).select("session_id,count", `&student_id=eq.${profile.id}`).catch(() => []);
       const map = {};
       (Array.isArray(comps) ? comps : []).forEach(c => { map[c.session_id] = (map[c.session_id] || 0) + 1; });
@@ -1631,7 +1632,7 @@ function StudentChallenges({ token, profile, trialMode }) {
   const isExpired = challenge.deadline ? new Date(challenge.deadline + "T23:59:59") < new Date() : false;
   return (
     <div className="fade-in">
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>Weekly Challenge</h1>
+      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>Monthly Challenge</h1>
       {/* Challenge banner */}
       <div style={{ background: `linear-gradient(135deg, ${C.accent}, #EA580C, #DC2626)`, borderRadius: 20, padding: 28, marginBottom: 20, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -30, fontSize: 100, opacity: 0.1 }}>🏆</div>
@@ -1641,7 +1642,7 @@ function StudentChallenges({ token, profile, trialMode }) {
       </div>
       {challenge.description && (<div style={{ background: C.surface, borderRadius: 16, padding: 20, border: `1px solid ${C.border}`, marginBottom: 14 }}><p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{challenge.description}</p></div>)}
       {challenge.video_url && (<div style={{ marginBottom: 14 }}><VideoPlayer url={challenge.video_url} /></div>)}
-      {/* Weekly Prize */}
+      {/* Monthly Prize */}
       {challenge.prize_description && (
         <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 18, padding: 22, marginBottom: 20, border: "1px solid #F59E0B33" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -1741,7 +1742,7 @@ function StudentResources({ token, profile, trialMode }) {
               <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.12, transform: "rotate(15deg)" }}>{cs.icon}</div>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative", zIndex: 1 }}>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, color: "#fff", lineHeight: 1.3, marginBottom: 6, textShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>{a.title}</p>
+                  <p style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.25, marginBottom: 8, textShadow: "0 2px 8px rgba(0,0,0,0.35)", letterSpacing: -0.3 }}>{a.title}</p>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.2)", padding: "3px 8px", borderRadius: 6 }}>{readTime} min read</span>
                     <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>{new Date(a.created_at).toLocaleDateString()}</span>
@@ -2398,7 +2399,7 @@ function Admin({ token }) {
       </>}
       {/* ===== CHALLENGES ===== */}
       {tab === "challenges" && <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>WEEKLY CHALLENGES</h2><button onClick={startNewChal} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW CHALLENGE</button></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h2 style={{ fontFamily: F, fontSize: 20, color: "#fff", fontWeight: 600, letterSpacing: 1 }}>MONTHLY CHALLENGES</h2><button onClick={startNewChal} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ NEW CHALLENGE</button></div>
         {(chalNew||chalEditing) && (
           <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
             <h3 style={{ fontFamily: F, fontSize: 14, color: "#fff", marginBottom: 14, letterSpacing: 1 }}>{chalEditing ? "EDIT" : "NEW"} CHALLENGE</h3>
@@ -2406,7 +2407,7 @@ function Admin({ token }) {
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea value={chalForm.description} onChange={e=>setChalForm({...chalForm,description:e.target.value})} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Explain the challenge..." /></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input value={chalForm.video_url} onChange={e=>setChalForm({...chalForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/..." /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEADLINE</label><input type="date" value={chalForm.deadline} onChange={e=>setChalForm({...chalForm,deadline:e.target.value})} style={inp} /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>BELT LEVEL</label><select value={chalForm.belt_id} onChange={e=>setChalForm({...chalForm,belt_id:e.target.value})} style={{...inp,cursor:"pointer"}}><option value="all">All Belts</option>{BELT_LEVELS.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUBMISSION EMAIL</label><input value={chalForm.submission_email} onChange={e=>setChalForm({...chalForm,submission_email:e.target.value})} style={inp} /></div><div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 18 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>ACTIVE</label><input type="checkbox" checked={chalForm.active} onChange={e=>setChalForm({...chalForm,active:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /><span style={{ fontSize: 10, color: "#FF6D00" }}>{chalForm.active ? "Students see this" : "Hidden"}</span></div></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>WEEKLY PRIZE DESCRIPTION</label><input value={chalForm.prize_description||""} onChange={e=>setChalForm({...chalForm,prize_description:e.target.value})} style={inp} placeholder="e.g. LevelUpBall T-Shirt + Wristband" /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>PRIZE IMAGE URL</label><input value={chalForm.prize_image_url||""} onChange={e=>setChalForm({...chalForm,prize_image_url:e.target.value})} style={inp} placeholder="https://i.imgur.com/..." /></div></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>MONTHLY PRIZE DESCRIPTION</label><input value={chalForm.prize_description||""} onChange={e=>setChalForm({...chalForm,prize_description:e.target.value})} style={inp} placeholder="e.g. LevelUpBall T-Shirt + Wristband" /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>PRIZE IMAGE URL</label><input value={chalForm.prize_image_url||""} onChange={e=>setChalForm({...chalForm,prize_image_url:e.target.value})} style={inp} placeholder="https://i.imgur.com/..." /></div></div>
             <div style={{ display: "flex", gap: 6 }}><button onClick={saveChallenge} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setChalEditing(null);setChalNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
           </div>
         )}
