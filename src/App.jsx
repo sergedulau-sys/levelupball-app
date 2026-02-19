@@ -305,6 +305,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
   const tabs = [
     { id: "dashboard", icon: "⚡", label: "Dashboard" },
     { id: "workouts", icon: "🏀", label: "Workouts" },
+    { id: "quick", icon: "⚡", label: "Quick Sessions" },
     { id: "challenges", icon: "🏆", label: "Challenge" },
     { id: "resources", icon: "📖", label: "Resources" },
     { id: "levelup", icon: "🔥", label: "Level Up" },
@@ -957,6 +958,377 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
   );
 }
 // ============================================================
+// QUICK SESSIONS — student view
+// ============================================================
+function QuickSessions({ token, profile, trialMode }) {
+  const [sessions, setSessions] = useState([]);
+  const [completions, setCompletions] = useState({});
+  const [activeSession, setActiveSession] = useState(null);
+  const [activeExIdx, setActiveExIdx] = useState(0);
+  const [resting, setResting] = useState(false);
+  const [restLeft, setRestLeft] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState(false);
+  const [doneSession, setDoneSession] = useState(null);
+  const restTimerRef = useRef(null);
+
+  useEffect(() => {
+    loadData();
+    return () => { if (restTimerRef.current) clearInterval(restTimerRef.current); };
+  }, [token]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const allSessions = await supabase.from("quick_sessions")._token(token).select("*", "&order=created_at.asc");
+      setSessions(Array.isArray(allSessions) ? allSessions : []);
+      const comps = await supabase.from("quick_session_completions")._token(token).select("session_id,count", `&student_id=eq.${profile.id}`).catch(() => []);
+      const map = {};
+      (Array.isArray(comps) ? comps : []).forEach(c => { map[c.session_id] = (map[c.session_id] || 0) + 1; });
+      setCompletions(map);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  const startSession = (session) => {
+    setActiveSession(session);
+    setActiveExIdx(0);
+    setResting(false);
+    setRestLeft(0);
+    setDoneSession(null);
+  };
+
+  const finishRest = () => {
+    if (restTimerRef.current) clearInterval(restTimerRef.current);
+    setResting(false);
+    const exercises = activeSession.exercises || [];
+    const nextIdx = activeExIdx + 1;
+    if (nextIdx >= exercises.length) {
+      finishSession();
+    } else {
+      setActiveExIdx(nextIdx);
+    }
+  };
+
+  const nextExercise = () => {
+    const exercises = activeSession.exercises || [];
+    const ex = exercises[activeExIdx];
+    const restSecs = ex?.rest_seconds || 0;
+    if (restSecs > 0) {
+      setResting(true);
+      setRestLeft(restSecs);
+      restTimerRef.current = setInterval(() => {
+        setRestLeft(prev => {
+          if (prev <= 1) { finishRest(); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      const nextIdx = activeExIdx + 1;
+      if (nextIdx >= exercises.length) { finishSession(); }
+      else { setActiveExIdx(nextIdx); }
+    }
+  };
+
+  const finishSession = async () => {
+    setCompleting(true);
+    try {
+      await supabase.from("quick_session_completions")._token(token).insert({ session_id: activeSession.id, student_id: profile.id });
+      setCompletions(prev => ({ ...prev, [activeSession.id]: (prev[activeSession.id] || 0) + 1 }));
+      setDoneSession(activeSession);
+      setActiveSession(null);
+    } catch(e) {}
+    setCompleting(false);
+  };
+
+  const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
+
+  // ---- REST SCREEN ----
+  if (resting && activeSession) {
+    const exercises = activeSession.exercises || [];
+    const nextEx = exercises[activeExIdx + 1];
+    return (
+      <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "40px 20px" }}>
+        <div style={{ background: C.surface, borderRadius: 24, padding: 40, border: `1px solid ${C.border}` }}>
+          <p style={{ color: C.textDim, fontSize: 13, marginBottom: 8, textTransform: "uppercase", letterSpacing: 2 }}>Rest Time</p>
+          <div style={{ fontFamily: DISPLAY, fontSize: 80, fontWeight: 900, color: C.accent, lineHeight: 1 }}>{restLeft}</div>
+          <p style={{ color: C.textDim, fontSize: 13, marginTop: 8 }}>seconds</p>
+          {nextEx && <p style={{ color: C.text, fontSize: 15, marginTop: 24 }}>Up next: <strong>{nextEx.name}</strong></p>}
+          <button onClick={finishRest} style={{ marginTop: 24, background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 32px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>Skip Rest</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- ACTIVE SESSION ----
+  if (activeSession) {
+    const exercises = activeSession.exercises || [];
+    const ex = exercises[activeExIdx];
+    const progress = exercises.length > 0 ? ((activeExIdx) / exercises.length) * 100 : 0;
+    return (
+      <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+          <button onClick={() => { setActiveSession(null); if (restTimerRef.current) clearInterval(restTimerRef.current); }} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>← Back</button>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>{activeSession.title} — Exercise {activeExIdx + 1} of {exercises.length}</p>
+            <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${progress}%`, background: belt.color, borderRadius: 3, transition: "width 0.3s" }} />
+            </div>
+          </div>
+        </div>
+        {ex && (
+          <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
+            {ex.video_url && <div style={{ borderRadius: "16px 16px 0 0", overflow: "hidden" }}><VideoPlayer url={ex.video_url} /></div>}
+            <div style={{ padding: 24 }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: 16 }}>{ex.name}</h2>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+                {ex.sets > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Sets</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.sets}</p></div>}
+                {ex.reps > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Reps</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.reps}</p></div>}
+                {ex.time_seconds > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Time</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.time_seconds}s</p></div>}
+                {ex.rest_seconds > 0 && <div style={{ background: C.surfaceHover, borderRadius: 10, padding: "8px 16px", border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Rest</p><p style={{ fontSize: 18, fontWeight: 800, color: C.textMuted }}>{ex.rest_seconds}s</p></div>}
+              </div>
+              {ex.notes && <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6, marginBottom: 20, background: C.bg, borderRadius: 10, padding: "12px 16px" }}>{ex.notes}</p>}
+              <button onClick={nextExercise} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
+                {completing ? "Saving..." : activeExIdx + 1 < exercises.length ? "Done → Next Exercise" : "🏆 Complete Session"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---- DONE SCREEN ----
+  if (doneSession) {
+    return (
+      <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Session Complete!</h1>
+        <p style={{ color: C.textDim, fontSize: 16, marginBottom: 32 }}>{doneSession.title} — great work!</p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+          <button onClick={() => startSession(doneSession)} style={{ background: C.accentGlow, border: `1px solid ${C.accent}`, borderRadius: 12, padding: "12px 24px", color: C.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Do It Again</button>
+          <button onClick={() => setDoneSession(null)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 24px", color: C.text, fontSize: 14, cursor: "pointer", fontFamily: FONTS }}>All Sessions</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- SESSION LIST ----
+  return (
+    <div className="fade-in">
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 4 }}>⚡ Quick Sessions</h1>
+        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime — 5 to 15 minutes.</p>
+      </div>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 60, color: C.textDim }}>Loading sessions...</div>
+      ) : sessions.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 60 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
+          <p style={{ color: C.textDim, fontSize: 15 }}>No quick sessions yet. Your coach will add some soon!</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+          {sessions.map(s => {
+            const count = completions[s.id] || 0;
+            const exCount = (s.exercises || []).length;
+            const targetBelt = s.belt_id ? BELT_LEVELS.find(b => b.id === s.belt_id) : null;
+            return (
+              <div key={s.id} style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer", transition: "transform 0.15s, border-color 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = belt.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "none"; }}
+                onClick={() => !trialMode && startSession(s)}>
+                <div style={{ padding: "20px 20px 0" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
+                    <h3 style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{s.title}</h3>
+                    {count > 0 && <span style={{ background: C.successGlow, color: C.success, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 6, border: `1px solid ${C.success}40`, flexShrink: 0, marginLeft: 8 }}>×{count}</span>}
+                  </div>
+                  {s.description && <p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>{s.description}</p>}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                    <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>⚡ {s.duration_min || "?"} min</span>
+                    <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>🏀 {exCount} drill{exCount !== 1 ? "s" : ""}</span>
+                    {targetBelt && <span style={{ background: `${targetBelt.color}15`, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: targetBelt.color, border: `1px solid ${targetBelt.color}30` }}>{targetBelt.name}</span>}
+                  </div>
+                </div>
+                <div style={{ padding: "0 20px 20px", marginTop: "auto" }}>
+                  {trialMode ? (
+                    <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", textAlign: "center", border: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 14 }}>🔒 </span><span style={{ fontSize: 13, color: C.textDim }}>Full access required</span>
+                    </div>
+                  ) : (
+                    <button style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 10, padding: "12px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY }}>
+                      {count > 0 ? "Start Again ⚡" : "Start Session ⚡"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// ADMIN: QUICK SESSIONS
+// ============================================================
+function AdminQuickSessions({ token }) {
+  const F = FONTS;
+  const inp = { background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "9px 12px", color: "#fff", fontFamily: F, fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const sinp = { ...inp, textAlign: "center", padding: "7px 8px" };
+  const [sessions, setSessions] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { loadSessions(); }, []);
+
+  const loadSessions = async () => {
+    setLoading(true);
+    try {
+      const data = await supabase.from("quick_sessions")._token(token).select("*", "&order=created_at.asc");
+      setSessions(Array.isArray(data) ? data : []);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  const addSession = async () => {
+    setSaving(true);
+    try {
+      const newS = await supabase.from("quick_sessions")._token(token).insert({ title: "New Quick Session", description: "", duration_min: 10, belt_id: null, exercises: [] });
+      const created = Array.isArray(newS) ? newS[0] : newS;
+      setSessions(prev => [...prev, created]);
+      setEditing(created);
+    } catch(e) {}
+    setSaving(false);
+  };
+
+  const saveSession = async (id, field, value) => {
+    try {
+      await supabase.from("quick_sessions")._token(token).update({ [field]: value }, { id });
+      setSessions(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+      if (editing && editing.id === id) setEditing(prev => ({ ...prev, [field]: value }));
+    } catch(e) {}
+  };
+
+  const deleteSession = async (id) => {
+    if (!window.confirm("Delete this quick session?")) return;
+    try {
+      await supabase.from("quick_sessions")._token(token).delete({ id });
+      setSessions(prev => prev.filter(s => s.id !== id));
+      if (editing && editing.id === id) setEditing(null);
+    } catch(e) {}
+  };
+
+  const addExercise = async () => {
+    const exs = editing.exercises || [];
+    const newEx = { id: Date.now().toString(), name: "New Drill", sets: 3, reps: 10, time_seconds: 0, rest_seconds: 30, video_url: "", notes: "" };
+    const updated = [...exs, newEx];
+    await saveSession(editing.id, "exercises", updated);
+  };
+
+  const updateExercise = async (exId, field, value) => {
+    const exs = (editing.exercises || []).map(e => e.id === exId ? { ...e, [field]: value } : e);
+    await saveSession(editing.id, "exercises", exs);
+  };
+
+  const deleteExercise = async (exId) => {
+    const exs = (editing.exercises || []).filter(e => e.id !== exId);
+    await saveSession(editing.id, "exercises", exs);
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#888", fontFamily: F }}>Loading quick sessions...</div>;
+
+  if (editing) {
+    const exs = editing.exercises || [];
+    return (
+      <div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 20 }}>
+          <button onClick={() => { setEditing(null); loadSessions(); }} style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, padding: "7px 14px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>← BACK</button>
+          <button onClick={() => deleteSession(editing.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 14px", color: "#ff4444", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", marginLeft: "auto" }}>DELETE SESSION</button>
+        </div>
+
+        <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <div>
+              <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>SESSION TITLE</label>
+              <input defaultValue={editing.title} onBlur={e => saveSession(editing.id, "title", e.target.value)} style={inp} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>DURATION (MINUTES)</label>
+              <input type="number" min={1} max={60} defaultValue={editing.duration_min || 10} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 10)} style={inp} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>DESCRIPTION</label>
+            <textarea defaultValue={editing.description} onBlur={e => saveSession(editing.id, "description", e.target.value)} style={{ ...inp, minHeight: 60, resize: "vertical" }} />
+          </div>
+          <div>
+            <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>TARGET BELT (OPTIONAL)</label>
+            <select defaultValue={editing.belt_id || ""} onChange={e => saveSession(editing.id, "belt_id", e.target.value || null)} style={{ ...inp, cursor: "pointer" }}>
+              <option value="">All Belts</option>
+              {BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <p style={{ color: "#888", fontSize: 11, fontFamily: F, letterSpacing: 2, marginBottom: 12 }}>EXERCISES ({exs.length})</p>
+        {exs.map((ex, i) => (
+          <div key={ex.id} style={{ background: "#141414", borderRadius: 12, padding: 16, border: "1px solid #222", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <span style={{ color: "#555", fontSize: 11, fontFamily: F }}>#{i+1}</span>
+              <button onClick={() => deleteExercise(ex.id)} style={{ background: "none", border: "none", color: "#ff4444", cursor: "pointer", fontSize: 15 }}>✕</button>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DRILL NAME</label>
+              <input defaultValue={ex.name} onBlur={e => updateExercise(ex.id, "name", e.target.value)} style={inp} />
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>VIDEO URL</label>
+              <input defaultValue={ex.video_url} onBlur={e => updateExercise(ex.id, "video_url", e.target.value)} style={inp} placeholder="https://youtube.com/watch?v=..." />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+              {[["SETS","sets"],["REPS","reps"],["TIME (s)","time_seconds"],["REST (s)","rest_seconds"]].map(([l,k]) => (
+                <div key={k}>
+                  <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>{l}</label>
+                  <input type="number" min={0} defaultValue={ex[k] || 0} onBlur={e => updateExercise(ex.id, k, parseInt(e.target.value) || 0)} style={sinp} />
+                </div>
+              ))}
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>COACHING NOTES</label>
+              <textarea defaultValue={ex.notes} onBlur={e => updateExercise(ex.id, "notes", e.target.value)} style={{ ...inp, minHeight: 50, resize: "vertical" }} />
+            </div>
+          </div>
+        ))}
+        <button onClick={addExercise} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 10, padding: "14px 20px", width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD DRILL</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p style={{ color: "#888", fontSize: 11, fontFamily: F, letterSpacing: 2, marginBottom: 16 }}>QUICK SESSIONS ({sessions.length})</p>
+      {sessions.length === 0 && <p style={{ color: "#555", fontSize: 13, fontFamily: F, marginBottom: 16 }}>No quick sessions yet. Create one below.</p>}
+      {sessions.map(s => (
+        <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600, marginBottom: 2 }}>{s.title}</p>
+            <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills {s.belt_id ? `· ${BELT_LEVELS.find(b=>b.id===s.belt_id)?.name||""}` : ""}</p>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setEditing(s)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
+            <button onClick={() => deleteSession(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 12px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
+          </div>
+        </div>
+      ))}
+      <button onClick={addSession} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 12, padding: 18, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 13, letterSpacing: 1, cursor: "pointer", fontWeight: 600, marginTop: 6 }}>+ ADD QUICK SESSION</button>
+    </div>
+  );
+}
+
+// ============================================================
 // #11 CHALLENGES — with social submissions feed
 // ============================================================
 function StudentChallenges({ token, profile, trialMode }) {
@@ -1542,7 +1914,7 @@ function Admin({ token }) {
       {showLibSearch && <LibrarySearch token={token} onAdd={addExerciseFromLibrary} onClose={() => setShowLibSearch(null)} />}
       {/* TABS */}
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
-        {["workouts", "library", "articles", "challenges", "students", "levelup", "messages"].map(t => (
+        {["workouts", "library", "articles", "challenges", "quicksessions", "students", "levelup", "messages"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#FF6D00" : "#666", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
         ))}
       </div>
@@ -1791,6 +2163,8 @@ function Admin({ token }) {
       {/* ========== STUDENTS TAB ========== */}
       {/* ===== LEVEL UP TAB ===== */}
       {tab === "levelup" && <AdminLevelUp token={token} />}
+      {/* ===== QUICK SESSIONS TAB ===== */}
+      {tab === "quicksessions" && <AdminQuickSessions token={token} />}
       {/* ===== MESSAGES TAB ===== */}
       {tab === "messages" && <AdminMessages token={token} />}
       {tab === "students" && <AdminStudents token={token} saving={saving} setSaving={setSaving} flash={flash} students={students} loadStudents={loadStudents} showAdd={showAdd} setShowAdd={setShowAdd} ns={ns} setNs={setNs} addStudent={addStudent} promoteStudent={promoteStudent} demoteStudent={demoteStudent} deleteStudent={deleteStudent} inp={inp} />}
@@ -2105,6 +2479,8 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
             <DashboardView profile={profile} workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} totalWeekCompletions={totalWeekCompletions} onSelectWorkout={(w, week) => { setActiveWorkout(w); setActiveWeek(week); setActiveTab("workouts"); }} />
           ) : activeTab === "workouts" ? (
             <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} />
+          ) : activeTab === "quick" ? (
+            <QuickSessions token={token} profile={profile} trialMode={trialMode} />
           ) : activeTab === "challenges" ? (
             <StudentChallenges token={token} profile={profile} trialMode={trialMode} />
           ) : activeTab === "resources" ? (
@@ -2112,7 +2488,17 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
           ) : activeTab === "levelup" ? (
             <StudentLevelUp token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} workoutsData={workoutsData} totalWeekCompletions={totalWeekCompletions} trialMode={trialMode} />
           ) : activeTab === "messages" ? (
-            <StudentMessages token={token} profile={profile} />
+            trialMode ? (
+              <div className="fade-in" style={{ textAlign: "center", padding: "60px 20px" }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>💬</div>
+                <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Message Your Coach</h2>
+                <p style={{ fontSize: 15, color: C.textDim, marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>Get direct access to your coach for questions, feedback, and guidance on your training.</p>
+                <div style={{ background: C.surface, borderRadius: 16, padding: 24, border: `1px solid ${C.border}`, maxWidth: 400, margin: "0 auto" }}>
+                  <span style={{ fontSize: 28 }}>🔒</span>
+                  <p style={{ fontSize: 16, color: "#fff", fontWeight: 700, fontFamily: DISPLAY, marginTop: 10 }}>Sign up for full access to message your coach</p>
+                </div>
+              </div>
+            ) : <StudentMessages token={token} profile={profile} />
           ) : null}
         </main>
       </div>
