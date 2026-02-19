@@ -5,6 +5,21 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const SUPABASE_URL = "https://wvbzifqbugjusthwlfzl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2YnppZnFidWdqdXN0aHdsZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTkxMTAsImV4cCI6MjA4NjMzNTExMH0._p8Firq7U6oiHsvvSwNxZT2WJ0MNMQEOze_mjt4xE7w";
 const SUBMISSION_EMAIL = "levelupball24@gmail.com";
+
+// ============================================================
+// STRIPE CONFIG
+// ============================================================
+const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/6oUfZj3Pl3NHbpigs23oA00"; // paste your Stripe payment link here
+
+const openStripeCheckout = (email, name) => {
+  const params = new URLSearchParams();
+  if (email) params.set("prefilled_email", email);
+  if (name) params.set("client_reference_id", name);
+  const url = STRIPE_PAYMENT_LINK + (params.toString() ? "?" + params.toString() : "");
+  window.open(url, "_blank");
+};
+
+
 const supabase = {
   headers: (token) => ({
     "apikey": SUPABASE_ANON_KEY,
@@ -2726,7 +2741,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
         <div style={{ background: "linear-gradient(135deg, #FF6D00, #EA580C)", padding: "10px 20px", textAlign: "center", position: "sticky", top: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
           <span style={{ fontSize: 14 }}>🔥</span>
           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: "#fff" }}>You're previewing LevelUpBall! Get the full program to unlock all workouts and features.</span>
-          <a href="https://www.levelupballacademy.com/enroll" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, padding: "6px 16px", borderRadius: 8, textDecoration: "none", letterSpacing: 0.5 }}>GET FULL ACCESS</a>
+          <button onClick={() => openStripeCheckout("", "")} style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer", letterSpacing: 0.5 }}>GET FULL ACCESS</button>
         </div>
       )}
       {!trialMode && profile?.trial_expires_at && <TrialCountdownBanner profile={profile} />}
@@ -2784,7 +2799,7 @@ function AdminHeader({ onLogout }) {
 // INVITE SIGNUP — 30-day full access trial
 // ============================================================
 function InviteSignup({ belt: inviteBelt, onLogin }) {
-  const ENROLL_URL = "https://www.levelupballacademy.com/enroll";
+  const ENROLL_URL = "https://www.levelupballacademy.com/enroll"; // unused - Stripe handles checkout
   const MAILER_LITE_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiODJjZGJmMzhmMzM4MmNmN2Q4MjM4MTc2OTJhYWM4ZjNkNWRhZDM0ODY5ZDBjNWYxNGRlMzVjZWY2Nzc4ZWM2MjQ0OTUyYzZmODdkNmY3MjgiLCJpYXQiOjE3NzE1MDA2MjYuOTE3MjEzLCJuYmYiOjE3NzE1MDA2MjYuOTE3MjE3LCJleHAiOjQ5MjcxNzQyMjYuOTAyODI5LCJzdWIiOiIyMTI3ODQ5Iiwic2NvcGVzIjpbXX0.RA-p19ueL2qRJN9_OnSxXxFAhHGjwipSkhjtAmR-1BR8NekWNe7ttexBwCc_vYrm06AqRDkRYBkE_YkMvhGE-_OXXODadSfZENDwssc5DrFiq4Q7xrE459TaQZk7iuUZnrQBLtLCnQZMqdMijTiKGd53bwNuDirNKKX5TsZ3RUB4X7jbylFmcwHlNhNyxPs1WZeRSMd27X0MxVISbQvNcn_p6KmqBXn3oRXdEXDUF0f2bhfbaLWpzJGuYfarwY5ui7I8yxtHhh7dFaa8QcXYo24NB9u5ViTXK7IjrXfKpF4kPJqISaTm3QEtiqMzVz5tbM2lj3jXg1_B6a9fiMHRz1RaQbqSrkzTOy17NVMKKrqGbPJ95B7F9NKibwPhzcOU30lxH0PInRAa1hWJs7HPicQzcKgdEay9UYUdy-sDIVj48Rzlbe1bexumJ5juJ6sHqtofP6Vuc5vIYas343BWY3ZMy_s4LmS288gO15DjOziTI3j5hwL8-BRH0-mW5P93XZ2t2y2d0M-I0R7cgk3plyeEQnojKBypqEaechFyAJLrgkfwdgjW5lykr7agpqrqIZclQJMaZ-hf1NfH9lLvumztJ29hE8uAFIt3ovgLeMBbYxn6L5swTtSfKJpM2JKXdlMZuK_oWZyJwBawr5KyKYNwZ-C4XpHwxZesb9LjoOQ";
   const MAILER_LITE_GROUP_ID = "179197594118915541";
 
@@ -2878,7 +2893,7 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
 // TRIAL COUNTDOWN BANNER
 // ============================================================
 function TrialCountdownBanner({ profile }) {
-  const ENROLL_URL = "https://www.levelupballacademy.com/enroll";
+  const ENROLL_URL = "https://www.levelupballacademy.com/enroll"; // unused - Stripe handles checkout
   if (!profile?.trial_expires_at) return null;
   const expires = new Date(profile.trial_expires_at);
   const now = new Date();
@@ -2893,9 +2908,9 @@ function TrialCountdownBanner({ profile }) {
       <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: "#fff" }}>
         {isExpired ? "Your free trial has ended." : `Free trial: ${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining`}
       </span>
-      <a href={ENROLL_URL} target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 800, padding: "6px 16px", borderRadius: 8, textDecoration: "none", letterSpacing: 0.5, flexShrink: 0 }}>
+      <button onClick={() => openStripeCheckout(profile?.email, profile?.full_name)} style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 800, padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer", letterSpacing: 0.5, flexShrink: 0 }}>
         {isExpired ? "RENEW NOW" : "ENROLL NOW"}
-      </a>
+      </button>
     </div>
   );
 }
@@ -2904,7 +2919,7 @@ function TrialCountdownBanner({ profile }) {
 // TRIAL EXPIRED OVERLAY — soft block
 // ============================================================
 function TrialExpiredOverlay({ profile }) {
-  const ENROLL_URL = "https://www.levelupballacademy.com/enroll";
+  const ENROLL_URL = "https://www.levelupballacademy.com/enroll"; // unused - Stripe handles checkout
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(8px)" }}>
@@ -2914,11 +2929,11 @@ function TrialExpiredOverlay({ profile }) {
         <p style={{ color: C.textMuted, fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
           You've completed your 30-day free trial of the <strong style={{ color: belt.color }}>{belt.name} Program</strong>. Enroll now to keep your progress and continue training.
         </p>
-        <a href={ENROLL_URL} target="_blank" rel="noopener noreferrer"
-          style={{ display: "block", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, padding: "18px 24px", borderRadius: 14, textDecoration: "none", boxShadow: `0 6px 24px ${C.accentGlow}`, marginBottom: 12, letterSpacing: 0.5 }}>
+        <button onClick={() => openStripeCheckout(profile?.email, profile?.full_name)}
+          style={{ display: "block", width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, padding: "18px 24px", borderRadius: 14, border: "none", cursor: "pointer", boxShadow: `0 6px 24px ${C.accentGlow}`, marginBottom: 12, letterSpacing: 0.5 }}>
           Enroll Now — Keep My Progress 🏀
-        </a>
-        <p style={{ fontSize: 11, color: C.textDim }}>Questions? Contact us at levelupballacademy.com</p>
+        </button>
+        <p style={{ fontSize: 11, color: C.textDim }}>Questions? Contact us at <a href="https://www.levelupballacademy.com" style={{ color: C.accent }}>levelupballacademy.com</a></p>
       </div>
     </div>
   );
