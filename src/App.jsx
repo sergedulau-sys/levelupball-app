@@ -1520,7 +1520,7 @@ function AdminQuickSessions({ token }) {
   const addSession = async () => {
     setSaving(true);
     try {
-      const newS = await supabase.from("quick_sessions")._token(token).insert({ title: "New Quick Session", description: "", duration_min: 10, belt_id: null, exercises: [] });
+      const newS = await supabase.from("quick_sessions")._token(token).insert({ title: "New Quick Session", description: "", duration_min: 30, belt_id: null, exercises: [] });
       const created = Array.isArray(newS) ? newS[0] : newS;
       setSessions(prev => [...prev, created]);
       setEditing(created);
@@ -1581,7 +1581,7 @@ function AdminQuickSessions({ token }) {
             </div>
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>DURATION (MINUTES)</label>
-              <input type="number" min={1} max={60} defaultValue={editing.duration_min || 10} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 10)} style={inp} />
+              <input type="number" min={1} max={60} defaultValue={editing.duration_min || 30} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 30)} style={inp} />
             </div>
           </div>
           <div style={{ marginBottom: 14 }}>
@@ -1795,7 +1795,10 @@ function StudentResources({ token, profile, trialMode }) {
         const beltObj = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
         const bc = beltObj.color;
         const icons = ["🏀", "🎯", "💡", "🔥", "⭐", "💪", "📖", "🧠"];
-        const cs = { gradient: `linear-gradient(135deg, ${bc}, ${bc}CC)`, icon: icons[ai % icons.length], tagBg: bc + "33", tagColor: bc };
+        const isProgression = a.title && a.title.toLowerCase().includes("levelup progression");
+        const allBeltColors = BELT_LEVELS.map(b => b.color); // white, blue, purple, brown, black
+        const progressionGradient = "linear-gradient(90deg, " + allBeltColors[0] + " 0%, " + allBeltColors[0] + " 20%, " + allBeltColors[1] + " 20%, " + allBeltColors[1] + " 40%, " + allBeltColors[2] + " 40%, " + allBeltColors[2] + " 60%, " + allBeltColors[3] + " 60%, " + allBeltColors[3] + " 80%, " + allBeltColors[4] + " 80%, " + allBeltColors[4] + " 100%)";
+        const cs = { gradient: isProgression ? progressionGradient : `linear-gradient(135deg, ${bc}, ${bc}CC)`, icon: icons[ai % icons.length], tagBg: bc + "33", tagColor: isProgression ? "#fff" : bc };
         const isOpen = expanded === a.id;
         const readTime = Math.max(1, Math.ceil(a.content.length / 900));
         return (
@@ -2690,6 +2693,51 @@ function StudentMessages({ token, profile, trialMode }) {
     </div>
   );
 }
+
+// ============================================================
+// WELCOME MODAL
+// ============================================================
+function WelcomeModal({ profile, onDismiss }) {
+  const storageKey = "welcome_seen_" + profile.id;
+  const [visible, setVisible] = useState(() => {
+    return !localStorage.getItem(storageKey);
+  });
+  const dismiss = () => {
+    localStorage.setItem(storageKey, "1");
+    setVisible(false);
+    if (onDismiss) onDismiss();
+  };
+  if (!visible) return null;
+  const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }}>
+      <div className="fade-in" style={{ width: "100%", maxWidth: 520, background: "#0f0f0f", borderRadius: 24, border: "1px solid #222", overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.8)" }}>
+        <div style={{ background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "99)", padding: "28px 28px 20px", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -30, right: -20, fontSize: 120, opacity: 0.08 }}>🏀</div>
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Welcome to LevelUpBall</p>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, color: "#fff", marginBottom: 4 }}>Hey {profile.full_name}! 👋</h2>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)" }}>You have been matched to the <strong>{belt.name}</strong> belt. Watch this quick video to learn how the program works.</p>
+          </div>
+        </div>
+        <div style={{ padding: 24 }}>
+          <div style={{ borderRadius: 14, overflow: "hidden", marginBottom: 20, background: "#000", aspectRatio: "16/9", position: "relative" }}>
+            <iframe
+              src="https://www.youtube.com/embed/3N6uZ7Fwqmo?autoplay=1&rel=0"
+              style={{ width: "100%", height: "100%", border: "none", position: "absolute", inset: 0 }}
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </div>
+          <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "cc)", color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 20px " + belt.color + "40" }}>
+            Got it, let&apos;s go! 🏀
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // STUDENT LAYOUT
 // ============================================================
@@ -2820,6 +2868,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
         </div>
       )}
       {!trialMode && profile?.trial_expires_at && <TrialCountdownBanner profile={profile} />}
+      {!trialMode && <WelcomeModal profile={profile} />}
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar activeTab={activeWorkout ? "workouts" : activeTab} setActiveTab={(t) => { setActiveTab(t); setActiveWorkout(null); }} profile={profile} onLogout={onLogout} trialMode={trialMode} />
         <main className="main-content" style={{ flex: 1, padding: "32px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
