@@ -3175,28 +3175,30 @@ export default function LevelUpBallApp() {
     try {
       const token = data.access_token;
       const userId = data.user?.id;
-      if (!token || !userId) { console.error("Login data missing token or user id", data); setLoading(false); return; }
-      const profiles = await supabase.from("profiles")._token(token).select("*", `&id=eq.${userId}`);
-      if (Array.isArray(profiles) && profiles.length > 0) {
-        const profile = profiles[0];
-        // Apply pending trial expiry from invite signup if present
-        const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
-        const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
-        if (pendingExpiry && pendingUserId === userId && !profile.trial_expires_at) {
-          try {
-            await supabase.from("profiles")._token(token).update(
-              { trial_expires_at: pendingExpiry },
-              { id: userId }
-            );
-            profile.trial_expires_at = pendingExpiry;
-          } catch(e) { console.error("Trial expiry update failed:", e); }
-          sessionStorage.removeItem("pending_trial_expires");
-          sessionStorage.removeItem("pending_trial_user_id");
+      const metaRole = data.user?.user_metadata?.role || data.user?.app_metadata?.role;
+      if (!token || !userId) { setLoading(false); return; }
+      let profile = null;
+      try {
+        const profiles = await supabase.from("profiles")._token(token).select("*", `&id=eq.${userId}`);
+        if (Array.isArray(profiles) && profiles.length > 0) {
+          profile = profiles[0];
+          const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
+          const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
+          if (pendingExpiry && pendingUserId === userId && !profile.trial_expires_at) {
+            try {
+              await supabase.from("profiles")._token(token).update({ trial_expires_at: pendingExpiry }, { id: userId });
+              profile.trial_expires_at = pendingExpiry;
+            } catch(e) {}
+            sessionStorage.removeItem("pending_trial_expires");
+            sessionStorage.removeItem("pending_trial_user_id");
+          }
         }
-        setProfile(profile);
-      } else {
-        console.error("No profile found for user", userId, profiles);
+      } catch(e) { console.error("Profile fetch error:", e); }
+      // Fallback: build profile from auth metadata if DB row missing (e.g. admin)
+      if (!profile && metaRole) {
+        profile = { id: userId, role: metaRole, full_name: data.user?.user_metadata?.full_name || "" };
       }
+      if (profile) setProfile(profile);
       window.history.replaceState({}, "", window.location.pathname);
     } catch (e) { console.error("handleLogin error:", e); }
     setLoading(false);
