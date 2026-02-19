@@ -2725,9 +2725,10 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
         <div style={{ background: "linear-gradient(135deg, #FF6D00, #EA580C)", padding: "10px 20px", textAlign: "center", position: "sticky", top: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
           <span style={{ fontSize: 14 }}>🔥</span>
           <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: "#fff" }}>You're previewing LevelUpBall! Get the full program to unlock all workouts and features.</span>
-          <a href="https://levelupball.com" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, padding: "6px 16px", borderRadius: 8, textDecoration: "none", letterSpacing: 0.5 }}>GET FULL ACCESS</a>
+          <a href="https://www.levelupballacademy.com/enroll" target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, padding: "6px 16px", borderRadius: 8, textDecoration: "none", letterSpacing: 0.5 }}>GET FULL ACCESS</a>
         </div>
       )}
+      {!trialMode && profile?.trial_expires_at && <TrialCountdownBanner profile={profile} />}
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar activeTab={activeWorkout ? "workouts" : activeTab} setActiveTab={(t) => { setActiveTab(t); setActiveWorkout(null); }} profile={profile} onLogout={onLogout} trialMode={trialMode} />
         <main className="main-content" style={{ flex: 1, padding: "32px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
@@ -2779,6 +2780,150 @@ function AdminHeader({ onLogout }) {
   );
 }
 // ============================================================
+// INVITE SIGNUP — 30-day full access trial
+// ============================================================
+function InviteSignup({ belt: inviteBelt, onLogin }) {
+  const ENROLL_URL = "https://www.levelupballacademy.com/enroll";
+  const MAILER_LITE_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiODJjZGJmMzhmMzM4MmNmN2Q4MjM4MTc2OTJhYWM4ZjNkNWRhZDM0ODY5ZDBjNWYxNGRlMzVjZWY2Nzc4ZWM2MjQ0OTUyYzZmODdkNmY3MjgiLCJpYXQiOjE3NzE1MDA2MjYuOTE3MjEzLCJuYmYiOjE3NzE1MDA2MjYuOTE3MjE3LCJleHAiOjQ5MjcxNzQyMjYuOTAyODI5LCJzdWIiOiIyMTI3ODQ5Iiwic2NvcGVzIjpbXX0.RA-p19ueL2qRJN9_OnSxXxFAhHGjwipSkhjtAmR-1BR8NekWNe7ttexBwCc_vYrm06AqRDkRYBkE_YkMvhGE-_OXXODadSfZENDwssc5DrFiq4Q7xrE459TaQZk7iuUZnrQBLtLCnQZMqdMijTiKGd53bwNuDirNKKX5TsZ3RUB4X7jbylFmcwHlNhNyxPs1WZeRSMd27X0MxVISbQvNcn_p6KmqBXn3oRXdEXDUF0f2bhfbaLWpzJGuYfarwY5ui7I8yxtHhh7dFaa8QcXYo24NB9u5ViTXK7IjrXfKpF4kPJqISaTm3QEtiqMzVz5tbM2lj3jXg1_B6a9fiMHRz1RaQbqSrkzTOy17NVMKKrqGbPJ95B7F9NKibwPhzcOU30lxH0PInRAa1hWJs7HPicQzcKgdEay9UYUdy-sDIVj48Rzlbe1bexumJ5juJ6sHqtofP6Vuc5vIYas343BWY3ZMy_s4LmS288gO15DjOziTI3j5hwL8-BRH0-mW5P93XZ2t2y2d0M-I0R7cgk3plyeEQnojKBypqEaechFyAJLrgkfwdgjW5lykr7agpqrqIZclQJMaZ-hf1NfH9lLvumztJ29hE8uAFIt3ovgLeMBbYxn6L5swTtSfKJpM2JKXdlMZuK_oWZyJwBawr5KyKYNwZ-C4XpHwxZesb9LjoOQ";
+  const MAILER_LITE_GROUP_ID = "179197594118915541";
+
+  const belt = BELT_LEVELS.find(b => b.id === inviteBelt) || BELT_LEVELS[0];
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const inp = { width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS, boxSizing: "border-box" };
+
+  const handleSignup = async () => {
+    setErr("");
+    if (!name.trim()) { setErr("Please enter the player's name."); return; }
+    if (!email.trim() || !email.includes("@")) { setErr("Please enter a valid email."); return; }
+    if (pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
+    setLoading(true);
+    try {
+      const trialExpires = new Date();
+      trialExpires.setDate(trialExpires.getDate() + 30);
+      const data = await supabase.auth.signUp(email.trim(), pw, {
+        full_name: name.trim(),
+        role: "student",
+        belt_id: inviteBelt,
+        trial_expires_at: trialExpires.toISOString(),
+      });
+      // MailerLite
+      try {
+        await fetch("https://connect.mailerlite.com/api/subscribers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MAILER_LITE_API_KEY}` },
+          body: JSON.stringify({
+            email: email.trim(),
+            fields: { name: name.trim(), belt_level: belt.name, trial_start: new Date().toISOString().split("T")[0] },
+            groups: [MAILER_LITE_GROUP_ID],
+          }),
+        });
+      } catch(e) { /* silently continue */ }
+      onLogin(data);
+    } catch(e) { setErr(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)", width: 600, height: 600, borderRadius: "50%", background: `radial-gradient(circle, ${belt.color}12, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(${C.border} 1px, transparent 1px)`, backgroundSize: "28px 28px", opacity: 0.2, pointerEvents: "none" }} />
+      <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <img src={LOGO_LG} alt="LevelUpBall" style={{ width: "min(200px, 60vw)", height: "auto", display: "block", margin: "0 auto 16px" }} />
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: `${belt.color}18`, border: `1px solid ${belt.color}40`, borderRadius: 50, padding: "8px 18px", marginBottom: 16 }}>
+            <BeltIcon beltId={inviteBelt} size={24} />
+            <span style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: belt.color }}>{belt.name} Program</span>
+          </div>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 900, letterSpacing: -0.5, marginBottom: 6 }}>Your 30-Day Free Trial</h1>
+          <p style={{ color: C.textMuted, fontSize: 14, lineHeight: 1.6 }}>Full access to all workouts, challenges, and coaching. No credit card required.</p>
+        </div>
+        <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
+          {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Player's Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="First and last name" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Parent Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} placeholder="your@email.com" />
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Create Password</label>
+            <input type="password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSignup()} style={inp} placeholder="At least 6 characters" />
+          </div>
+          <button onClick={handleSignup} disabled={loading} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: loading ? "default" : "pointer", fontFamily: DISPLAY, opacity: loading ? 0.7 : 1, boxShadow: `0 4px 20px ${belt.color}40` }}>
+            {loading ? "Setting up your account..." : "Start 30-Day Free Trial 🏀"}
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, justifyContent: "center" }}>
+            <span style={{ fontSize: 11, color: C.textDim }}>✓ Full access</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>✓ No credit card</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+            <span style={{ fontSize: 11, color: C.textDim }}>✓ 30 days free</span>
+          </div>
+        </div>
+        <p style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: C.textDim }}>Already have an account? <span onClick={() => window.location.href = window.location.pathname} style={{ color: C.accent, cursor: "pointer", fontWeight: 600 }}>Sign In</span></p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// TRIAL COUNTDOWN BANNER
+// ============================================================
+function TrialCountdownBanner({ profile }) {
+  const ENROLL_URL = "https://www.levelupballacademy.com/enroll";
+  if (!profile?.trial_expires_at) return null;
+  const expires = new Date(profile.trial_expires_at);
+  const now = new Date();
+  const daysLeft = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
+  const isExpired = daysLeft <= 0;
+  const isUrgent = daysLeft <= 5 && !isExpired;
+  const bgColor = isExpired ? "linear-gradient(135deg, #DC2626, #B91C1C)" : isUrgent ? "linear-gradient(135deg, #EA580C, #DC2626)" : "linear-gradient(135deg, #F97316, #EA580C)";
+
+  return (
+    <div style={{ background: bgColor, padding: "10px 20px", textAlign: "center", position: "sticky", top: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 14 }}>{isExpired ? "⏰" : isUrgent ? "🔥" : "⏱️"}</span>
+      <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, color: "#fff" }}>
+        {isExpired ? "Your free trial has ended." : `Free trial: ${daysLeft} day${daysLeft === 1 ? "" : "s"} remaining`}
+      </span>
+      <a href={ENROLL_URL} target="_blank" rel="noopener noreferrer" style={{ background: "#fff", color: "#EA580C", fontFamily: DISPLAY, fontSize: 11, fontWeight: 800, padding: "6px 16px", borderRadius: 8, textDecoration: "none", letterSpacing: 0.5, flexShrink: 0 }}>
+        {isExpired ? "RENEW NOW" : "ENROLL NOW"}
+      </a>
+    </div>
+  );
+}
+
+// ============================================================
+// TRIAL EXPIRED OVERLAY — soft block
+// ============================================================
+function TrialExpiredOverlay({ profile }) {
+  const ENROLL_URL = "https://www.levelupballacademy.com/enroll";
+  const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(8px)" }}>
+      <div className="fade-in" style={{ background: C.surface, borderRadius: 24, padding: 40, maxWidth: 440, width: "100%", textAlign: "center", border: `1px solid ${C.border}` }}>
+        <BeltIcon beltId={profile?.belt_id} size={64} />
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 900, marginTop: 20, marginBottom: 8 }}>Your Trial Has Ended</h2>
+        <p style={{ color: C.textMuted, fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+          You've completed your 30-day free trial of the <strong style={{ color: belt.color }}>{belt.name} Program</strong>. Enroll now to keep your progress and continue training.
+        </p>
+        <a href={ENROLL_URL} target="_blank" rel="noopener noreferrer"
+          style={{ display: "block", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, padding: "18px 24px", borderRadius: 14, textDecoration: "none", boxShadow: `0 6px 24px ${C.accentGlow}`, marginBottom: 12, letterSpacing: 0.5 }}>
+          Enroll Now — Keep My Progress 🏀
+        </a>
+        <p style={{ fontSize: 11, color: C.textDim }}>Questions? Contact us at levelupballacademy.com</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN APP
 // ============================================================
 export default function LevelUpBallApp() {
@@ -2787,6 +2932,11 @@ export default function LevelUpBallApp() {
   const [trialMode, setTrialMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Check for invite link: ?invite=white
+  const params = new URLSearchParams(window.location.search);
+  const inviteBelt = params.get("invite");
+  const validInvite = inviteBelt && BELT_LEVELS.find(b => b.id === inviteBelt);
+
   // Handle trial start from quiz — no Supabase account created
   const handleTrialStart = ({ name, belt }) => {
     setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0 });
@@ -2794,29 +2944,40 @@ export default function LevelUpBallApp() {
     setTrialMode(true);
   };
 
-  // Handle real login
+  // Handle real login (invite signup or normal login)
   const handleLogin = async (data) => {
     setSession(data); setLoading(true);
     try {
       const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
       if (profiles.length > 0) setProfile(profiles[0]);
+      window.history.replaceState({}, "", window.location.pathname);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const logout = () => { setSession(null); setProfile(null); setTrialMode(false); };
 
+  // Check if 30-day trial is expired
+  const isTrialExpired = profile?.trial_expires_at
+    ? new Date(profile.trial_expires_at) < new Date()
+    : false;
+
   if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 120, height: 120, animation: "pulse 1.5s infinite" }} /></div></>;
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <style>{GLOBAL_CSS}</style>
-      {!session && <BeltQuiz onStartTrial={(data) => {
-        // data can be { name, belt } from quiz or a Supabase session from login
+      {!session && validInvite && <InviteSignup belt={inviteBelt} onLogin={handleLogin} />}
+      {!session && !validInvite && <BeltQuiz onStartTrial={(data) => {
         if (data?.access_token) { handleLogin(data); }
         else { handleTrialStart(data); }
       }} />}
       {session && profile?.role === "admin" && <><AdminHeader onLogout={logout} /><Admin token={session.access_token} /></>}
-      {session && profile?.role === "student" && <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />}
+      {session && profile?.role === "student" && (
+        <>
+          {isTrialExpired && <TrialExpiredOverlay profile={profile} />}
+          <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />
+        </>
+      )}
     </div>
   );
 }
