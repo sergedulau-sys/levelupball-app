@@ -1801,15 +1801,17 @@ function QuickSessions({ token, profile, trialMode }) {
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-          {sessions.map(s => {
+          {sessions.map((s, si) => {
             const count = completions[s.id] || 0;
             const exCount = (s.exercises || []).length;
             const targetBelt = s.belt_id ? BELT_LEVELS.find(b => b.id === s.belt_id) : null;
+            // Demo accounts (no real account): first session only. 30-day trial accounts: all sessions.
+            const isLocked = trialMode && si > 0;
             return (
-              <div key={s.id} style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer", transition: "transform 0.15s, border-color 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = belt.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
+              <div key={s.id} style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column", cursor: isLocked ? "default" : "pointer", transition: "transform 0.15s, border-color 0.15s", opacity: isLocked ? 0.6 : 1 }}
+                onMouseEnter={e => { if (!isLocked) { e.currentTarget.style.borderColor = belt.color; e.currentTarget.style.transform = "translateY(-2px)"; } }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "none"; }}
-                onClick={() => !trialMode && openSession(s)}>
+                onClick={() => !isLocked && openSession(s)}>
                 <div style={{ padding: "20px 20px 0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
                     <h3 style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{s.title}</h3>
@@ -1825,10 +1827,14 @@ function QuickSessions({ token, profile, trialMode }) {
                   </div>
                 </div>
                 <div style={{ padding: "0 20px 20px", marginTop: "auto" }}>
-                  {trialMode ? (
+                  {isLocked ? (
                     <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", textAlign: "center", border: `1px solid ${C.border}` }}>
-                      <span style={{ fontSize: 14 }}>🔒 </span><span style={{ fontSize: 13, color: C.textDim }}>Full access required</span>
+                      <span style={{ fontSize: 14 }}>🔒 </span><span style={{ fontSize: 13, color: C.textDim }}>Sign up for full access</span>
                     </div>
+                  ) : trialMode && si === 0 ? (
+                    <button style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 10, padding: "12px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY }}>
+                      Try Free Session ⚡
+                    </button>
                   ) : (
                     <button style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 10, padding: "12px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY }}>
                       {count > 0 ? "Start Again ⚡" : "Start Session ⚡"}
