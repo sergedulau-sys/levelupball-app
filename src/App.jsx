@@ -1386,7 +1386,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
 // ============================================================
 // QUICK SESSIONS — student view
 // ============================================================
-function QuickSessions({ token, profile, trialMode }) {
+function QuickSessions({ token, profile, trialMode, challengeResults = [], onSaveChallengeResult }) {
   const [sessions, setSessions] = useState([]);
   const [completions, setCompletions] = useState({});
   const [selectedSession, setSelectedSession] = useState(null);
@@ -1617,8 +1617,9 @@ function QuickSessions({ token, profile, trialMode }) {
           <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
             {ex.video_url && <div style={{ borderRadius: "16px 16px 0 0", overflow: "hidden" }}><VideoPlayer url={ex.video_url} /></div>}
             <div style={{ padding: 24 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800 }}>{ex.name}</h2>
+                {ex.is_challenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
                 {totalRounds > 1 && <span style={{ background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: C.accent, flexShrink: 0 }}>Round {currentRound + 1}/{totalRounds}</span>}
               </div>
               {/* Drill timer */}
@@ -1645,6 +1646,21 @@ function QuickSessions({ token, profile, trialMode }) {
                 {ex.rest_seconds > 0 && <div style={{ background: C.surfaceHover, borderRadius: 10, padding: "8px 16px", border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Rest</p><p style={{ fontSize: 18, fontWeight: 800, color: C.textMuted }}>{ex.rest_seconds}s</p></div>}
               </div>
               {ex.notes && <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6, marginBottom: 20, background: C.bg, borderRadius: 10, padding: "12px 16px" }}>{ex.notes}</p>}
+              {/* Challenge drill input */}
+              {ex.is_challenge && (() => {
+                const allRes = challengeResults.filter(r => r.exercise_id === ex.id || (ex.name && r.exercise_name === ex.name));
+                const prevResult = allRes.length > 0 ? allRes.reduce((best, r) => (!best || r.reps_completed > best.reps_completed) ? r : best, null) : null;
+                return (
+                  <div style={{ background: C.challengeGlow, borderRadius: 12, padding: 14, marginBottom: 20, border: `1px solid ${C.challenge}33` }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: C.challenge, letterSpacing: 1, marginBottom: 8 }}>⭐ CHALLENGE DRILL</p>
+                    {prevResult && <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>PR: <span style={{ fontWeight: 700, color: C.text }}>{prevResult.reps_completed} reps</span> 🏆</p>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, color: C.textMuted }}>Reps completed:</span>
+                      <input type="number" min="0" defaultValue={prevResult?.reps_completed || ""} onBlur={e => { const v = parseInt(e.target.value); if (v >= 0 && onSaveChallengeResult) onSaveChallengeResult(ex.id, selectedSession.id, v, ex.name); }} style={{ width: 70, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 14, fontWeight: 600, textAlign: "center", outline: "none", fontFamily: DISPLAY }} placeholder="0" />
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Show Done button when: no drill timer, or drill timer finished (timerLeft===0 and no active interval) */}
               {(!hasDrillTimer || (phase === "drill" && timerLeft === 0 && !timerRunning)) && (
                 <button onClick={followAlongNext} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
@@ -1692,28 +1708,46 @@ function QuickSessions({ token, profile, trialMode }) {
                 const open = expanded === drillKey;
                 const done = checkedDrills.has(drillKey);
                 return (
-                  <div key={drillKey} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
+                  <div key={drillKey} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${done ? C.success + "33" : ex.is_challenge ? C.challenge + "44" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
                     <div onClick={() => setExpanded(open ? null : drillKey)} style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <button onClick={e => { e.stopPropagation(); const ns = new Set(checkedDrills); if (ns.has(drillKey)) ns.delete(drillKey); else ns.add(drillKey); setCheckedDrills(ns); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : `2px solid ${C.borderLight}`, background: done ? C.success : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 11, fontWeight: 700 }}>{done && "✓"}</button>
                         <div>
-                          <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
+                            {ex.is_challenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
+                          </div>
                           <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[ex.sets > 0 && `${ex.sets} sets`, ex.reps > 0 && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, ex.rest_seconds > 0 && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
                         </div>
                       </div>
                       <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
                     </div>
-                    {open && (
+                    {open && (() => {
+                      const isChallenge = ex.is_challenge;
+                      const allRes = isChallenge ? challengeResults.filter(r => r.exercise_id === ex.id || (ex.name && r.exercise_name === ex.name)) : [];
+                      const prevResult = allRes.length > 0 ? allRes.reduce((best, r) => (!best || r.reps_completed > best.reps_completed) ? r : best, null) : null;
+                      return (
                       <div style={{ padding: "0 16px 14px" }} className="fade-in">
                         {ex.video_url && <VideoPlayer url={ex.video_url} />}
                         {ex.notes && <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Notes</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.notes}</p></div>}
                         <div style={{ display: "grid", gridTemplateColumns: `repeat(${[ex.sets > 0, ex.reps > 0, ex.time_seconds > 0, ex.rest_seconds > 0].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
                           {[ex.sets > 0 && ["Sets", ex.sets], ex.reps > 0 && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], ex.rest_seconds > 0 && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
                         </div>
+                        {isChallenge && (
+                          <div style={{ background: C.challengeGlow, borderRadius: 12, padding: 14, marginTop: 10, border: `1px solid ${C.challenge}33` }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: C.challenge, letterSpacing: 1, marginBottom: 8 }}>⭐ CHALLENGE DRILL</p>
+                            {prevResult && <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>PR: <span style={{ fontWeight: 700, color: C.text }}>{prevResult.reps_completed} reps</span> 🏆</p>}
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 12, color: C.textMuted }}>Reps completed:</span>
+                              <input type="number" min="0" defaultValue={prevResult?.reps_completed || ""} onBlur={e => { const v = parseInt(e.target.value); if (v >= 0 && onSaveChallengeResult) onSaveChallengeResult(ex.id, selectedSession.id, v, ex.name); }} style={{ width: 70, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", color: C.text, fontSize: 14, fontWeight: 600, textAlign: "center", outline: "none", fontFamily: DISPLAY }} placeholder="0" />
+                            </div>
+                          </div>
+                        )}
                         {ex.time_seconds > 0 && <RestTimer seconds={ex.time_seconds} label="DRILL TIMER" />}
                         {ex.rest_seconds > 0 && <RestTimer seconds={ex.rest_seconds} label="REST" />}
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -1986,10 +2020,11 @@ function AdminQuickSessions({ token }) {
                 </div>
               ))}
             </div>
-            <div>
+            <div style={{ marginBottom: 8 }}>
               <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>COACHING NOTES</label>
               <textarea defaultValue={ex.notes} onBlur={e => updateExercise(ex.id, "notes", e.target.value)} style={{ ...inp, minHeight: 50, resize: "vertical" }} />
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer", marginTop: 6 }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => updateExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Drill (player logs reps)</label>
           </div>
         ))}
         <button onClick={addExercise} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 10, padding: "14px 20px", width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD DRILL</button>
@@ -3230,7 +3265,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
           ) : activeTab === "workouts" ? (
             <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} />
           ) : activeTab === "quick" ? (
-            <QuickSessions token={token} profile={profile} trialMode={trialMode} />
+            <QuickSessions token={token} profile={profile} trialMode={trialMode} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
           ) : activeTab === "challenges" ? (
             <StudentChallenges token={token} profile={profile} trialMode={trialMode} />
           ) : activeTab === "resources" ? (
