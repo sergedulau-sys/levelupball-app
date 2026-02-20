@@ -1395,6 +1395,7 @@ function QuickSessions({ token, profile, trialMode }) {
   const [activeExIdx, setActiveExIdx] = useState(0);
   const [phase, setPhase] = useState("drill"); // "drill" | "rest"
   const [timerLeft, setTimerLeft] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
   const timerRef = useRef(null);
   // Workout view state
   const [checkedDrills, setCheckedDrills] = useState(new Set());
@@ -1441,36 +1442,37 @@ function QuickSessions({ token, profile, trialMode }) {
     if (m === "follow") {
       setActiveExIdx(0);
       setPhase("drill");
-      const ex = (selectedSession.exercises || [])[0];
-      if (ex && ex.time_seconds > 0) {
-        startTimer(ex.time_seconds, "drill");
-      }
+      setTimerLeft(0);
+      // Drill timer waits for user to click Start — don't auto-start
     }
   };
 
-  const clearTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+  const clearTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } setTimerRunning(false); };
 
   const startTimer = (seconds, timerPhase) => {
     clearTimer();
     setTimerLeft(seconds);
     setPhase(timerPhase);
+    setTimerRunning(true);
     timerRef.current = setInterval(() => {
       setTimerLeft(prev => {
         if (prev <= 1) {
-          clearTimer();
+          if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
           if (timerPhase === "drill") {
             // Drill timer done — go to rest or next
             const exercises = selectedSession.exercises || [];
             const ex = exercises[activeExIdx];
             const restSecs = ex ? (ex.rest_seconds || 0) : 0;
             if (restSecs > 0) {
-              // Small timeout to let state settle
+              // Go straight to rest — keep timerRunning true to avoid flash
               setTimeout(() => startTimer(restSecs, "rest"), 50);
             } else {
+              setTimerRunning(false);
               setTimeout(() => advanceFromRest(), 50);
             }
           } else {
             // Rest done — advance
+            setTimerRunning(false);
             setTimeout(() => advanceFromRest(), 50);
           }
           return 0;
@@ -1489,12 +1491,8 @@ function QuickSessions({ token, profile, trialMode }) {
     } else {
       setActiveExIdx(nextIdx);
       setPhase("drill");
-      const nextEx = exercises[nextIdx];
-      if (nextEx && nextEx.time_seconds > 0) {
-        startTimer(nextEx.time_seconds, "drill");
-      } else {
-        setTimerLeft(0);
-      }
+      setTimerLeft(0);
+      // Drill timer waits for user to click Start
     }
   };
 
@@ -1598,12 +1596,20 @@ function QuickSessions({ token, profile, trialMode }) {
             <div style={{ padding: 24 }}>
               <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: 16 }}>{ex.name}</h2>
               {/* Drill timer */}
-              {hasDrillTimer && timerLeft > 0 && phase === "drill" && (
+              {/* Drill timer — click to start */}
+              {hasDrillTimer && timerLeft > 0 && phase === "drill" && timerRunning && (
                 <div style={{ textAlign: "center", marginBottom: 20 }}>
                   <p style={{ color: belt.color, fontSize: 11, textTransform: "uppercase", letterSpacing: 2, marginBottom: 4, fontWeight: 700 }}>Drill Timer</p>
                   <div style={{ fontFamily: DISPLAY, fontSize: 56, fontWeight: 900, color: belt.color, lineHeight: 1 }}>{timerLeft}</div>
                   <p style={{ color: C.textDim, fontSize: 12, marginTop: 4 }}>seconds remaining</p>
                   <button onClick={skipTimer} style={{ marginTop: 12, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 16px", color: C.textDim, fontSize: 11, cursor: "pointer", fontFamily: FONTS }}>Skip</button>
+                </div>
+              )}
+              {hasDrillTimer && !timerRunning && phase === "drill" && (
+                <div style={{ textAlign: "center", marginBottom: 20 }}>
+                  <button onClick={() => startTimer(ex.time_seconds, "drill")} style={{ background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "14px 32px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40`, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    ▶ Start Timer — {ex.time_seconds}s
+                  </button>
                 </div>
               )}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
@@ -1613,8 +1619,8 @@ function QuickSessions({ token, profile, trialMode }) {
                 {ex.rest_seconds > 0 && <div style={{ background: C.surfaceHover, borderRadius: 10, padding: "8px 16px", border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Rest</p><p style={{ fontSize: 18, fontWeight: 800, color: C.textMuted }}>{ex.rest_seconds}s</p></div>}
               </div>
               {ex.notes && <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6, marginBottom: 20, background: C.bg, borderRadius: 10, padding: "12px 16px" }}>{ex.notes}</p>}
-              {/* Only show Done button if no drill timer or drill timer already finished */}
-              {(!hasDrillTimer || (phase === "drill" && timerLeft === 0)) && (
+              {/* Show Done button when: no drill timer, or drill timer finished (timerLeft===0 and no active interval) */}
+              {(!hasDrillTimer || (phase === "drill" && timerLeft === 0 && !timerRunning)) && (
                 <button onClick={followAlongNext} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
                   {completing ? "Saving..." : activeExIdx + 1 < exercises.length ? "Done → Next Drill" : "🏆 Complete Session"}
                 </button>
@@ -1707,7 +1713,7 @@ function QuickSessions({ token, profile, trialMode }) {
             <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>See all drills, check them off at your own pace</div>
           </button>
           <button onClick={() => startMode("follow")} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "border-color 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = belt.color} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>▶</div>
+            <div style={{ fontSize: 36, marginBottom: 10, color: "#fff" }}>▶</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, marginBottom: 6, color: "#fff" }}>Follow Along</div>
             <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>Guided step-by-step with timers for each drill</div>
           </button>
@@ -1788,12 +1794,14 @@ function QuickSessions({ token, profile, trialMode }) {
           })}
         </div>
       )}
+      <div style={{ background: C.surface, borderRadius: 20, border: `1px dashed ${C.border}`, padding: "28px 20px", textAlign: "center", marginTop: 16 }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>🔥</div>
+        <p style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.textMuted }}>More Skill Sessions Coming Soon!</p>
+        <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>New drills are added regularly to keep your training fresh.</p>
+      </div>
     </div>
   );
 }
-
-// ============================================================
-// ADMIN: QUICK SESSIONS
 // ============================================================
 function AdminQuickSessions({ token }) {
   const F = FONTS;
