@@ -1616,6 +1616,8 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
         {ex && (
           <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
             {ex.video_url && <div style={{ borderRadius: "16px 16px 0 0", overflow: "hidden" }}><VideoPlayer url={ex.video_url} /></div>}
+            {!ex.video_url && ex.image_url && <div style={{ borderRadius: "16px 16px 0 0", overflow: "hidden" }}><img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", display: "block" }} /></div>}
+            {ex.video_url && ex.image_url && <div style={{ padding: "10px 24px 0" }}><img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
             <div style={{ padding: 24 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800 }}>{ex.name}</h2>
@@ -1729,6 +1731,7 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
                       return (
                       <div style={{ padding: "0 16px 14px" }} className="fade-in">
                         {ex.video_url && <VideoPlayer url={ex.video_url} />}
+                        {ex.image_url && <img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10, border: `1px solid ${C.border}` }} />}
                         {ex.notes && <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Notes</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.notes}</p></div>}
                         <div style={{ display: "grid", gridTemplateColumns: `repeat(${[ex.sets > 0, ex.reps > 0, ex.time_seconds > 0, ex.rest_seconds > 0].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
                           {[ex.sets > 0 && ["Sets", ex.sets], ex.reps > 0 && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], ex.rest_seconds > 0 && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
@@ -2023,6 +2026,10 @@ function AdminQuickSessions({ token }) {
             <div style={{ marginBottom: 8 }}>
               <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>COACHING NOTES</label>
               <textarea defaultValue={ex.notes} onBlur={e => updateExercise(ex.id, "notes", e.target.value)} style={{ ...inp, minHeight: 50, resize: "vertical" }} />
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>IMAGE URL</label>
+              <input defaultValue={ex.image_url || ""} onBlur={e => updateExercise(ex.id, "image_url", e.target.value)} style={inp} placeholder="https://i.imgur.com/... or any image URL" />
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer", marginTop: 6 }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => updateExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Drill (player logs reps)</label>
           </div>
