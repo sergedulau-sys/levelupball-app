@@ -476,7 +476,8 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
             <BeltIcon beltId={resultBelt} size={80} />
           </div>
           <h2 style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>Your player is a</h2>
-          <h1 style={{ fontFamily: DISPLAY, fontSize: 42, fontWeight: 900, color: belt.color, letterSpacing: -1, marginBottom: 12 }}>{belt.name}</h1>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: 42, fontWeight: 900, color: belt.color, letterSpacing: -1, marginBottom: 4 }}>{belt.name}</h1>
+          <p style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, color: C.textMuted, marginBottom: 16 }}>Level {belt.level} of 5</p>
           <p style={{ color: C.textMuted, fontSize: 15, lineHeight: 1.6, maxWidth: 360, margin: "0 auto 32px" }}>
             {quiz30Mode ? `We matched your player to the ${belt.name} curriculum. Create a free account to start your 30-day trial.` : `We've matched your player to the ${belt.name} curriculum. Try the first workout free — no password needed.`}
           </p>
@@ -739,6 +740,15 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
   const bw = workoutsData || [];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  // Demo video popup — show only on first dashboard visit
+  const storageKey = "levelupball_demo_seen_" + profile.id;
+  const [showDemo, setShowDemo] = useState(() => {
+    try { return !sessionStorage.getItem(storageKey) && !localStorage.getItem(storageKey); } catch(e) { return false; }
+  });
+  const dismissDemo = () => {
+    setShowDemo(false);
+    try { localStorage.setItem(storageKey, "1"); sessionStorage.setItem(storageKey, "1"); } catch(e) {}
+  };
   // XP system - based on week completions
   const wDone = totalWeekCompletions || 0;
   const xpPerWorkout = belt.xpPerWorkout || 200;
@@ -751,6 +761,31 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
   const nextWorkout = nextSlot || null;
   return (
     <div className="fade-in">
+      {/* First-time demo video popup */}
+      {showDemo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }} onClick={dismissDemo}>
+          <div className="fade-in" style={{ width: "100%", maxWidth: 640, background: C.surface, borderRadius: 24, border: `1px solid ${C.border}`, overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "24px 24px 0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div>
+                  <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#fff" }}>Welcome to LevelUpBall! 🏀</h2>
+                  <p style={{ color: C.textDim, fontSize: 13, marginTop: 4 }}>Watch this quick demo to get started</p>
+                </div>
+                <button onClick={dismissDemo} style={{ background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: C.textMuted, fontSize: 18, cursor: "pointer", flexShrink: 0 }}>{"\u2715"}</button>
+              </div>
+            </div>
+            <div style={{ padding: "0 24px" }}>
+              <div style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
+                <VideoPlayer url="https://youtu.be/YOUR_DEMO_VIDEO_ID" />
+              </div>
+            </div>
+            <div style={{ padding: "20px 24px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: 12, color: C.textDim }}>You can rewatch this anytime in the <strong style={{ color: C.accent }}>Resources</strong> tab.</p>
+              <button onClick={dismissDemo} style={{ background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 12, padding: "10px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY }}>Let's Go!</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ marginBottom: 32 }}>
         <p style={{ color: C.textDim, fontSize: 14, marginBottom: 4 }}>{greeting}</p>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{profile.user_type === "player" ? ((profile.full_name && !profile.full_name.includes("@")) ? profile.full_name.split(" ")[0] : "Player") : "Player"} 👊</h1>
@@ -1858,18 +1893,35 @@ function StudentResources({ token, profile, trialMode }) {
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
+  // Names to match for pinned articles (case-insensitive partial match)
+  const DEMO_KEYWORDS = ["demo", "how it works", "getting started", "welcome", "how to use"];
+  const LEVELUP_KEYWORDS = ["level up progression", "belt progression", "level progression"];
+  const isDemo = (title) => DEMO_KEYWORDS.some(k => title.toLowerCase().includes(k));
+  const isLevelUp = (title) => LEVELUP_KEYWORDS.some(k => title.toLowerCase().includes(k));
   useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); let filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
         const lockedTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
         if (trialMode) {
           filtered = filtered.map(a => ({ ...a, _locked: lockedTitles.some(h => a.title.includes(h)) }));
         }
-        filtered.sort((a, b) => {
+        // Pin demo and level up articles to top
+        const pinned = [];
+        const rest = [];
+        filtered.forEach(a => {
+          if (isDemo(a.title)) pinned.unshift(a); // demo first
+          else if (isLevelUp(a.title)) pinned.push(a); // level up second
+          else rest.push(a);
+        });
+        rest.sort((a, b) => {
           const aSpecific = a.belt_id && a.belt_id !== "all" ? 0 : 1;
           const bSpecific = b.belt_id && b.belt_id !== "all" ? 0 : 1;
           if (aSpecific !== bSpecific) return aSpecific - bSpecific;
           return (a.sort_order || 0) - (b.sort_order || 0);
         });
-        setArticles(filtered); } catch(e){} setLoading(false); })(); }, [token]);
+        setArticles([...pinned, ...rest]); } catch(e){} setLoading(false); })(); }, [token]);
+
+  // Special gradient for the level up progression article — all belt colors like a flag
+  const BELT_FLAG_GRADIENT = `linear-gradient(135deg, ${BELT_LEVELS[0].color} 0%, ${BELT_LEVELS[0].color} 20%, ${BELT_LEVELS[1].color} 20%, ${BELT_LEVELS[1].color} 40%, ${BELT_LEVELS[2].color} 40%, ${BELT_LEVELS[2].color} 60%, ${BELT_LEVELS[3].color} 60%, ${BELT_LEVELS[3].color} 80%, ${BELT_LEVELS[4].color} 80%, ${BELT_LEVELS[4].color} 100%)`;
+
   if (loading) return <div style={{ textAlign: "center", padding: 40, color: C.textDim }}>Loading...</div>;
   return (
     <div className="fade-in">
@@ -1878,27 +1930,39 @@ function StudentResources({ token, profile, trialMode }) {
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 36, marginBottom: 12 }}>📖</div><p style={{ color: C.textMuted }}>No resources yet</p></div>
       ) : articles.map((a, ai) => {
         const beltObj = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
-        const bc = beltObj.color;
+        const isDemoArticle = isDemo(a.title);
+        const isLevelUpArticle = isLevelUp(a.title);
+        // Demo article = red gradient
+        // Level up article = belt flag gradient
+        // Normal articles = belt color gradient
+        const bc = isDemoArticle ? "#EF4444" : beltObj.color;
+        const gradient = isDemoArticle ? "linear-gradient(135deg, #EF4444, #DC2626)"
+          : isLevelUpArticle ? BELT_FLAG_GRADIENT
+          : `linear-gradient(135deg, ${bc}, ${bc}CC)`;
         const icons = ["🏀", "🎯", "💡", "🔥", "⭐", "💪", "📖", "🧠"];
-        const cs = { gradient: `linear-gradient(135deg, ${bc}, ${bc}CC)`, icon: icons[ai % icons.length], tagBg: bc + "33", tagColor: bc };
+        const icon = isDemoArticle ? "🎬" : isLevelUpArticle ? "🥋" : icons[ai % icons.length];
+        const tagBg = isDemoArticle ? "#EF444433" : bc + "33";
+        const tagColor = isDemoArticle ? "#EF4444" : bc;
         const isOpen = expanded === a.id;
         const readTime = Math.max(1, Math.ceil(a.content.length / 900));
+        const borderColor = isDemoArticle ? "#EF444444" : isLevelUpArticle ? `${BELT_LEVELS[2].color}44` : tagColor + "22";
         return (
-        <div key={a.id} style={{ marginBottom: 14, borderRadius: 20, overflow: "hidden", border: `1px solid ${a._locked ? "#33333344" : cs.tagColor + "22"}`, transition: "transform 0.2s, box-shadow 0.2s", opacity: a._locked ? 0.55 : 1, filter: a._locked ? "grayscale(0.5)" : "none" }}>
+        <div key={a.id} style={{ marginBottom: 14, borderRadius: 20, overflow: "hidden", border: `1px solid ${a._locked ? "#33333344" : borderColor}`, transition: "transform 0.2s, box-shadow 0.2s", opacity: a._locked ? 0.55 : 1, filter: a._locked ? "grayscale(0.5)" : "none" }}>
           {/* Card header - clickable */}
           <div onClick={() => !a._locked && setExpanded(isOpen ? null : a.id)} style={{ cursor: a._locked ? "default" : "pointer", position: "relative", overflow: "hidden" }}>
             {/* Gradient banner */}
-            <div style={{ background: cs.gradient, padding: "20px 20px 14px", position: "relative" }}>
-              <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.12, transform: "rotate(15deg)" }}>{cs.icon}</div>
+            <div style={{ background: gradient, padding: "20px 20px 14px", position: "relative" }}>
+              <div style={{ position: "absolute", top: -20, right: -10, fontSize: 80, opacity: 0.12, transform: "rotate(15deg)" }}>{icon}</div>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", position: "relative", zIndex: 1 }}>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.25, marginBottom: 8, textShadow: "0 2px 8px rgba(0,0,0,0.35)", letterSpacing: -0.3 }}>{a.title}</p>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {(isDemoArticle || isLevelUpArticle) && <span style={{ fontSize: 10, color: "#fff", background: "rgba(0,0,0,0.3)", padding: "3px 10px", borderRadius: 6, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{isDemoArticle ? "Start Here" : "Essential"}</span>}
                     <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.2)", padding: "3px 8px", borderRadius: 6 }}>{readTime} min read</span>
                     <span style={{ fontSize: 10, color: "rgba(255,255,255,0.7)" }}>{new Date(a.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{cs.icon}</div>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{icon}</div>
               </div>
             </div>
             {/* Preview strip */}
@@ -1907,7 +1971,7 @@ function StudentResources({ token, profile, trialMode }) {
                 <p style={{ fontSize: 12, color: C.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{a._locked ? "Sign up for full access to read this article" : a.content.replace(/[*#-]/g, "").substring(0, 90) + "..."}</p>
                 {a._locked 
                   ? <span style={{ background: "#33333388", color: "#888", fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>🔒 LOCKED</span>
-                  : <span style={{ background: cs.tagBg, color: cs.tagColor, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>READ</span>}
+                  : <span style={{ background: tagBg, color: tagColor, fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 8, flexShrink: 0, letterSpacing: 0.5 }}>READ</span>}
               </div>
             )}
           </div>
@@ -1925,7 +1989,7 @@ function StudentResources({ token, profile, trialMode }) {
                 t = t.replace(/\n/g, '<br/>');
                 return t;
               })() }} />
-              <button onClick={() => setExpanded(null)} style={{ marginTop: 14, background: "none", border: `1px solid ${cs.tagColor}33`, borderRadius: 10, padding: "8px 16px", color: cs.tagColor, fontSize: 11, cursor: "pointer", fontFamily: DISPLAY, fontWeight: 600, letterSpacing: 0.5 }}>Close ↑</button>
+              <button onClick={() => setExpanded(null)} style={{ marginTop: 14, background: "none", border: `1px solid ${tagColor}33`, borderRadius: 10, padding: "8px 16px", color: tagColor, fontSize: 11, cursor: "pointer", fontFamily: DISPLAY, fontWeight: 600, letterSpacing: 0.5 }}>Close ↑</button>
             </div>
           )}
         </div>
