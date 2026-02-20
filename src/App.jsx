@@ -318,6 +318,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         role: "student",
         belt_id: resultBelt,
         trial_expires_at: trialExpiresStr,
+        user_type: userType || "parent",
       });
       if (!data?.access_token) { setErr("Signup failed. Please try again."); setSubmitting(false); return; }
       // Store pending trial expiry for profile update
@@ -511,7 +512,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Are you a parent signing up for your player, or are you the player?</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: "2px solid " + C.border, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center" }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>🧑</div>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>{String.fromCodePoint(0x1F468, 0x200D, 0x1F466)}</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Parent</div>
             <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I am signing up my child for training</div>
           </button>
@@ -3027,8 +3028,8 @@ function InviteSignup({ belt: inviteBelt, onLogin, prefillName }) {
         <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
           {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>{userType === "player" ? "Your Name" : "Your First Name"}</label>
-            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder={userType === "player" ? "First and last name" : "Your first name"} />
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Player's Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="Player's first name" />
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Parent Email</label>
@@ -3131,8 +3132,31 @@ export default function LevelUpBallApp() {
     setSession(data); setLoading(true);
     try {
       const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
+      let profile;
       if (profiles.length > 0) {
-        const profile = profiles[0];
+        profile = profiles[0];
+      } else {
+        // Profile row doesn't exist yet — create it from auth metadata
+        const meta = data.user?.user_metadata || {};
+        try {
+          const created = await supabase.from("profiles")._token(data.access_token).insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: meta.full_name || "",
+            role: meta.role || "student",
+            belt_id: meta.belt_id || "white",
+            trial_expires_at: meta.trial_expires_at || null,
+            user_type: meta.user_type || "parent",
+          });
+          profile = Array.isArray(created) ? created[0] : created;
+        } catch(e) {
+          console.error("Profile creation error:", e);
+          // Retry fetch in case trigger created it in the meantime
+          const retry = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
+          if (retry.length > 0) profile = retry[0];
+        }
+      }
+      if (profile) {
         // Apply pending trial expiry from invite signup if present
         const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
         const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
