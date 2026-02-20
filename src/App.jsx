@@ -776,7 +776,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
             </div>
             <div style={{ padding: "0 24px" }}>
               <div style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${C.border}` }}>
-                <VideoPlayer url="https://youtu.be/YOUR_DEMO_VIDEO_ID" />
+                <VideoPlayer url="https://youtu.be/3N6uZ7Fwqmo" />
               </div>
             </div>
             <div style={{ padding: "20px 24px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1894,9 +1894,14 @@ function StudentResources({ token, profile, trialMode }) {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   // Names to match for pinned articles (case-insensitive partial match)
-  const DEMO_KEYWORDS = ["demo", "how it works", "getting started", "welcome", "how to use"];
-  const LEVELUP_KEYWORDS = ["level up progression", "belt progression", "level progression"];
-  const isDemo = (title) => DEMO_KEYWORDS.some(k => title.toLowerCase().includes(k));
+  const DEMO_KEYWORDS = ["demo", "how it works", "how to use"];
+  const LEVELUP_KEYWORDS = ["levelup progression", "level up progression", "belt progression", "level progression", "progression system"];
+  const isDemo = (title) => {
+    const t = title.toLowerCase();
+    // Don't match "Welcome to Level X" articles
+    if (t.includes("welcome to level")) return false;
+    return DEMO_KEYWORDS.some(k => t.includes(k));
+  };
   const isLevelUp = (title) => LEVELUP_KEYWORDS.some(k => title.toLowerCase().includes(k));
   useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); let filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
         const lockedTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
