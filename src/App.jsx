@@ -1393,6 +1393,7 @@ function QuickSessions({ token, profile, trialMode }) {
   const [mode, setMode] = useState(null); // null = picker, "workout" = workout view, "follow" = follow along
   // Follow along state
   const [activeExIdx, setActiveExIdx] = useState(0);
+  const [currentRound, setCurrentRound] = useState(0);
   const [phase, setPhase] = useState("drill"); // "drill" | "rest"
   const [timerLeft, setTimerLeft] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -1431,6 +1432,7 @@ function QuickSessions({ token, profile, trialMode }) {
     setCheckedDrills(new Set());
     setExpanded(null);
     setActiveExIdx(0);
+    setCurrentRound(0);
     setPhase("drill");
     setTimerLeft(0);
     setDoneSession(null);
@@ -1441,9 +1443,9 @@ function QuickSessions({ token, profile, trialMode }) {
     setMode(m);
     if (m === "follow") {
       setActiveExIdx(0);
+      setCurrentRound(0);
       setPhase("drill");
       setTimerLeft(0);
-      // Drill timer waits for user to click Start — don't auto-start
     }
   };
 
@@ -1485,14 +1487,25 @@ function QuickSessions({ token, profile, trialMode }) {
   const advanceFromRest = () => {
     clearTimer();
     const exercises = selectedSession.exercises || [];
+    const totalRounds = selectedSession.rounds || 1;
     const nextIdx = activeExIdx + 1;
     if (nextIdx >= exercises.length) {
-      finishSession();
+      // End of this round
+      const nextRound = currentRound + 1;
+      if (nextRound >= totalRounds) {
+        // All rounds done
+        finishSession();
+      } else {
+        // Start next round from first exercise
+        setCurrentRound(nextRound);
+        setActiveExIdx(0);
+        setPhase("drill");
+        setTimerLeft(0);
+      }
     } else {
       setActiveExIdx(nextIdx);
       setPhase("drill");
       setTimerLeft(0);
-      // Drill timer waits for user to click Start
     }
   };
 
@@ -1559,14 +1572,21 @@ function QuickSessions({ token, profile, trialMode }) {
   // ---- FOLLOW ALONG: REST SCREEN ----
   if (selectedSession && mode === "follow" && phase === "rest") {
     const exercises = selectedSession.exercises || [];
+    const totalRounds = selectedSession.rounds || 1;
     const nextEx = exercises[activeExIdx + 1];
+    const isEndOfRound = activeExIdx + 1 >= exercises.length;
+    const isLastRound = currentRound + 1 >= totalRounds;
+    const nextRoundFirstEx = !isLastRound && isEndOfRound ? exercises[0] : null;
+    const upNextEx = nextEx || nextRoundFirstEx;
     return (
       <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "40px 20px" }}>
         <div style={{ background: C.surface, borderRadius: 24, padding: 40, border: `1px solid ${C.border}` }}>
+          {totalRounds > 1 && <p style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>Round {currentRound + 1} of {totalRounds}</p>}
           <p style={{ color: C.textDim, fontSize: 13, marginBottom: 8, textTransform: "uppercase", letterSpacing: 2 }}>Rest Time</p>
           <div style={{ fontFamily: DISPLAY, fontSize: 80, fontWeight: 900, color: C.accent, lineHeight: 1 }}>{timerLeft}</div>
           <p style={{ color: C.textDim, fontSize: 13, marginTop: 8 }}>seconds</p>
-          {nextEx && <p style={{ color: C.text, fontSize: 15, marginTop: 24 }}>Up next: <strong>{nextEx.name}</strong></p>}
+          {isEndOfRound && !isLastRound && <p style={{ color: C.accent, fontSize: 14, fontWeight: 700, marginTop: 20 }}>Next up: Round {currentRound + 2}</p>}
+          {upNextEx && <p style={{ color: C.text, fontSize: 15, marginTop: isEndOfRound ? 4 : 24 }}>Up next: <strong>{upNextEx.name}</strong></p>}
           <button onClick={skipTimer} style={{ marginTop: 24, background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 32px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>Skip Rest</button>
         </div>
       </div>
@@ -1576,15 +1596,18 @@ function QuickSessions({ token, profile, trialMode }) {
   // ---- FOLLOW ALONG: ACTIVE DRILL ----
   if (selectedSession && mode === "follow") {
     const exercises = selectedSession.exercises || [];
+    const totalRounds = selectedSession.rounds || 1;
     const ex = exercises[activeExIdx];
-    const progress = exercises.length > 0 ? ((activeExIdx) / exercises.length) * 100 : 0;
+    const totalSteps = exercises.length * totalRounds;
+    const currentStep = currentRound * exercises.length + activeExIdx;
+    const progress = totalSteps > 0 ? (currentStep / totalSteps) * 100 : 0;
     const hasDrillTimer = ex && ex.time_seconds > 0;
     return (
       <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <button onClick={exitSession} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>← Back</button>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>{selectedSession.title} — Drill {activeExIdx + 1} of {exercises.length}</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>{selectedSession.title} — {totalRounds > 1 ? `Round ${currentRound + 1}/${totalRounds} · ` : ""}Drill {activeExIdx + 1} of {exercises.length}</p>
             <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${progress}%`, background: belt.color, borderRadius: 3, transition: "width 0.3s" }} />
             </div>
@@ -1594,7 +1617,10 @@ function QuickSessions({ token, profile, trialMode }) {
           <div style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 16 }}>
             {ex.video_url && <div style={{ borderRadius: "16px 16px 0 0", overflow: "hidden" }}><VideoPlayer url={ex.video_url} /></div>}
             <div style={{ padding: 24 }}>
-              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: 16 }}>{ex.name}</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800 }}>{ex.name}</h2>
+                {totalRounds > 1 && <span style={{ background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: C.accent, flexShrink: 0 }}>Round {currentRound + 1}/{totalRounds}</span>}
+              </div>
               {/* Drill timer */}
               {/* Drill timer — click to start */}
               {hasDrillTimer && timerLeft > 0 && phase === "drill" && timerRunning && (
@@ -1622,7 +1648,7 @@ function QuickSessions({ token, profile, trialMode }) {
               {/* Show Done button when: no drill timer, or drill timer finished (timerLeft===0 and no active interval) */}
               {(!hasDrillTimer || (phase === "drill" && timerLeft === 0 && !timerRunning)) && (
                 <button onClick={followAlongNext} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
-                  {completing ? "Saving..." : activeExIdx + 1 < exercises.length ? "Done → Next Drill" : "🏆 Complete Session"}
+                  {completing ? "Saving..." : activeExIdx + 1 < exercises.length ? "Done → Next Drill" : totalRounds > 1 && currentRound + 1 < totalRounds ? `Done → Round ${currentRound + 2}` : "🏆 Complete Session"}
                 </button>
               )}
             </div>
@@ -1635,7 +1661,10 @@ function QuickSessions({ token, profile, trialMode }) {
   // ---- WORKOUT VIEW ----
   if (selectedSession && mode === "workout") {
     const exercises = selectedSession.exercises || [];
-    const allChecked = exercises.length > 0 && exercises.every(ex => checkedDrills.has(ex.id));
+    const totalRounds = selectedSession.rounds || 1;
+    // For rounds, checkedDrills stores "round-exId" keys
+    const totalDrills = exercises.length * totalRounds;
+    const allChecked = totalDrills > 0 && Array.from({ length: totalRounds }).every((_, r) => exercises.every(ex => checkedDrills.has(r + "-" + ex.id)));
     const count = completions[selectedSession.id] || 0;
     return (
       <div className="fade-in">
@@ -1644,38 +1673,53 @@ function QuickSessions({ token, profile, trialMode }) {
           <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>{selectedSession.title}</h1>
         </div>
         {selectedSession.description && <p style={{ color: C.textDim, fontSize: 14, marginBottom: 20 }}>{selectedSession.description}</p>}
-        {/* Drills list */}
-        <div style={{ marginBottom: 20 }}>
-          {exercises.map((ex) => {
-            const open = expanded === ex.id;
-            const done = checkedDrills.has(ex.id);
-            return (
-              <div key={ex.id} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
-                <div onClick={() => setExpanded(open ? null : ex.id)} style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <button onClick={e => { e.stopPropagation(); const ns = new Set(checkedDrills); if (ns.has(ex.id)) ns.delete(ex.id); else ns.add(ex.id); setCheckedDrills(ns); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : `2px solid ${C.borderLight}`, background: done ? C.success : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 11, fontWeight: 700 }}>{done && "✓"}</button>
-                    <div>
-                      <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
-                      <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[ex.sets > 0 && `${ex.sets} sets`, ex.reps > 0 && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, ex.rest_seconds > 0 && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
-                    </div>
+        {/* Rounds */}
+        {Array.from({ length: totalRounds }).map((_, roundIdx) => {
+          const roundChecked = exercises.every(ex => checkedDrills.has(roundIdx + "-" + ex.id));
+          return (
+            <div key={roundIdx} style={{ marginBottom: 20 }}>
+              {totalRounds > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{ background: roundChecked ? C.successGlow : `${C.accent}15`, borderRadius: 10, padding: "8px 16px", border: `1px solid ${roundChecked ? C.success + "40" : C.accent + "30"}`, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 800, color: roundChecked ? C.success : C.accent }}>Round {roundIdx + 1} of {totalRounds}</span>
+                    {roundChecked && <span style={{ color: C.success, fontSize: 12 }}>✓</span>}
                   </div>
-                  <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
+                  <div style={{ flex: 1, height: 1, background: C.border }} />
                 </div>
-                {open && (
-                  <div style={{ padding: "0 16px 14px" }} className="fade-in">
-                    {ex.video_url && <VideoPlayer url={ex.video_url} />}
-                    {ex.notes && <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Notes</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.notes}</p></div>}
-                    <div style={{ display: "grid", gridTemplateColumns: `repeat(${[ex.sets > 0, ex.reps > 0, ex.time_seconds > 0, ex.rest_seconds > 0].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
-                      {[ex.sets > 0 && ["Sets", ex.sets], ex.reps > 0 && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], ex.rest_seconds > 0 && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
+              )}
+              {exercises.map((ex) => {
+                const drillKey = roundIdx + "-" + ex.id;
+                const open = expanded === drillKey;
+                const done = checkedDrills.has(drillKey);
+                return (
+                  <div key={drillKey} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
+                    <div onClick={() => setExpanded(open ? null : drillKey)} style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <button onClick={e => { e.stopPropagation(); const ns = new Set(checkedDrills); if (ns.has(drillKey)) ns.delete(drillKey); else ns.add(drillKey); setCheckedDrills(ns); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : `2px solid ${C.borderLight}`, background: done ? C.success : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 11, fontWeight: 700 }}>{done && "✓"}</button>
+                        <div>
+                          <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
+                          <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[ex.sets > 0 && `${ex.sets} sets`, ex.reps > 0 && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, ex.rest_seconds > 0 && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
+                        </div>
+                      </div>
+                      <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
                     </div>
-                    {ex.time_seconds > 0 && <RestTimer seconds={ex.time_seconds} label="DRILL TIMER" />}
-                    {ex.rest_seconds > 0 && <RestTimer seconds={ex.rest_seconds} label="REST" />}
+                    {open && (
+                      <div style={{ padding: "0 16px 14px" }} className="fade-in">
+                        {ex.video_url && <VideoPlayer url={ex.video_url} />}
+                        {ex.notes && <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Notes</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.notes}</p></div>}
+                        <div style={{ display: "grid", gridTemplateColumns: `repeat(${[ex.sets > 0, ex.reps > 0, ex.time_seconds > 0, ex.rest_seconds > 0].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
+                          {[ex.sets > 0 && ["Sets", ex.sets], ex.reps > 0 && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], ex.rest_seconds > 0 && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
+                        </div>
+                        {ex.time_seconds > 0 && <RestTimer seconds={ex.time_seconds} label="DRILL TIMER" />}
+                        {ex.rest_seconds > 0 && <RestTimer seconds={ex.rest_seconds} label="REST" />}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          );
+        })}
         {/* Complete button */}
         {allChecked && (
           <div className="fade-in" style={{ marginBottom: 16 }}>
@@ -1703,6 +1747,7 @@ function QuickSessions({ token, profile, trialMode }) {
             <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>⚡ {selectedSession.duration_min || "?"} min</span>
             <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>🏀 {exercises.length} drill{exercises.length !== 1 ? "s" : ""}</span>
             {selectedSession.xp_points > 0 && <span style={{ background: "rgba(34,197,94,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "#22C55E", border: "1px solid rgba(34,197,94,0.25)", fontWeight: 700 }}>⭐ {selectedSession.xp_points} XP</span>}
+            {(selectedSession.rounds || 1) > 1 && <span style={{ background: "rgba(249,115,22,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.accent, border: `1px solid ${C.accent}30`, fontWeight: 700 }}>{"\u00D7"}{selectedSession.rounds} Rounds</span>}
             {count > 0 && <span style={{ background: C.successGlow, color: C.success, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8, border: `1px solid ${C.success}40` }}>Completed {count}x</span>}
           </div>
         </div>
@@ -1775,6 +1820,7 @@ function QuickSessions({ token, profile, trialMode }) {
                     <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>⚡ {s.duration_min || "?"} min</span>
                     <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>🏀 {exCount} drill{exCount !== 1 ? "s" : ""}</span>
                     {s.xp_points > 0 && <span style={{ background: "rgba(34,197,94,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "#22C55E", border: "1px solid rgba(34,197,94,0.25)", fontWeight: 700 }}>⭐ {s.xp_points} XP</span>}
+                    {(s.rounds || 1) > 1 && <span style={{ background: "rgba(249,115,22,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.accent, border: `1px solid ${C.accent}30`, fontWeight: 700 }}>{"\u00D7"}{s.rounds} Rounds</span>}
                     {targetBelt && <span style={{ background: `${targetBelt.color}15`, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: targetBelt.color, border: `1px solid ${targetBelt.color}30` }}>{targetBelt.name}</span>}
                   </div>
                 </div>
@@ -1892,6 +1938,10 @@ function AdminQuickSessions({ token }) {
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>XP POINTS</label>
               <input type="number" min={0} max={500} defaultValue={editing.xp_points || 0} onBlur={e => saveSession(editing.id, "xp_points", parseInt(e.target.value) || 0)} style={inp} />
+            </div>
+            <div>
+              <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>ROUNDS</label>
+              <input type="number" min={1} max={10} defaultValue={editing.rounds || 1} onBlur={e => saveSession(editing.id, "rounds", parseInt(e.target.value) || 1)} style={inp} />
             </div>
           </div>
           <div style={{ marginBottom: 14 }}>
