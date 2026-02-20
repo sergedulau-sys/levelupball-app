@@ -1389,19 +1389,25 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
 function QuickSessions({ token, profile, trialMode }) {
   const [sessions, setSessions] = useState([]);
   const [completions, setCompletions] = useState({});
-  const [activeSession, setActiveSession] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [mode, setMode] = useState(null); // null = picker, "workout" = workout view, "follow" = follow along
+  // Follow along state
   const [activeExIdx, setActiveExIdx] = useState(0);
-  const [resting, setResting] = useState(false);
-  const [restLeft, setRestLeft] = useState(0);
+  const [phase, setPhase] = useState("drill"); // "drill" | "rest"
+  const [timerLeft, setTimerLeft] = useState(0);
+  const timerRef = useRef(null);
+  // Workout view state
+  const [checkedDrills, setCheckedDrills] = useState(new Set());
+  const [expanded, setExpanded] = useState(null);
+  // Shared
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [xpAwarded, setXpAwarded] = useState(0);
   const [doneSession, setDoneSession] = useState(null);
-  const restTimerRef = useRef(null);
 
   useEffect(() => {
     loadData();
-    return () => { if (restTimerRef.current) clearInterval(restTimerRef.current); };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [token]);
 
   const loadData = async () => {
@@ -1418,49 +1424,113 @@ function QuickSessions({ token, profile, trialMode }) {
     setLoading(false);
   };
 
-  const startSession = (session) => {
-    setActiveSession(session);
+  const openSession = (session) => {
+    setSelectedSession(session);
+    setMode(null);
+    setCheckedDrills(new Set());
+    setExpanded(null);
     setActiveExIdx(0);
-    setResting(false);
-    setRestLeft(0);
+    setPhase("drill");
+    setTimerLeft(0);
     setDoneSession(null);
+    setXpAwarded(0);
   };
 
-  const finishRest = () => {
-    if (restTimerRef.current) clearInterval(restTimerRef.current);
-    setResting(false);
-    const exercises = activeSession.exercises || [];
+  const startMode = (m) => {
+    setMode(m);
+    if (m === "follow") {
+      setActiveExIdx(0);
+      setPhase("drill");
+      const ex = (selectedSession.exercises || [])[0];
+      if (ex && ex.time_seconds > 0) {
+        startTimer(ex.time_seconds, "drill");
+      }
+    }
+  };
+
+  const clearTimer = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+
+  const startTimer = (seconds, timerPhase) => {
+    clearTimer();
+    setTimerLeft(seconds);
+    setPhase(timerPhase);
+    timerRef.current = setInterval(() => {
+      setTimerLeft(prev => {
+        if (prev <= 1) {
+          clearTimer();
+          if (timerPhase === "drill") {
+            // Drill timer done — go to rest or next
+            const exercises = selectedSession.exercises || [];
+            const ex = exercises[activeExIdx];
+            const restSecs = ex ? (ex.rest_seconds || 0) : 0;
+            if (restSecs > 0) {
+              // Small timeout to let state settle
+              setTimeout(() => startTimer(restSecs, "rest"), 50);
+            } else {
+              setTimeout(() => advanceFromRest(), 50);
+            }
+          } else {
+            // Rest done — advance
+            setTimeout(() => advanceFromRest(), 50);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const advanceFromRest = () => {
+    clearTimer();
+    const exercises = selectedSession.exercises || [];
     const nextIdx = activeExIdx + 1;
     if (nextIdx >= exercises.length) {
       finishSession();
     } else {
       setActiveExIdx(nextIdx);
+      setPhase("drill");
+      const nextEx = exercises[nextIdx];
+      if (nextEx && nextEx.time_seconds > 0) {
+        startTimer(nextEx.time_seconds, "drill");
+      } else {
+        setTimerLeft(0);
+      }
     }
   };
 
-  const nextExercise = () => {
-    const exercises = activeSession.exercises || [];
+  const followAlongNext = () => {
+    clearTimer();
+    const exercises = selectedSession.exercises || [];
     const ex = exercises[activeExIdx];
-    const restSecs = ex?.rest_seconds || 0;
+    const restSecs = ex ? (ex.rest_seconds || 0) : 0;
     if (restSecs > 0) {
-      setResting(true);
-      setRestLeft(restSecs);
-      restTimerRef.current = setInterval(() => {
-        setRestLeft(prev => {
-          if (prev <= 1) { finishRest(); return 0; }
-          return prev - 1;
-        });
-      }, 1000);
+      startTimer(restSecs, "rest");
     } else {
-      const nextIdx = activeExIdx + 1;
-      if (nextIdx >= exercises.length) { finishSession(); }
-      else { setActiveExIdx(nextIdx); }
+      advanceFromRest();
+    }
+  };
+
+  const skipTimer = () => {
+    clearTimer();
+    if (phase === "rest") {
+      advanceFromRest();
+    } else {
+      // Skip drill timer — go to rest or next
+      const exercises = selectedSession.exercises || [];
+      const ex = exercises[activeExIdx];
+      const restSecs = ex ? (ex.rest_seconds || 0) : 0;
+      if (restSecs > 0) {
+        startTimer(restSecs, "rest");
+      } else {
+        advanceFromRest();
+      }
     }
   };
 
   const finishSession = async () => {
+    clearTimer();
     setCompleting(true);
-    const sessionToComplete = activeSession;
+    const sessionToComplete = selectedSession;
     try {
       await supabase.from("quick_session_completions")._token(token).insert({ session_id: sessionToComplete.id, student_id: profile.id });
       setCompletions(prev => ({ ...prev, [sessionToComplete.id]: (prev[sessionToComplete.id] || 0) + 1 }));
@@ -1474,41 +1544,49 @@ function QuickSessions({ token, profile, trialMode }) {
         } catch(e) {}
       }
       setDoneSession(sessionToComplete);
-      setActiveSession(null);
+      setMode(null);
     } catch(e) {}
     setCompleting(false);
   };
 
+  const exitSession = () => {
+    clearTimer();
+    setSelectedSession(null);
+    setMode(null);
+    setDoneSession(null);
+  };
+
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
 
-  // ---- REST SCREEN ----
-  if (resting && activeSession) {
-    const exercises = activeSession.exercises || [];
+  // ---- FOLLOW ALONG: REST SCREEN ----
+  if (selectedSession && mode === "follow" && phase === "rest") {
+    const exercises = selectedSession.exercises || [];
     const nextEx = exercises[activeExIdx + 1];
     return (
       <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "40px 20px" }}>
         <div style={{ background: C.surface, borderRadius: 24, padding: 40, border: `1px solid ${C.border}` }}>
           <p style={{ color: C.textDim, fontSize: 13, marginBottom: 8, textTransform: "uppercase", letterSpacing: 2 }}>Rest Time</p>
-          <div style={{ fontFamily: DISPLAY, fontSize: 80, fontWeight: 900, color: C.accent, lineHeight: 1 }}>{restLeft}</div>
+          <div style={{ fontFamily: DISPLAY, fontSize: 80, fontWeight: 900, color: C.accent, lineHeight: 1 }}>{timerLeft}</div>
           <p style={{ color: C.textDim, fontSize: 13, marginTop: 8 }}>seconds</p>
           {nextEx && <p style={{ color: C.text, fontSize: 15, marginTop: 24 }}>Up next: <strong>{nextEx.name}</strong></p>}
-          <button onClick={finishRest} style={{ marginTop: 24, background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 32px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>Skip Rest</button>
+          <button onClick={skipTimer} style={{ marginTop: 24, background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 32px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>Skip Rest</button>
         </div>
       </div>
     );
   }
 
-  // ---- ACTIVE SESSION ----
-  if (activeSession) {
-    const exercises = activeSession.exercises || [];
+  // ---- FOLLOW ALONG: ACTIVE DRILL ----
+  if (selectedSession && mode === "follow") {
+    const exercises = selectedSession.exercises || [];
     const ex = exercises[activeExIdx];
     const progress = exercises.length > 0 ? ((activeExIdx) / exercises.length) * 100 : 0;
+    const hasDrillTimer = ex && ex.time_seconds > 0;
     return (
       <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <button onClick={() => { setActiveSession(null); if (restTimerRef.current) clearInterval(restTimerRef.current); }} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>← Back</button>
+          <button onClick={exitSession} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}>← Back</button>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>{activeSession.title} — Exercise {activeExIdx + 1} of {exercises.length}</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginBottom: 4 }}>{selectedSession.title} — Drill {activeExIdx + 1} of {exercises.length}</p>
             <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${progress}%`, background: belt.color, borderRadius: 3, transition: "width 0.3s" }} />
             </div>
@@ -1519,6 +1597,15 @@ function QuickSessions({ token, profile, trialMode }) {
             {ex.video_url && <div style={{ borderRadius: "16px 16px 0 0", overflow: "hidden" }}><VideoPlayer url={ex.video_url} /></div>}
             <div style={{ padding: 24 }}>
               <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, marginBottom: 16 }}>{ex.name}</h2>
+              {/* Drill timer */}
+              {hasDrillTimer && timerLeft > 0 && phase === "drill" && (
+                <div style={{ textAlign: "center", marginBottom: 20 }}>
+                  <p style={{ color: belt.color, fontSize: 11, textTransform: "uppercase", letterSpacing: 2, marginBottom: 4, fontWeight: 700 }}>Drill Timer</p>
+                  <div style={{ fontFamily: DISPLAY, fontSize: 56, fontWeight: 900, color: belt.color, lineHeight: 1 }}>{timerLeft}</div>
+                  <p style={{ color: C.textDim, fontSize: 12, marginTop: 4 }}>seconds remaining</p>
+                  <button onClick={skipTimer} style={{ marginTop: 12, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 16px", color: C.textDim, fontSize: 11, cursor: "pointer", fontFamily: FONTS }}>Skip</button>
+                </div>
+              )}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
                 {ex.sets > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Sets</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.sets}</p></div>}
                 {ex.reps > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Reps</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.reps}</p></div>}
@@ -1526,9 +1613,12 @@ function QuickSessions({ token, profile, trialMode }) {
                 {ex.rest_seconds > 0 && <div style={{ background: C.surfaceHover, borderRadius: 10, padding: "8px 16px", border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Rest</p><p style={{ fontSize: 18, fontWeight: 800, color: C.textMuted }}>{ex.rest_seconds}s</p></div>}
               </div>
               {ex.notes && <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6, marginBottom: 20, background: C.bg, borderRadius: 10, padding: "12px 16px" }}>{ex.notes}</p>}
-              <button onClick={nextExercise} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
-                {completing ? "Saving..." : activeExIdx + 1 < exercises.length ? "Done → Next Exercise" : "🏆 Complete Session"}
-              </button>
+              {/* Only show Done button if no drill timer or drill timer already finished */}
+              {(!hasDrillTimer || (phase === "drill" && timerLeft === 0)) && (
+                <button onClick={followAlongNext} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
+                  {completing ? "Saving..." : activeExIdx + 1 < exercises.length ? "Done → Next Drill" : "🏆 Complete Session"}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1536,17 +1626,109 @@ function QuickSessions({ token, profile, trialMode }) {
     );
   }
 
+  // ---- WORKOUT VIEW ----
+  if (selectedSession && mode === "workout") {
+    const exercises = selectedSession.exercises || [];
+    const allChecked = exercises.length > 0 && exercises.every(ex => checkedDrills.has(ex.id));
+    const count = completions[selectedSession.id] || 0;
+    return (
+      <div className="fade-in">
+        <button onClick={exitSession} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, cursor: "pointer", fontFamily: FONTS, fontSize: 13, marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back</button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>{selectedSession.title}</h1>
+        </div>
+        {selectedSession.description && <p style={{ color: C.textDim, fontSize: 14, marginBottom: 20 }}>{selectedSession.description}</p>}
+        {/* Drills list */}
+        <div style={{ marginBottom: 20 }}>
+          {exercises.map((ex) => {
+            const open = expanded === ex.id;
+            const done = checkedDrills.has(ex.id);
+            return (
+              <div key={ex.id} style={{ background: C.surface, borderRadius: 14, border: `1px solid ${done ? C.success + "33" : C.border}`, marginBottom: 6, overflow: "hidden" }}>
+                <div onClick={() => setExpanded(open ? null : ex.id)} style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <button onClick={e => { e.stopPropagation(); const ns = new Set(checkedDrills); if (ns.has(ex.id)) ns.delete(ex.id); else ns.add(ex.id); setCheckedDrills(ns); }} style={{ width: 26, height: 26, borderRadius: 7, border: done ? "none" : `2px solid ${C.borderLight}`, background: done ? C.success : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 11, fontWeight: 700 }}>{done && "✓"}</button>
+                    <div>
+                      <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
+                      <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[ex.sets > 0 && `${ex.sets} sets`, ex.reps > 0 && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, ex.rest_seconds > 0 && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
+                    </div>
+                  </div>
+                  <span style={{ color: C.textDim, fontSize: 14, transform: open ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
+                </div>
+                {open && (
+                  <div style={{ padding: "0 16px 14px" }} className="fade-in">
+                    {ex.video_url && <VideoPlayer url={ex.video_url} />}
+                    {ex.notes && <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Notes</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.notes}</p></div>}
+                    <div style={{ display: "grid", gridTemplateColumns: `repeat(${[ex.sets > 0, ex.reps > 0, ex.time_seconds > 0, ex.rest_seconds > 0].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
+                      {[ex.sets > 0 && ["Sets", ex.sets], ex.reps > 0 && ["Reps", ex.reps], ex.time_seconds > 0 && ["Time", ex.time_seconds + "s"], ex.rest_seconds > 0 && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
+                    </div>
+                    {ex.time_seconds > 0 && <RestTimer seconds={ex.time_seconds} label="DRILL TIMER" />}
+                    {ex.rest_seconds > 0 && <RestTimer seconds={ex.rest_seconds} label="REST" />}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {/* Complete button */}
+        {allChecked && (
+          <div className="fade-in" style={{ marginBottom: 16 }}>
+            <button onClick={finishSession} disabled={completing} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 4px 20px ${belt.color}40` }}>
+              {completing ? "Saving..." : "🏆 Complete Session"}
+            </button>
+            {count > 0 && <p style={{ textAlign: "center", fontSize: 12, color: C.textDim, marginTop: 8 }}>This will be completion #{count + 1}</p>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---- MODE PICKER ----
+  if (selectedSession && !mode && !doneSession) {
+    const exercises = selectedSession.exercises || [];
+    const count = completions[selectedSession.id] || 0;
+    return (
+      <div className="fade-in" style={{ maxWidth: 560, margin: "0 auto" }}>
+        <button onClick={exitSession} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, cursor: "pointer", fontFamily: FONTS, fontSize: 13, marginBottom: 24, display: "flex", alignItems: "center", gap: 6 }}>← Back</button>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5, marginBottom: 6 }}>{selectedSession.title}</h1>
+          {selectedSession.description && <p style={{ color: C.textDim, fontSize: 14 }}>{selectedSession.description}</p>}
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
+            <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>⚡ {selectedSession.duration_min || "?"} min</span>
+            <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>🏀 {exercises.length} drill{exercises.length !== 1 ? "s" : ""}</span>
+            {selectedSession.xp_points > 0 && <span style={{ background: "rgba(34,197,94,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "#22C55E", border: "1px solid rgba(34,197,94,0.25)", fontWeight: 700 }}>⭐ {selectedSession.xp_points} XP</span>}
+            {count > 0 && <span style={{ background: C.successGlow, color: C.success, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8, border: `1px solid ${C.success}40` }}>Completed {count}x</span>}
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <button onClick={() => startMode("workout")} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "border-color 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = belt.color} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, marginBottom: 6, color: "#fff" }}>Workout View</div>
+            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>See all drills, check them off at your own pace</div>
+          </button>
+          <button onClick={() => startMode("follow")} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "border-color 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = belt.color} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>▶</div>
+            <div style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, marginBottom: 6, color: "#fff" }}>Follow Along</div>
+            <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>Guided step-by-step with timers for each drill</div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ---- DONE SCREEN ----
   if (doneSession) {
+    const count = completions[doneSession.id] || 0;
     return (
       <div className="fade-in" style={{ maxWidth: 600, margin: "0 auto", textAlign: "center", padding: "60px 20px" }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Session Complete!</h1>
-        <p style={{ color: C.textDim, fontSize: 16, marginBottom: 16 }}>{doneSession.title} — great work!</p>
+        <p style={{ color: C.textDim, fontSize: 16, marginBottom: 8 }}>{doneSession.title} — great work!</p>
+        {count > 1 && <p style={{ color: belt.color, fontSize: 14, fontWeight: 700, fontFamily: DISPLAY, marginBottom: 16 }}>Completed {count} time{count !== 1 ? "s" : ""} total</p>}
         {xpAwarded > 0 && <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: "10px 20px", marginBottom: 24 }}><span style={{ fontSize: 20 }}>⭐</span><span style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 800, color: "#22C55E" }}>+{xpAwarded} XP Earned!</span></div>}
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-          <button onClick={() => startSession(doneSession)} style={{ background: C.accentGlow, border: `1px solid ${C.accent}`, borderRadius: 12, padding: "12px 24px", color: C.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Do It Again</button>
-          <button onClick={() => setDoneSession(null)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 24px", color: C.text, fontSize: 14, cursor: "pointer", fontFamily: FONTS }}>All Sessions</button>
+          <button onClick={() => openSession(doneSession)} style={{ background: C.accentGlow, border: `1px solid ${C.accent}`, borderRadius: 12, padding: "12px 24px", color: C.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Do It Again</button>
+          <button onClick={() => { setDoneSession(null); setSelectedSession(null); }} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 24px", color: C.text, fontSize: 14, cursor: "pointer", fontFamily: FONTS }}>All Sessions</button>
         </div>
       </div>
     );
@@ -1576,7 +1758,7 @@ function QuickSessions({ token, profile, trialMode }) {
               <div key={s.id} style={{ background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer", transition: "transform 0.15s, border-color 0.15s" }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = belt.color; e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = "none"; }}
-                onClick={() => !trialMode && startSession(s)}>
+                onClick={() => !trialMode && openSession(s)}>
                 <div style={{ padding: "20px 20px 0" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 10 }}>
                     <h3 style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>{s.title}</h3>
