@@ -74,7 +74,7 @@ const BELT_LEVELS = [
   { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, weeks: 4, workoutsPerWeek: 3, code: "BLUE2026" },
   { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, phases: [{ name: "Level 3A", workouts: 4, weeks: 3 }, { name: "Level 3B", workoutStart: 4, workouts: 4, weeks: 3 }], code: "PURPLE2026" },
   { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, phases: [{ name: "Level 4A", workouts: 4, weeks: 5 }, { name: "Level 4B", workoutStart: 4, workouts: 4, weeks: 5 }], code: "BROWN2026" },
-  { id: "black", name: "Black Belt", color: "#4A4A4A", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
+  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
 ];
 const C = {
   bg: "#09090b", surface: "#18181b", surfaceHover: "#27272a", border: "#27272a", borderLight: "#3f3f46",
@@ -296,14 +296,15 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
   };
 
   const [step, setStep] = useState("intro"); // intro | q0..q3 | type | info | result
-  const [answers, setAnswers] = useState([null, null, null, null]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [userType, setUserType] = useState(null); // "parent" | "player"
+  const [answers, setAnswers] = useState([null, null, null, null]);
+  const [name, setName] = useState(prefillName || "");
+  const [email, setEmail] = useState("");
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resultBelt, setResultBelt] = useState(null);
   const [signup30Pw, setSignup30Pw] = useState("");
+
   const handleSignup30 = async () => {
     setErr("");
     if (signup30Pw.length < 6) { setErr("Password must be at least 6 characters."); return; }
@@ -313,14 +314,30 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
       trialExpires.setDate(trialExpires.getDate() + 30);
       const trialExpiresStr = trialExpires.toISOString();
       const data = await supabase.auth.signUp(email.trim(), signup30Pw, {
-        full_name: name.trim(), role: "student", belt_id: resultBelt, trial_expires_at: trialExpiresStr, user_type: userType || "parent",
+        full_name: name.trim(),
+        role: "student",
+        belt_id: resultBelt,
+        trial_expires_at: trialExpiresStr,
       });
       if (!data?.access_token) { setErr("Signup failed. Please try again."); setSubmitting(false); return; }
+      // Store pending trial expiry for profile update
       sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
       sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
-      sessionStorage.setItem("quiz_user_type", userType || "parent");
+      // MailerLite
+      try {
+        const beltObj = BELT_LEVELS.find(b => b.id === resultBelt);
+        await fetch("https://connect.mailerlite.com/api/subscribers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MAILER_LITE_API_KEY}` },
+          body: JSON.stringify({
+            email: email.trim(),
+            fields: { name: name.trim(), belt_level: beltObj?.name || resultBelt, trial_start: new Date().toISOString().split("T")[0] },
+            groups: [MAILER_LITE_GROUP_ID],
+          }),
+        });
+      } catch(e) { /* silently continue */ }
       onStartTrial(data);
-    } catch(e) { setErr(e.message || "Signup failed."); }
+    } catch(e) { setErr(e.message || "Signup failed. Please try again."); }
     setSubmitting(false);
   };
 
@@ -342,8 +359,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
 
   const handleSubmit = async () => {
     setErr("");
-    if (userType === "player" && !name.trim()) { setErr("Please enter your name."); return; }
-    if (userType === "parent" && !name.trim()) { setErr("Please enter your first name."); return; }
+    if (!name.trim()) { setErr("Please enter the player's name."); return; }
     if (!email.trim() || !email.includes("@")) { setErr("Please enter a valid email."); return; }
     setSubmitting(true);
     const score = calcScore();
@@ -357,15 +373,13 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MAILER_LITE_API_KEY}` },
         body: JSON.stringify({
           email: email.trim(),
-          fields: { name: name.trim(), belt_level: beltObj?.name || belt, user_type: userType || "parent" },
+          fields: { name: name.trim(), belt_level: beltObj?.name || belt },
           groups: [MAILER_LITE_GROUP_ID],
         }),
       });
     } catch(e) { /* silently continue */ }
 
     setResultBelt(belt);
-    // Store user_type in sessionStorage for session trial display
-    sessionStorage.setItem("quiz_user_type", userType || "parent");
     setStep("result");
     setSubmitting(false);
   };
@@ -405,31 +419,45 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
   // ---- LOGIN PASSTHROUGH ----
   if (step === "login") return <Login onLogin={onStartTrial} isLogin={true} />;
 
-  // ---- SIGNUP30 ----
+  // ---- SIGNUP30 — 30-day trial account after quiz ----
   if (step === "signup30" && resultBelt) {
     const beltObj = BELT_LEVELS.find(b => b.id === resultBelt) || BELT_LEVELS[0];
     return (
-      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div className="fade-in" style={{ width: "100%", maxWidth: 440 }}>
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)", width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${beltObj.color}12, transparent 70%)`, filter: "blur(60px)", pointerEvents: "none" }} />
+        <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <BeltIcon beltId={resultBelt} size={56} />
             <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, marginTop: 16, marginBottom: 6 }}>One last step!</h1>
-            <p style={{ color: C.textMuted, fontSize: 14 }}>Create a password to activate your <span style={{ color: beltObj.color, fontWeight: 700 }}>{beltObj.name}</span> 30-day trial.</p>
+            <p style={{ color: C.textMuted, fontSize: 14 }}>Create a password to save your <span style={{ color: beltObj.color, fontWeight: 700 }}>{beltObj.name}</span> account.</p>
           </div>
-          <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: "1px solid " + C.border }}>
-            {err && <div style={{ background: "rgba(239,68,68,0.1)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
-            <div style={{ marginBottom: 16, background: C.bg, borderRadius: 12, padding: "12px 16px", border: "1px solid " + C.border }}>
+          <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
+            {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
+            <div style={{ marginBottom: 16, background: C.bg, borderRadius: 12, padding: "12px 16px", border: `1px solid ${C.border}` }}>
               <p style={{ fontSize: 11, color: C.textDim, marginBottom: 2 }}>Signing up as</p>
               <p style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{name} · {email}</p>
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Create Password</label>
-              <input type="password" value={signup30Pw} onChange={e => setSignup30Pw(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSignup30()} placeholder="At least 6 characters" style={{ width: "100%", background: C.bg, border: "1px solid " + C.border, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS, boxSizing: "border-box" }} />
+              <input
+                type="password"
+                value={signup30Pw}
+                onChange={e => setSignup30Pw(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSignup30()}
+                style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", color: C.text, fontSize: 15, outline: "none", fontFamily: FONTS, boxSizing: "border-box" }}
+                placeholder="At least 6 characters"
+              />
             </div>
-            <button onClick={handleSignup30} disabled={submitting} style={{ width: "100%", background: "linear-gradient(135deg, " + beltObj.color + ", " + beltObj.color + "cc)", color: beltObj.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1 }}>
+            <button onClick={handleSignup30} disabled={submitting} style={{ width: "100%", background: `linear-gradient(135deg, ${beltObj.color}, ${beltObj.color}cc)`, color: beltObj.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 20px ${beltObj.color}40` }}>
               {submitting ? "Creating your account..." : "Start 30-Day Free Trial 🏀"}
             </button>
-            <p style={{ fontSize: 11, color: C.textDim, textAlign: "center", marginTop: 12 }}>No credit card required · Full access for 30 days</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, justifyContent: "center" }}>
+              <span style={{ fontSize: 11, color: C.textDim }}>✓ Full access</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>✓ No credit card</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+              <span style={{ fontSize: 11, color: C.textDim }}>✓ 30 days free</span>
+            </div>
           </div>
         </div>
       </div>
@@ -449,13 +477,21 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
           <h2 style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.textDim, letterSpacing: 3, textTransform: "uppercase", marginBottom: 8 }}>Your player is a</h2>
           <h1 style={{ fontFamily: DISPLAY, fontSize: 42, fontWeight: 900, color: belt.color, letterSpacing: -1, marginBottom: 12 }}>{belt.name}</h1>
           <p style={{ color: C.textMuted, fontSize: 15, lineHeight: 1.6, maxWidth: 360, margin: "0 auto 32px" }}>
-            We've matched your player to the {belt.name} curriculum. Try the first workout free — no password needed.
+            {quiz30Mode ? `We matched your player to the ${belt.name} curriculum. Create a free account to start your 30-day trial.` : `We've matched your player to the ${belt.name} curriculum. Try the first workout free — no password needed.`}
           </p>
-          <button
-            onClick={() => quiz30Mode ? setStep("signup30") : onStartTrial({ name: name.trim(), belt: resultBelt, userType: userType || "parent" })}
-            style={{ width: "100%", background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "cc)", color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 6px 24px " + belt.color + "40", letterSpacing: 0.5, marginBottom: 12 }}>
-            {quiz30Mode ? "Start 30-Day Free Trial 🏀" : "Start Free Trial 🏀"}
-          </button>
+          {quiz30Mode ? (
+            <button
+              onClick={() => setStep("signup30")}
+              style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 6px 24px ${belt.color}40`, letterSpacing: 0.5, marginBottom: 12 }}>
+              Start 30-Day Free Trial 🏀
+            </button>
+          ) : (
+            <button
+              onClick={() => onStartTrial({ name: name.trim(), belt: resultBelt, userType: userType || "parent" })}
+              style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}cc)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "18px 24px", fontSize: 17, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: `0 6px 24px ${belt.color}40`, letterSpacing: 0.5, marginBottom: 12 }}>
+              Start Free Trial 🏀
+            </button>
+          )}
           <p style={{ fontSize: 12, color: C.textDim }}>{quiz30Mode ? "No credit card required · Full access for 30 days" : "No account required · No credit card"}</p>
         </div>
       </div>
@@ -475,16 +511,12 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>One last thing! 🏀</h2>
         <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Are you a parent signing up for your player, or are you the player?</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s", color: C.text }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = `${C.accent}10`; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
+          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", color: C.text }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>👨‍👧</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Parent</div>
             <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I'm signing up my child for training</div>
           </button>
-          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", transition: "all 0.15s", color: C.text }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = `${C.accent}10`; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
+          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", color: C.text }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🏀</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Player</div>
             <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I'm the player signing up myself</div>
@@ -499,27 +531,20 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
       <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
-        {/* Progress bar */}
         <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
           <div style={{ height: "100%", width: "100%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
         </div>
         <button onClick={() => setStep("type")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, marginBottom: 24 }}>← Back</button>
         <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Almost there! 🏀</h2>
-        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>
-          {userType === "player" ? "Enter your info to see your belt level and start training." : "Enter your info to see your player's belt level and start training."}
-        </p>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>{userType === "player" ? "Enter your info to see your belt level and start training." : "Enter your info to see your player's belt level and start training."}</p>
         <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
           {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
-              {userType === "player" ? "Your Name" : "Your First Name"}
-            </label>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>{userType === "player" ? "Your Name" : "Your First Name"}</label>
             <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder={userType === "player" ? "First and last name" : "Your first name"} />
           </div>
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>
-              {userType === "player" ? "Your Email" : "Your Email"}
-            </label>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inp} placeholder="your@email.com" />
           </div>
           <button onClick={handleSubmit} disabled={submitting} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>
@@ -616,7 +641,7 @@ function Login({ onLogin, isLogin }) {
     if (!beltObj || accessCode.toUpperCase() !== beltObj.code) { setErr("Invalid access code."); return; }
     setLoading(true);
     try {
-      await supabase.auth.signUp(email, pw, { full_name: playerName.trim(), role: "student", belt_id: startBelt, age: age ? parseInt(age) : null, user_type: "player" });
+      await supabase.auth.signUp(email, pw, { full_name: playerName.trim(), role: "student", belt_id: startBelt, age: age ? parseInt(age) : null });
       setSignupDone(true);
     } catch (e) { setErr(e.message); }
     setLoading(false);
@@ -689,7 +714,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
           <div style={{ background: C.bg, borderRadius: 14, padding: 14, border: `1px solid ${C.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <BeltIcon beltId={profile.belt_id} size={36} />
-              <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.user_type === "player" ? profile.full_name.split(" ")[0] : "Player"}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
+              <div><div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>{profile.user_type === "player" ? (profile.full_name || "Player").split(" ")[0] : "Player"}</div><div style={{ fontSize: 11, color: C.textDim }}>{belt.name}</div></div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               {BELT_LEVELS.map((b, i) => (<div key={b.id} style={{ flex: 1, height: 3, borderRadius: 2, background: i < belt.level ? belt.color : C.border }} />))}
@@ -729,7 +754,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
     <div className="fade-in">
       <div style={{ marginBottom: 32 }}>
         <p style={{ color: C.textDim, fontSize: 14, marginBottom: 4 }}>{greeting}</p>
-        <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{profile.user_type === "player" ? (profile.full_name && !profile.full_name.includes("@") ? profile.full_name.split(" ")[0] : "Player") : "Player"} 👊</h1>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 800, letterSpacing: -0.5 }}>{profile.user_type === "player" ? ((profile.full_name && !profile.full_name.includes("@")) ? profile.full_name.split(" ")[0] : "Player") : "Player"} 👊</h1>
         {(() => { const q = getDailyQuote(); return (
           <div style={{ background: C.surface, borderRadius: 14, padding: "14px 18px", border: `1px solid ${C.border}`, marginTop: 12, display: "flex", alignItems: "flex-start", gap: 10 }}>
             <span style={{ fontSize: 18, flexShrink: 0 }}>🔥</span>
@@ -1336,7 +1361,6 @@ function QuickSessions({ token, profile, trialMode }) {
   const [restLeft, setRestLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
-  const [xpAwarded, setXpAwarded] = useState(0);
   const [doneSession, setDoneSession] = useState(null);
   const restTimerRef = useRef(null);
 
@@ -1399,12 +1423,12 @@ function QuickSessions({ token, profile, trialMode }) {
     }
   };
 
+  const [xpAwarded, setXpAwarded] = useState(0);
   const finishSession = async () => {
     setCompleting(true);
     try {
       await supabase.from("quick_session_completions")._token(token).insert({ session_id: activeSession.id, student_id: profile.id });
       setCompletions(prev => ({ ...prev, [activeSession.id]: (prev[activeSession.id] || 0) + 1 }));
-      // Award XP if session has xp_points set
       const xpToAward = activeSession.xp_points || 0;
       if (xpToAward > 0) {
         try {
@@ -1504,7 +1528,7 @@ function QuickSessions({ token, profile, trialMode }) {
     <div className="fade-in">
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 4 }}>⚡ Quick Sessions</h1>
-        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime — 10 to 30 minutes.</p>
+        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime — 5 to 15 minutes.</p>
       </div>
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.textDim }}>Loading sessions...</div>
@@ -1583,7 +1607,7 @@ function AdminQuickSessions({ token }) {
   const addSession = async () => {
     setSaving(true);
     try {
-      const newS = await supabase.from("quick_sessions")._token(token).insert({ title: "New Quick Session", description: "", duration_min: 30, belt_id: null, exercises: [] });
+      const newS = await supabase.from("quick_sessions")._token(token).insert({ title: "New Quick Session", description: "", duration_min: 10, belt_id: null, exercises: [] });
       const created = Array.isArray(newS) ? newS[0] : newS;
       setSessions(prev => [...prev, created]);
       setEditing(created);
@@ -1644,7 +1668,7 @@ function AdminQuickSessions({ token }) {
             </div>
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>DURATION (MINUTES)</label>
-              <input type="number" min={1} max={60} defaultValue={editing.duration_min || 30} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 30)} style={inp} />
+              <input type="number" min={1} max={60} defaultValue={editing.duration_min || 10} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 10)} style={inp} />
             </div>
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>XP POINTS AWARDED</label>
@@ -1842,28 +1866,13 @@ function StudentResources({ token, profile, trialMode }) {
   const [expanded, setExpanded] = useState(null);
   useEffect(() => { (async () => { try { const allArts = await supabase.from("articles")._token(token).select("*", "&published=eq.true&order=sort_order,created_at.desc"); let filtered = allArts.filter(a => !a.belt_id || a.belt_id === "all" || a.belt_id === profile.belt_id);
         const lockedTitles = ["Sustainable Training Framework", "Staying Disciplined", "Tracking Your Progress"];
-        // Always include Demo Guide and Progression System regardless of belt/trial
-        const alwaysShow = allArts.filter(a =>
-          a.published && (a.title.includes("Platform Demo Guide") || a.title.includes("LevelUp Progression System"))
-        );
-        const alwaysIds = new Set(alwaysShow.map(a => a.id));
-        // Merge without duplicates
-        const merged = [...alwaysShow, ...filtered.filter(a => !alwaysIds.has(a.id))];
         if (trialMode) {
-          filtered = merged.map(a => ({ ...a, _locked: lockedTitles.some(h => a.title.includes(h)) }));
-        } else {
-          filtered = merged;
+          filtered = filtered.map(a => ({ ...a, _locked: lockedTitles.some(h => a.title.includes(h)) }));
         }
-        // Sort: Demo Guide first, Progression System second, then rest
         filtered.sort((a, b) => {
-          const rank = (x) => {
-            if (x.title.includes("Platform Demo Guide")) return 0;
-            if (x.title.includes("LevelUp Progression System")) return 1;
-            const specific = x.belt_id && x.belt_id !== "all" ? 3 : 2;
-            return specific;
-          };
-          const ra = rank(a), rb = rank(b);
-          if (ra !== rb) return ra - rb;
+          const aSpecific = a.belt_id && a.belt_id !== "all" ? 0 : 1;
+          const bSpecific = b.belt_id && b.belt_id !== "all" ? 0 : 1;
+          if (aSpecific !== bSpecific) return aSpecific - bSpecific;
           return (a.sort_order || 0) - (b.sort_order || 0);
         });
         setArticles(filtered); } catch(e){} setLoading(false); })(); }, [token]);
@@ -1877,17 +1886,7 @@ function StudentResources({ token, profile, trialMode }) {
         const beltObj = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
         const bc = beltObj.color;
         const icons = ["🏀", "🎯", "💡", "🔥", "⭐", "💪", "📖", "🧠"];
-        const isProgression = a.title && a.title.toLowerCase().includes("levelup progression");
-        const isDemoGuide = a.title && a.title.includes("Platform Demo Guide");
-        const allBeltColors = BELT_LEVELS.map(b => b.color);
-        const progressionGradient = "linear-gradient(90deg, " + allBeltColors[0] + " 0%, " + allBeltColors[0] + " 20%, " + allBeltColors[1] + " 20%, " + allBeltColors[1] + " 40%, " + allBeltColors[2] + " 40%, " + allBeltColors[2] + " 60%, " + allBeltColors[3] + " 60%, " + allBeltColors[3] + " 80%, " + allBeltColors[4] + " 80%, " + allBeltColors[4] + " 100%)";
-        const demoGuideGradient = "linear-gradient(135deg, #DC2626, #991B1B)";
-        const cs = {
-          gradient: isDemoGuide ? demoGuideGradient : isProgression ? progressionGradient : `linear-gradient(135deg, ${bc}, ${bc}CC)`,
-          icon: isDemoGuide ? "🎬" : icons[ai % icons.length],
-          tagBg: isDemoGuide ? "#DC262633" : bc + "33",
-          tagColor: isDemoGuide ? "#fff" : isProgression ? "#fff" : bc
-        };
+        const cs = { gradient: `linear-gradient(135deg, ${bc}, ${bc}CC)`, icon: icons[ai % icons.length], tagBg: bc + "33", tagColor: bc };
         const isOpen = expanded === a.id;
         const readTime = Math.max(1, Math.ceil(a.content.length / 900));
         return (
@@ -2276,7 +2275,7 @@ function Admin({ token }) {
     } catch (e) { console.error(e); }
   };
   // -- Student CRUD --
-  const addStudent = async () => { if (!ns.name || !ns.email || !ns.password) return; setSaving(true); try { await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId, user_type: "player" }); setNs({ name: "", email: "", password: "", beltId: "white" }); setShowAdd(false); await loadStudents(); flash("Student added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
+  const addStudent = async () => { if (!ns.name || !ns.email || !ns.password) return; setSaving(true); try { await supabase.auth.signUp(ns.email, ns.password, { full_name: ns.name, role: "student", belt_id: ns.beltId }); setNs({ name: "", email: "", password: "", beltId: "white" }); setShowAdd(false); await loadStudents(); flash("Student added!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const demoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci <= 0) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci - 1].id }, { id: student.id }); await loadStudents(); flash("Demoted."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const promoteStudent = async (student) => { const ci = BELT_LEVELS.findIndex(b => b.id === student.belt_id); if (ci >= BELT_LEVELS.length - 1) return; setSaving(true); try { await supabase.from("profiles")._token(token).update({ belt_id: BELT_LEVELS[ci + 1].id }, { id: student.id }); await loadStudents(); flash("Student promoted!"); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
   const deleteStudent = async (id) => { setSaving(true); try { await supabase.from("profiles")._token(token).delete({ id }); await loadStudents(); flash("Student removed."); } catch (e) { flash("Error: " + e.message); } setSaving(false); };
@@ -2782,51 +2781,6 @@ function StudentMessages({ token, profile, trialMode }) {
     </div>
   );
 }
-
-// ============================================================
-// WELCOME MODAL
-// ============================================================
-function WelcomeModal({ profile, onDismiss }) {
-  const storageKey = "welcome_seen_" + profile.id;
-  const [visible, setVisible] = useState(() => {
-    return !localStorage.getItem(storageKey);
-  });
-  const dismiss = () => {
-    localStorage.setItem(storageKey, "1");
-    setVisible(false);
-    if (onDismiss) onDismiss();
-  };
-  if (!visible) return null;
-  const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }}>
-      <div className="fade-in" style={{ width: "100%", maxWidth: 520, background: "#0f0f0f", borderRadius: 24, border: "1px solid #222", overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.8)" }}>
-        <div style={{ background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "99)", padding: "28px 28px 20px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -30, right: -20, fontSize: 120, opacity: 0.08 }}>🏀</div>
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: belt.id === "white" ? "#111" : "rgba(255,255,255,0.7)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, textShadow: belt.id === "white" ? "none" : "0 1px 4px rgba(0,0,0,0.3)" }}>Welcome to LevelUpBall</p>
-            <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 900, color: belt.id === "white" ? "#111" : "#fff", marginBottom: 4, textShadow: belt.id === "white" ? "none" : "0 2px 8px rgba(0,0,0,0.3)" }}>Hey {profile.user_type === "player" ? (profile.full_name || "Player") : "Player"}! 👋</h2>
-            <p style={{ fontSize: 14, color: belt.id === "white" ? "#333" : "rgba(255,255,255,0.75)" }}>You have been matched to the <strong>{belt.name}</strong> belt. Watch this quick video to learn how the program works. <span style={{ opacity: 0.85 }}>You can also find this guide in the <strong>Resources</strong> tab if you don&apos;t want to watch it now.</span></p>
-          </div>
-        </div>
-        <div style={{ padding: 24 }}>
-          <div style={{ borderRadius: 14, overflow: "hidden", marginBottom: 20, background: "#000", aspectRatio: "16/9", position: "relative" }}>
-            <iframe
-              src="https://www.youtube.com/embed/3N6uZ7Fwqmo?autoplay=1&rel=0"
-              style={{ width: "100%", height: "100%", border: "none", position: "absolute", inset: 0 }}
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            />
-          </div>
-          <button onClick={dismiss} style={{ width: "100%", background: "linear-gradient(135deg, " + belt.color + ", " + belt.color + "cc)", color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 20px " + belt.color + "40" }}>
-            Got it, let&apos;s go! 🏀
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ============================================================
 // STUDENT LAYOUT
 // ============================================================
@@ -2957,7 +2911,6 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
         </div>
       )}
       {!trialMode && profile?.trial_expires_at && <TrialCountdownBanner profile={profile} />}
-      {!trialMode && <WelcomeModal profile={profile} />}
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar activeTab={activeWorkout ? "workouts" : activeTab} setActiveTab={(t) => { setActiveTab(t); setActiveWorkout(null); }} profile={profile} onLogout={onLogout} trialMode={trialMode} />
         <main className="main-content" style={{ flex: 1, padding: "32px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
@@ -3001,13 +2954,13 @@ function AdminHeader({ onLogout }) {
 // ============================================================
 // INVITE SIGNUP — 30-day full access trial
 // ============================================================
-function InviteSignup({ belt: inviteBelt, onLogin }) {
+function InviteSignup({ belt: inviteBelt, onLogin, prefillName }) {
   const ENROLL_URL = "https://www.levelupballacademy.com/enroll"; // unused - Stripe handles checkout
   const MAILER_LITE_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiODJjZGJmMzhmMzM4MmNmN2Q4MjM4MTc2OTJhYWM4ZjNkNWRhZDM0ODY5ZDBjNWYxNGRlMzVjZWY2Nzc4ZWM2MjQ0OTUyYzZmODdkNmY3MjgiLCJpYXQiOjE3NzE1MDA2MjYuOTE3MjEzLCJuYmYiOjE3NzE1MDA2MjYuOTE3MjE3LCJleHAiOjQ5MjcxNzQyMjYuOTAyODI5LCJzdWIiOiIyMTI3ODQ5Iiwic2NvcGVzIjpbXX0.RA-p19ueL2qRJN9_OnSxXxFAhHGjwipSkhjtAmR-1BR8NekWNe7ttexBwCc_vYrm06AqRDkRYBkE_YkMvhGE-_OXXODadSfZENDwssc5DrFiq4Q7xrE459TaQZk7iuUZnrQBLtLCnQZMqdMijTiKGd53bwNuDirNKKX5TsZ3RUB4X7jbylFmcwHlNhNyxPs1WZeRSMd27X0MxVISbQvNcn_p6KmqBXn3oRXdEXDUF0f2bhfbaLWpzJGuYfarwY5ui7I8yxtHhh7dFaa8QcXYo24NB9u5ViTXK7IjrXfKpF4kPJqISaTm3QEtiqMzVz5tbM2lj3jXg1_B6a9fiMHRz1RaQbqSrkzTOy17NVMKKrqGbPJ95B7F9NKibwPhzcOU30lxH0PInRAa1hWJs7HPicQzcKgdEay9UYUdy-sDIVj48Rzlbe1bexumJ5juJ6sHqtofP6Vuc5vIYas343BWY3ZMy_s4LmS288gO15DjOziTI3j5hwL8-BRH0-mW5P93XZ2t2y2d0M-I0R7cgk3plyeEQnojKBypqEaechFyAJLrgkfwdgjW5lykr7agpqrqIZclQJMaZ-hf1NfH9lLvumztJ29hE8uAFIt3ovgLeMBbYxn6L5swTtSfKJpM2JKXdlMZuK_oWZyJwBawr5KyKYNwZ-C4XpHwxZesb9LjoOQ";
   const MAILER_LITE_GROUP_ID = "179197594118915541";
 
   const belt = BELT_LEVELS.find(b => b.id === inviteBelt) || BELT_LEVELS[0];
-  const [name, setName] = useState("");
+  const [name, setName] = useState(prefillName || "");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
@@ -3031,10 +2984,10 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
         belt_id: inviteBelt,
         trial_expires_at: trialExpiresStr,
       });
+      console.log("SIGNUP RESPONSE:", JSON.stringify(data));
       // Store trial expiry in sessionStorage — will be applied when profile loads
       sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
       sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
-      sessionStorage.setItem("quiz_user_type", userType || "parent");
       // MailerLite
       try {
         await fetch("https://connect.mailerlite.com/api/subscribers", {
@@ -3047,8 +3000,20 @@ function InviteSignup({ belt: inviteBelt, onLogin }) {
           }),
         });
       } catch(e) { /* silently continue */ }
+      // Handle email confirmation requirement
+      if (!data?.access_token && data?.user?.identities?.length === 0) {
+        setErr("This email is already registered. Please use a different email.");
+        setLoading(false);
+        return;
+      }
+      if (!data?.access_token) {
+        // Email confirmation required - show message
+        setErr("✅ Account created! Please check your email to confirm your account, then sign in.");
+        setLoading(false);
+        return;
+      }
       onLogin(data);
-    } catch(e) { setErr(e.message); }
+    } catch(e) { setErr(e.message || "Signup failed. Please try again."); console.error('Signup error:', e); }
     setLoading(false);
   };
 
@@ -3163,7 +3128,7 @@ export default function LevelUpBallApp() {
 
   // Handle trial start from quiz — no Supabase account created
   const handleTrialStart = ({ name, belt, userType: ut }) => {
-    const storedUserType = ut || sessionStorage.getItem("quiz_user_type") || "parent";
+    const storedUserType = ut || "parent";
     setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0, user_type: storedUserType });
     setSession({ access_token: null, user: { id: "trial" } });
     setTrialMode(true);
@@ -3176,6 +3141,7 @@ export default function LevelUpBallApp() {
       const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
       if (profiles.length > 0) {
         const profile = profiles[0];
+        // Apply pending trial expiry from invite signup if present
         const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
         const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
         if (pendingExpiry && pendingUserId === data.user.id && !profile.trial_expires_at) {
@@ -3196,7 +3162,6 @@ export default function LevelUpBallApp() {
     setLoading(false);
   };
 
-
   const logout = () => { setSession(null); setProfile(null); setTrialMode(false); };
 
   // Check if 30-day trial is expired
@@ -3204,7 +3169,7 @@ export default function LevelUpBallApp() {
     ? new Date(profile.trial_expires_at) < new Date()
     : false;
 
-  const quiz30Mode = !!new URLSearchParams(window.location.search).get("quiz30");
+  const quiz30Mode = new URLSearchParams(window.location.search).has("quiz30");
   if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 120, height: 120, animation: "pulse 1.5s infinite" }} /></div></>;
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
@@ -3221,7 +3186,6 @@ export default function LevelUpBallApp() {
           <StudentLayout profile={profile} token={session.access_token} onLogout={logout} trialMode={trialMode} />
         </>
       )}
-
     </div>
   );
 }
