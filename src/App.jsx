@@ -296,9 +296,9 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
   };
 
   const [step, setStep] = useState("intro"); // intro | q0..q3 | type | info | result
-  const [userType, setUserType] = useState(null); // "parent" | "player"
+  const [userType, setUserType] = useState(null);
   const [answers, setAnswers] = useState([null, null, null, null]);
-  const [name, setName] = useState(prefillName || "");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -499,7 +499,6 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
   }
 
   // ---- INFO COLLECTION ----
-  // ---- TYPE SELECTION ----
   if (step === "type") return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
@@ -507,36 +506,35 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
           <div style={{ height: "100%", width: "90%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
         </div>
-        <button onClick={() => setStep(`q${QUESTIONS.length - 1}`)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, marginBottom: 24 }}>← Back</button>
-        <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>One last thing! 🏀</h2>
+        <button onClick={() => setStep("q" + (QUESTIONS.length - 1))} style={{ background: "none", border: "1px solid " + C.border, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, marginBottom: 24 }}>Back</button>
+        <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>One last thing!</h2>
         <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Are you a parent signing up for your player, or are you the player?</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", color: C.text }}>
-            <div style={{ fontSize: 44, marginBottom: 12 }}>👨‍👧</div>
+          <button onClick={() => { setUserType("parent"); setStep("info"); }} style={{ background: C.surface, border: "2px solid " + C.border, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center" }}>
+            <div style={{ fontSize: 44, marginBottom: 12 }}>🧑</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Parent</div>
-            <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I'm signing up my child for training</div>
+            <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I am signing up my child for training</div>
           </button>
-          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: `2px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center", color: C.text }}>
+          <button onClick={() => { setUserType("player"); setStep("info"); }} style={{ background: C.surface, border: "2px solid " + C.border, borderRadius: 20, padding: "28px 20px", cursor: "pointer", textAlign: "center" }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>🏀</div>
             <div style={{ fontFamily: DISPLAY, fontSize: 17, fontWeight: 800, marginBottom: 8, color: "#fff" }}>Player</div>
-            <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I'm the player signing up myself</div>
+            <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>I am the player signing up myself</div>
           </button>
         </div>
       </div>
     </div>
   );
 
-  // ---- INFO STEP ----
   if (step === "info") return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: "10%", left: "20%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(249,115,22,0.06), transparent 70%)", filter: "blur(40px)", pointerEvents: "none" }} />
       <div className="fade-in" style={{ width: "100%", maxWidth: 440, position: "relative", zIndex: 1 }}>
+        {/* Progress bar */}
         <div style={{ height: 3, background: C.border, borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: "100%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
+          <div style={{ height: "100%", width: "90%", background: C.accent, borderRadius: 2, transition: "width 0.4s" }} />
         </div>
-        <button onClick={() => setStep("type")} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 10, padding: "6px 14px", color: C.textDim, fontSize: 12, cursor: "pointer", fontFamily: FONTS, marginBottom: 24 }}>← Back</button>
         <h2 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, marginBottom: 6 }}>Almost there! 🏀</h2>
-        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>{userType === "player" ? "Enter your info to see your belt level and start training." : "Enter your info to see your player's belt level and start training."}</p>
+        <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>Enter your info to see your player's belt level and start training.</p>
         <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
           {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
           <div style={{ marginBottom: 16 }}>
@@ -544,11 +542,11 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
             <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder={userType === "player" ? "First and last name" : "Your first name"} />
           </div>
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Email</label>
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Parent Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} style={inp} placeholder="your@email.com" />
           </div>
           <button onClick={handleSubmit} disabled={submitting} style={{ width: "100%", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 14, padding: "16px 24px", fontSize: 16, fontWeight: 700, cursor: submitting ? "default" : "pointer", fontFamily: DISPLAY, opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 16px ${C.accentGlow}` }}>
-            {submitting ? "Finding your level..." : (userType === "player" ? "See My Belt Level →" : "See My Player's Level →")}
+            {submitting ? "Finding your level..." : "See My Player's Level →"}
           </button>
           <p style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: C.textDim }}>We'll only use your email to send training tips. No spam.</p>
         </div>
@@ -1361,6 +1359,7 @@ function QuickSessions({ token, profile, trialMode }) {
   const [restLeft, setRestLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [xpAwarded, setXpAwarded] = useState(0);
   const [doneSession, setDoneSession] = useState(null);
   const restTimerRef = useRef(null);
 
@@ -1423,23 +1422,22 @@ function QuickSessions({ token, profile, trialMode }) {
     }
   };
 
-  const [xpAwarded, setXpAwarded] = useState(0);
   const finishSession = async () => {
     setCompleting(true);
+    const sessionToComplete = activeSession;
     try {
-      await supabase.from("quick_session_completions")._token(token).insert({ session_id: activeSession.id, student_id: profile.id });
-      setCompletions(prev => ({ ...prev, [activeSession.id]: (prev[activeSession.id] || 0) + 1 }));
-      const xpToAward = activeSession.xp_points || 0;
-      if (xpToAward > 0) {
+      await supabase.from("quick_session_completions")._token(token).insert({ session_id: sessionToComplete.id, student_id: profile.id });
+      setCompletions(prev => ({ ...prev, [sessionToComplete.id]: (prev[sessionToComplete.id] || 0) + 1 }));
+      const xp = sessionToComplete.xp_points || 0;
+      if (xp > 0) {
         try {
-          const profileData = await supabase.from("profiles")._token(token).select("*", `&id=eq.${profile.id}`);
-          const current = Array.isArray(profileData) ? profileData[0] : profileData;
-          const newXp = (current?.quick_session_xp || 0) + xpToAward;
-          await supabase.from("profiles")._token(token).update({ quick_session_xp: newXp }, { id: profile.id });
-          setXpAwarded(xpToAward);
+          const rows = await supabase.from("profiles")._token(token).select("quick_session_xp", "&id=eq." + profile.id);
+          const cur = (Array.isArray(rows) && rows.length > 0) ? (rows[0].quick_session_xp || 0) : 0;
+          await supabase.from("profiles")._token(token).update({ quick_session_xp: cur + xp }, { id: profile.id });
+          setXpAwarded(xp);
         } catch(e) {}
       }
-      setDoneSession(activeSession);
+      setDoneSession(sessionToComplete);
       setActiveSession(null);
     } catch(e) {}
     setCompleting(false);
@@ -1509,12 +1507,7 @@ function QuickSessions({ token, profile, trialMode }) {
         <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Session Complete!</h1>
         <p style={{ color: C.textDim, fontSize: 16, marginBottom: 16 }}>{doneSession.title} — great work!</p>
-        {xpAwarded > 0 && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: "10px 20px", marginBottom: 24 }}>
-            <span style={{ fontSize: 20 }}>⭐</span>
-            <span style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 800, color: "#22C55E" }}>+{xpAwarded} XP Earned!</span>
-          </div>
-        )}
+        {xpAwarded > 0 && <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 12, padding: "10px 20px", marginBottom: 24 }}><span style={{ fontSize: 20 }}>⭐</span><span style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 800, color: "#22C55E" }}>+{xpAwarded} XP Earned!</span></div>}
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
           <button onClick={() => startSession(doneSession)} style={{ background: C.accentGlow, border: `1px solid ${C.accent}`, borderRadius: 12, padding: "12px 24px", color: C.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: FONTS }}>Do It Again</button>
           <button onClick={() => setDoneSession(null)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 24px", color: C.text, fontSize: 14, cursor: "pointer", fontFamily: FONTS }}>All Sessions</button>
@@ -1557,7 +1550,7 @@ function QuickSessions({ token, profile, trialMode }) {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                     <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>⚡ {s.duration_min || "?"} min</span>
                     <span style={{ background: C.bg, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: C.textDim }}>🏀 {exCount} drill{exCount !== 1 ? "s" : ""}</span>
-                    {(s.xp_points > 0) && <span style={{ background: "rgba(34,197,94,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "#22C55E", border: "1px solid rgba(34,197,94,0.25)", fontWeight: 700 }}>⭐ {s.xp_points} XP</span>}
+                    {s.xp_points > 0 && <span style={{ background: "rgba(34,197,94,0.1)", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "#22C55E", border: "1px solid rgba(34,197,94,0.25)", fontWeight: 700 }}>⭐ {s.xp_points} XP</span>}
                     {targetBelt && <span style={{ background: `${targetBelt.color}15`, borderRadius: 8, padding: "4px 10px", fontSize: 11, color: targetBelt.color, border: `1px solid ${targetBelt.color}30` }}>{targetBelt.name}</span>}
                   </div>
                 </div>
@@ -1661,7 +1654,7 @@ function AdminQuickSessions({ token }) {
         </div>
 
         <div style={{ background: "#141414", borderRadius: 14, padding: 20, border: "1px solid #222", marginBottom: 20 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
             <div>
               <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>SESSION TITLE</label>
               <input defaultValue={editing.title} onBlur={e => saveSession(editing.id, "title", e.target.value)} style={inp} />
@@ -1671,8 +1664,8 @@ function AdminQuickSessions({ token }) {
               <input type="number" min={1} max={60} defaultValue={editing.duration_min || 10} onBlur={e => saveSession(editing.id, "duration_min", parseInt(e.target.value) || 10)} style={inp} />
             </div>
             <div>
-              <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>XP POINTS AWARDED</label>
-              <input type="number" min={0} max={500} defaultValue={editing.xp_points || 0} onBlur={e => saveSession(editing.id, "xp_points", parseInt(e.target.value) || 0)} style={inp} placeholder="0" />
+              <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>XP POINTS</label>
+              <input type="number" min={0} max={500} defaultValue={editing.xp_points || 0} onBlur={e => saveSession(editing.id, "xp_points", parseInt(e.target.value) || 0)} style={inp} />
             </div>
           </div>
           <div style={{ marginBottom: 14 }}>
@@ -1730,7 +1723,7 @@ function AdminQuickSessions({ token }) {
         <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600, marginBottom: 2 }}>{s.title}</p>
-            <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills · ⭐ {s.xp_points || 0} XP {s.belt_id ? `· ${BELT_LEVELS.find(b=>b.id===s.belt_id)?.name||""}` : ""}</p>
+            <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills {s.belt_id ? `· ${BELT_LEVELS.find(b=>b.id===s.belt_id)?.name||""}` : ""}</p>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
             <button onClick={() => setEditing(s)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
@@ -3034,8 +3027,8 @@ function InviteSignup({ belt: inviteBelt, onLogin, prefillName }) {
         <div style={{ background: C.surface, borderRadius: 20, padding: 28, border: `1px solid ${C.border}` }}>
           {err && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: C.danger, fontSize: 13 }}>{err}</div>}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Player's Name</label>
-            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="First and last name" />
+            <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>{userType === "player" ? "Your Name" : "Your First Name"}</label>
+            <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder={userType === "player" ? "First and last name" : "Your first name"} />
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", color: C.textMuted, fontSize: 12, marginBottom: 6, fontWeight: 600 }}>Parent Email</label>
@@ -3128,8 +3121,7 @@ export default function LevelUpBallApp() {
 
   // Handle trial start from quiz — no Supabase account created
   const handleTrialStart = ({ name, belt, userType: ut }) => {
-    const storedUserType = ut || "parent";
-    setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0, user_type: storedUserType });
+    setProfile({ id: "trial", full_name: name || "Player", role: "student", belt_id: belt || "white", xp: 0, user_type: ut || "parent" });
     setSession({ access_token: null, user: { id: "trial" } });
     setTrialMode(true);
   };
