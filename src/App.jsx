@@ -319,12 +319,14 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
         belt_id: resultBelt,
         trial_expires_at: trialExpiresStr,
         user_type: userType || "parent",
-        coach_code: coachCode || "",
+        coach_code: coachCode || null,
       });
       if (!data?.access_token) { setErr("Signup failed. Please try again."); setSubmitting(false); return; }
       // Store pending trial expiry for profile update
       sessionStorage.setItem("pending_trial_expires", trialExpiresStr);
       sessionStorage.setItem("pending_trial_user_id", data?.user?.id || "");
+      // Store coach code for profile update
+      if (coachCode) sessionStorage.setItem("pending_coach_code", coachCode);
       // MailerLite
       try {
         const beltObj = BELT_LEVELS.find(b => b.id === resultBelt);
@@ -3498,19 +3500,11 @@ export default function LevelUpBallApp() {
     try {
       const profiles = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
       let profile;
+      const meta = data.user?.user_metadata || data.user?.raw_user_meta_data || {};
       if (profiles.length > 0) {
         profile = profiles[0];
-        // If profile exists but coach_code from metadata isn't saved yet, save it
-        const meta = data.user?.user_metadata || {};
-        if (!profile.coach_code && meta.coach_code) {
-          try {
-            await supabase.from("profiles")._token(data.access_token).update({ coach_code: meta.coach_code }, { id: profile.id });
-            profile.coach_code = meta.coach_code;
-          } catch(e) { console.log("Coach code update:", e.message); }
-        }
       } else {
         // Profile row doesn't exist yet — create it from auth metadata
-        const meta = data.user?.user_metadata || {};
         try {
           const created = await supabase.from("profiles")._token(data.access_token).insert({
             id: data.user.id,
@@ -3520,18 +3514,16 @@ export default function LevelUpBallApp() {
             belt_id: meta.belt_id || "white",
             trial_expires_at: meta.trial_expires_at || null,
             user_type: meta.user_type || "parent",
-            coach_code: meta.coach_code || null,
           });
           profile = Array.isArray(created) ? created[0] : created;
         } catch(e) {
-          console.error("Profile creation error:", e);
           // Retry fetch in case trigger created it in the meantime
           const retry = await supabase.from("profiles")._token(data.access_token).select("*", `&id=eq.${data.user.id}`);
           if (retry.length > 0) profile = retry[0];
         }
       }
       if (profile) {
-        // Apply pending trial expiry from invite signup if present
+        // Apply pending trial expiry (same pattern that already works)
         const pendingExpiry = sessionStorage.getItem("pending_trial_expires");
         const pendingUserId = sessionStorage.getItem("pending_trial_user_id");
         if (pendingExpiry && pendingUserId === data.user.id && !profile.trial_expires_at) {
@@ -3541,9 +3533,21 @@ export default function LevelUpBallApp() {
               { id: data.user.id }
             );
             profile.trial_expires_at = pendingExpiry;
-          } catch(e) { console.error(e); }
+          } catch(e) {}
           sessionStorage.removeItem("pending_trial_expires");
           sessionStorage.removeItem("pending_trial_user_id");
+        }
+        // Apply pending coach code (same pattern)
+        const pendingCoachCode = sessionStorage.getItem("pending_coach_code");
+        if (pendingCoachCode && !profile.coach_code) {
+          try {
+            await supabase.from("profiles")._token(data.access_token).update(
+              { coach_code: pendingCoachCode },
+              { id: data.user.id }
+            );
+            profile.coach_code = pendingCoachCode;
+          } catch(e) {}
+          sessionStorage.removeItem("pending_coach_code");
         }
         setProfile(profile);
       }
