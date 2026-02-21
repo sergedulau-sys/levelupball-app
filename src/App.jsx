@@ -246,7 +246,7 @@ function ProgressRing({ percent, size = 56, strokeWidth = 4, color = C.accent })
 // ============================================================
 // BELT PLACEMENT QUIZ
 // ============================================================
-function BeltQuiz({ onStartTrial, quiz30Mode }) {
+function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
   const MAILER_LITE_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI0IiwianRpIjoiODJjZGJmMzhmMzM4MmNmN2Q4MjM4MTc2OTJhYWM4ZjNkNWRhZDM0ODY5ZDBjNWYxNGRlMzVjZWY2Nzc4ZWM2MjQ0OTUyYzZmODdkNmY3MjgiLCJpYXQiOjE3NzE1MDA2MjYuOTE3MjEzLCJuYmYiOjE3NzE1MDA2MjYuOTE3MjE3LCJleHAiOjQ5MjcxNzQyMjYuOTAyODI5LCJzdWIiOiIyMTI3ODQ5Iiwic2NvcGVzIjpbXX0.RA-p19ueL2qRJN9_OnSxXxFAhHGjwipSkhjtAmR-1BR8NekWNe7ttexBwCc_vYrm06AqRDkRYBkE_YkMvhGE-_OXXODadSfZENDwssc5DrFiq4Q7xrE459TaQZk7iuUZnrQBLtLCnQZMqdMijTiKGd53bwNuDirNKKX5TsZ3RUB4X7jbylFmcwHlNhNyxPs1WZeRSMd27X0MxVISbQvNcn_p6KmqBXn3oRXdEXDUF0f2bhfbaLWpzJGuYfarwY5ui7I8yxtHhh7dFaa8QcXYo24NB9u5ViTXK7IjrXfKpF4kPJqISaTm3QEtiqMzVz5tbM2lj3jXg1_B6a9fiMHRz1RaQbqSrkzTOy17NVMKKrqGbPJ95B7F9NKibwPhzcOU30lxH0PInRAa1hWJs7HPicQzcKgdEay9UYUdy-sDIVj48Rzlbe1bexumJ5juJ6sHqtofP6Vuc5vIYas343BWY3ZMy_s4LmS288gO15DjOziTI3j5hwL8-BRH0-mW5P93XZ2t2y2d0M-I0R7cgk3plyeEQnojKBypqEaechFyAJLrgkfwdgjW5lykr7agpqrqIZclQJMaZ-hf1NfH9lLvumztJ29hE8uAFIt3ovgLeMBbYxn6L5swTtSfKJpM2JKXdlMZuK_oWZyJwBawr5KyKYNwZ-C4XpHwxZesb9LjoOQ"; // replace with your key
   const MAILER_LITE_GROUP_ID = "179197594118915541"; // replace with your MailerLite group ID
 
@@ -319,6 +319,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode }) {
         belt_id: resultBelt,
         trial_expires_at: trialExpiresStr,
         user_type: userType || "parent",
+        coach_code: coachCode || "",
       });
       if (!data?.access_token) { setErr("Signup failed. Please try again."); setSubmitting(false); return; }
       // Store pending trial expiry for profile update
@@ -2681,7 +2682,7 @@ function Admin({ token }) {
       {showLibSearch && <LibrarySearch token={token} onAdd={addExerciseFromLibrary} onClose={() => setShowLibSearch(null)} />}
       {/* TABS */}
       <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "1px solid #222" }}>
-        {["workouts", "library", "articles", "challenges", "quicksessions", "students", "levelup", "messages"].map(t => (
+        {["workouts", "library", "articles", "challenges", "quicksessions", "students", "coaches", "levelup", "messages"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ background: "none", border: "none", borderBottom: tab === t ? "2px solid #FF6D00" : "2px solid transparent", padding: "12px 20px", color: tab === t ? "#FF6D00" : "#666", fontFamily: F, fontSize: 13, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>{t.toUpperCase()}</button>
         ))}
       </div>
@@ -2932,6 +2933,8 @@ function Admin({ token }) {
       {tab === "levelup" && <AdminLevelUp token={token} />}
       {/* ===== QUICK SESSIONS TAB ===== */}
       {tab === "quicksessions" && <AdminQuickSessions token={token} />}
+      {/* ===== COACHES TAB ===== */}
+      {tab === "coaches" && <AdminCoaches token={token} />}
       {/* ===== MESSAGES TAB ===== */}
       {tab === "messages" && <AdminMessages token={token} />}
       {tab === "students" && <AdminStudents token={token} saving={saving} setSaving={setSaving} flash={flash} students={students} loadStudents={loadStudents} showAdd={showAdd} setShowAdd={setShowAdd} ns={ns} setNs={setNs} addStudent={addStudent} promoteStudent={promoteStudent} demoteStudent={demoteStudent} deleteStudent={deleteStudent} grantFullAccess={grantFullAccess} inp={inp} />}
@@ -3495,6 +3498,14 @@ export default function LevelUpBallApp() {
       } else {
         // Profile row doesn't exist yet — create it from auth metadata
         const meta = data.user?.user_metadata || {};
+        // Resolve coach_code to coach_id
+        let coachId = null;
+        if (meta.coach_code) {
+          try {
+            const coaches = await supabase.from("profiles")._token(data.access_token).select("id", `&role=eq.coach&coach_code=eq.${meta.coach_code}`);
+            if (Array.isArray(coaches) && coaches.length > 0) coachId = coaches[0].id;
+          } catch(e) {}
+        }
         try {
           const created = await supabase.from("profiles")._token(data.access_token).insert({
             id: data.user.id,
@@ -3504,6 +3515,7 @@ export default function LevelUpBallApp() {
             belt_id: meta.belt_id || "white",
             trial_expires_at: meta.trial_expires_at || null,
             user_type: meta.user_type || "parent",
+            coach_id: coachId,
           });
           profile = Array.isArray(created) ? created[0] : created;
         } catch(e) {
@@ -3543,16 +3555,18 @@ export default function LevelUpBallApp() {
     : false;
 
   const quiz30Mode = new URLSearchParams(window.location.search).has("quiz30");
+  const coachCode = new URLSearchParams(window.location.search).get("coach") || "";
   if (loading) return <><style>{GLOBAL_CSS}</style><div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}><img src={LOGO_LG} alt="" style={{ width: 120, height: 120, animation: "pulse 1.5s infinite" }} /></div></>;
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
       <style>{GLOBAL_CSS}</style>
       {!session && validInvite && <InviteSignup belt={inviteBelt} onLogin={handleLogin} />}
-      {!session && !validInvite && <BeltQuiz quiz30Mode={quiz30Mode} onStartTrial={(data) => {
+      {!session && !validInvite && <BeltQuiz quiz30Mode={quiz30Mode || !!coachCode} coachCode={coachCode} onStartTrial={(data) => {
         if (data?.access_token) { handleLogin(data); }
         else { handleTrialStart(data); }
       }} />}
       {session && profile?.role === "admin" && <><AdminHeader onLogout={logout} /><Admin token={session.access_token} /></>}
+      {session && profile?.role === "coach" && <CoachDashboard profile={profile} token={session.access_token} onLogout={logout} />}
       {session && profile?.role === "student" && (
         <>
           {isTrialExpired && <TrialExpiredOverlay profile={profile} />}
@@ -3826,6 +3840,307 @@ function AdminLevelUp({ token }) {
           <button onClick={() => deleteDrill(d.id)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 14px", color: "#ff4444", fontFamily: F, fontSize: 10, cursor: "pointer" }}>DELETE</button>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============================================================
+// ADMIN: COACHES MANAGEMENT
+// ============================================================
+function AdminCoaches({ token }) {
+  const F = FONTS;
+  const inp = { background: "#141414", border: "1px solid #333", borderRadius: 8, padding: "9px 12px", color: "#fff", fontFamily: F, fontSize: 13, width: "100%", boxSizing: "border-box" };
+  const [coaches, setCoaches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [nc, setNc] = useState({ name: "", email: "", password: "", code: "" });
+  const [msg, setMsg] = useState("");
+  const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
+
+  const loadCoaches = async () => {
+    setLoading(true);
+    try {
+      const data = await supabase.from("profiles")._token(token).select("*", "&role=eq.coach&order=created_at");
+      setCoaches(Array.isArray(data) ? data : []);
+    } catch(e) {}
+    setLoading(false);
+  };
+  useEffect(() => { loadCoaches(); }, []);
+
+  const generateCode = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let code = "";
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  };
+
+  const addCoach = async () => {
+    if (!nc.name || !nc.email || !nc.password) return;
+    setSaving(true);
+    const code = nc.code || generateCode();
+    try {
+      await supabase.auth.signUp(nc.email, nc.password, { full_name: nc.name, role: "coach", coach_code: code });
+      setNc({ name: "", email: "", password: "", code: "" });
+      setShowAdd(false);
+      await loadCoaches();
+      flash("Coach added! Code: " + code);
+    } catch(e) { flash("Error: " + e.message); }
+    setSaving(false);
+  };
+
+  const deleteCoach = async (coach) => {
+    if (!window.confirm("Delete coach " + coach.full_name + "?")) return;
+    setSaving(true);
+    try {
+      await supabase.from("profiles")._token(token).delete({ id: coach.id });
+      await loadCoaches();
+      flash("Coach deleted.");
+    } catch(e) { flash("Error: " + e.message); }
+    setSaving(false);
+  };
+
+  const [playerCounts, setPlayerCounts] = useState({});
+  useEffect(() => {
+    if (coaches.length > 0) {
+      coaches.forEach(async (c) => {
+        try {
+          const players = await supabase.from("profiles")._token(token).select("id", "&role=eq.student&coach_id=eq." + c.id);
+          setPlayerCounts(prev => ({ ...prev, [c.id]: Array.isArray(players) ? players.length : 0 }));
+        } catch(e) {}
+      });
+    }
+  }, [coaches]);
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40, color: "#888", fontFamily: F }}>Loading coaches...</div>;
+
+  return (
+    <div>
+      {msg && <div style={{ background: "#141414", border: "1px solid #333", borderRadius: 10, padding: "10px 16px", marginBottom: 16, color: "#FF6D00", fontFamily: F, fontSize: 13 }}>{msg}</div>}
+      <p style={{ color: "#888", fontSize: 11, fontFamily: F, letterSpacing: 2, marginBottom: 16 }}>COACHES ({coaches.length})</p>
+      {coaches.map(c => {
+        const link = window.location.origin + window.location.pathname + "?coach=" + c.coach_code;
+        return (
+          <div key={c.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{c.full_name}</p>
+                <p style={{ color: "#555", fontSize: 12 }}>{c.email}</p>
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ background: "#FF6D0022", color: "#FF6D00", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: F }}>{playerCounts[c.id] || 0} players</span>
+                <button onClick={() => deleteCoach(c)} disabled={saving} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "5px 12px", color: "#ff4444", fontFamily: F, fontSize: 10, cursor: "pointer" }}>DELETE</button>
+              </div>
+            </div>
+            <div style={{ background: "#0a0a0a", borderRadius: 8, padding: "10px 14px", border: "1px solid #222" }}>
+              <p style={{ color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 4 }}>COACH CODE</p>
+              <p style={{ color: "#FF6D00", fontSize: 16, fontWeight: 700, fontFamily: F, letterSpacing: 2 }}>{c.coach_code}</p>
+              <p style={{ color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginTop: 8, marginBottom: 4 }}>SIGNUP LINK</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input value={link} readOnly style={{ ...inp, fontSize: 11, color: "#888", flex: 1 }} onClick={e => e.target.select()} />
+                <button onClick={() => { navigator.clipboard.writeText(link); flash("Link copied!"); }} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", fontFamily: F, fontSize: 10, cursor: "pointer", fontWeight: 600, flexShrink: 0 }}>COPY</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      {showAdd ? (
+        <div style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #FF6D0044", marginTop: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>COACH NAME</label><input value={nc.name} onChange={e => setNc({ ...nc, name: e.target.value })} style={inp} placeholder="Coach Mike" /></div>
+            <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>EMAIL</label><input value={nc.email} onChange={e => setNc({ ...nc, email: e.target.value })} style={inp} placeholder="coach@email.com" /></div>
+            <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>PASSWORD</label><input value={nc.password} onChange={e => setNc({ ...nc, password: e.target.value })} style={inp} placeholder="Min 6 chars" /></div>
+            <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>CODE (optional)</label><input value={nc.code} onChange={e => setNc({ ...nc, code: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "") })} style={inp} placeholder="Auto-generated if blank" /></div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={addCoach} disabled={saving} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "8px 20px", color: "#fff", fontFamily: F, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>{saving ? "Adding..." : "ADD COACH"}</button>
+            <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "8px 16px", color: "#888", fontFamily: F, fontSize: 12, cursor: "pointer" }}>CANCEL</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowAdd(true)} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 12, padding: 18, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 13, letterSpacing: 1, cursor: "pointer", fontWeight: 600, marginTop: 6 }}>+ ADD COACH</button>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// COACH DASHBOARD
+// ============================================================
+function CoachDashboard({ profile, token, onLogout }) {
+  const [players, setPlayers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(null);
+  const [playerDetails, setPlayerDetails] = useState({});
+
+  useEffect(() => { loadPlayers(); }, []);
+
+  const loadPlayers = async () => {
+    setLoading(true);
+    try {
+      const data = await supabase.from("profiles")._token(token).select("*", "&role=eq.student&coach_id=eq." + profile.id + "&order=full_name");
+      setPlayers(Array.isArray(data) ? data : []);
+    } catch(e) {}
+    setLoading(false);
+  };
+
+  const loadPlayerDetails = async (playerId) => {
+    if (playerDetails[playerId]) return;
+    try {
+      const [weekComps, exComps, sessionComps, challengeRes] = await Promise.all([
+        supabase.from("workout_week_completions")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
+        supabase.from("completed_exercises")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
+        supabase.from("quick_session_completions")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
+        supabase.from("challenge_results")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
+      ]);
+      setPlayerDetails(prev => ({
+        ...prev,
+        [playerId]: {
+          weekCompletions: Array.isArray(weekComps) ? weekComps : [],
+          exerciseCompletions: Array.isArray(exComps) ? exComps : [],
+          sessionCompletions: Array.isArray(sessionComps) ? sessionComps : [],
+          challengeResults: Array.isArray(challengeRes) ? challengeRes : [],
+        }
+      }));
+    } catch(e) {}
+  };
+
+  const toggleExpand = (playerId) => {
+    if (expanded === playerId) { setExpanded(null); return; }
+    setExpanded(playerId);
+    loadPlayerDetails(playerId);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: FONTS }}>
+      <style>{GLOBAL_CSS}</style>
+      <div style={{ background: C.surface, borderBottom: "1px solid " + C.border, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <img src={LOGO_SM} alt="" style={{ width: 36, height: 36 }} />
+          <div>
+            <h1 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 800 }}>Coach Dashboard</h1>
+            <p style={{ fontSize: 12, color: C.textDim }}>Welcome, {profile.full_name}</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ background: C.bg, borderRadius: 8, padding: "6px 12px", border: "1px solid " + C.border }}>
+            <span style={{ fontSize: 10, color: C.textDim }}>Code: </span>
+            <span style={{ fontSize: 12, color: C.accent, fontWeight: 700, fontFamily: DISPLAY, letterSpacing: 1 }}>{profile.coach_code}</span>
+          </div>
+          <button onClick={onLogout} style={{ background: "none", border: "1px solid " + C.border, borderRadius: 8, padding: "6px 14px", color: C.textMuted, fontSize: 12, cursor: "pointer", fontFamily: FONTS }}>Logout</button>
+        </div>
+      </div>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800 }}>Your Players</h2>
+            <p style={{ color: C.textDim, fontSize: 14 }}>{players.length} player{players.length !== 1 ? "s" : ""} registered</p>
+          </div>
+          <button onClick={() => { navigator.clipboard.writeText(window.location.origin + window.location.pathname + "?coach=" + profile.coach_code); }} style={{ background: C.accent, border: "none", borderRadius: 10, padding: "10px 20px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY }}>Copy Signup Link</button>
+        </div>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 60, color: C.textDim }}>Loading players...</div>
+        ) : players.length === 0 ? (
+          <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: "1px solid " + C.border, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏀</div>
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No players yet</h3>
+            <p style={{ color: C.textDim, fontSize: 14, marginBottom: 20 }}>Share your signup link with players and parents to get started.</p>
+            <div style={{ background: C.bg, borderRadius: 10, padding: "12px 16px", border: "1px solid " + C.border, fontSize: 13, color: C.textMuted, wordBreak: "break-all" }}>
+              {window.location.origin}{window.location.pathname}?coach={profile.coach_code}
+            </div>
+          </div>
+        ) : (
+          <div>
+            {players.map(p => {
+              const pb = BELT_LEVELS.find(b => b.id === p.belt_id) || BELT_LEVELS[0];
+              const isOpen = expanded === p.id;
+              const details = playerDetails[p.id];
+              const wDone = details ? details.weekCompletions.length : "—";
+              const sDone = details ? details.sessionCompletions.length : "—";
+              const xp = p.quick_session_xp || 0;
+              return (
+                <div key={p.id} style={{ background: C.surface, borderRadius: 16, border: "1px solid " + (isOpen ? pb.color + "44" : C.border), marginBottom: 10, overflow: "hidden", transition: "border-color 0.2s" }}>
+                  <div onClick={() => toggleExpand(p.id)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <BeltIcon beltId={p.belt_id} size={40} />
+                      <div>
+                        <p style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700 }}>{p.full_name || p.email}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+                          <span style={{ fontSize: 11, color: pb.color, fontWeight: 600 }}>{pb.name}</span>
+                          <span style={{ fontSize: 11, color: C.textDim }}>·</span>
+                          <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>{xp} XP</span>
+                          {p.trial_expires_at && <span style={{ fontSize: 9, background: "rgba(249,115,22,0.15)", color: C.accent, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>TRIAL</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ color: C.textDim, fontSize: 14, transform: isOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
+                  </div>
+                  {isOpen && (
+                    <div style={{ padding: "0 20px 20px" }} className="fade-in">
+                      {!details ? (
+                        <div style={{ textAlign: "center", padding: 20, color: C.textDim, fontSize: 13 }}>Loading details...</div>
+                      ) : (
+                        <>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 16 }}>
+                            <div style={{ background: C.bg, borderRadius: 12, padding: 14, textAlign: "center", border: "1px solid " + C.border }}>
+                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#22C55E" }}>{wDone}</p>
+                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Workouts Done</p>
+                            </div>
+                            <div style={{ background: C.bg, borderRadius: 12, padding: 14, textAlign: "center", border: "1px solid " + C.border }}>
+                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: C.accent }}>{sDone}</p>
+                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Skill Sessions</p>
+                            </div>
+                            <div style={{ background: C.bg, borderRadius: 12, padding: 14, textAlign: "center", border: "1px solid " + C.border }}>
+                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#22C55E" }}>{xp}</p>
+                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Total XP</p>
+                            </div>
+                            <div style={{ background: C.bg, borderRadius: 12, padding: 14, textAlign: "center", border: "1px solid " + C.border }}>
+                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: pb.color }}>{details.exerciseCompletions.length}</p>
+                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Drills Done</p>
+                            </div>
+                          </div>
+                          {details.challengeResults.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                              <p style={{ fontSize: 11, fontWeight: 700, color: C.challenge, letterSpacing: 1, marginBottom: 8 }}>⭐ CHALLENGE RESULTS</p>
+                              <div style={{ background: C.bg, borderRadius: 12, border: "1px solid " + C.border, overflow: "hidden" }}>
+                                {details.challengeResults.map((cr, i) => (
+                                  <div key={i} style={{ padding: "10px 14px", borderBottom: i < details.challengeResults.length - 1 ? "1px solid " + C.border : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <span style={{ fontSize: 13, color: C.text }}>{cr.exercise_name || "Challenge Drill"}</span>
+                                    <span style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: "#22C55E" }}>{cr.reps_completed} reps</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {details.sessionCompletions.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                              <p style={{ fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: 1, marginBottom: 8 }}>⚡ RECENT SKILL SESSIONS</p>
+                              <div style={{ background: C.bg, borderRadius: 12, border: "1px solid " + C.border, overflow: "hidden" }}>
+                                {details.sessionCompletions.slice(-10).reverse().map((sc, i) => (
+                                  <div key={i} style={{ padding: "10px 14px", borderBottom: i < Math.min(details.sessionCompletions.length, 10) - 1 ? "1px solid " + C.border : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <span style={{ fontSize: 12, color: C.textMuted }}>Session completed</span>
+                                    <span style={{ fontSize: 11, color: C.textDim }}>{new Date(sc.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 11, color: C.textDim }}>
+                            <span>Joined {new Date(p.created_at).toLocaleDateString()}</span>
+                            <span>·</span>
+                            <span>{p.email}</span>
+                            {p.trial_expires_at && <><span>·</span><span>Trial expires {new Date(p.trial_expires_at).toLocaleDateString()}</span></>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
