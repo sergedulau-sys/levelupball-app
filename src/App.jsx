@@ -2946,6 +2946,11 @@ function AdminStudents({ token, saving, setSaving, flash, students, loadStudents
   const [studentSubs, setStudentSubs] = useState([]);
   const [drills, setDrills] = useState([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
+  const [coaches, setCoaches] = useState([]);
+  useEffect(() => {
+    supabase.from("profiles")._token(token).select("id,full_name,coach_code", "&role=eq.coach").then(d => { if (Array.isArray(d)) setCoaches(d); }).catch(() => {});
+  }, []);
+  const getCoachName = (coachId) => { const c = coaches.find(cc => cc.id === coachId); return c ? c.full_name : null; };
   const viewStudentSubs = async (student) => {
     if (viewSubs === student.id) { setViewSubs(null); return; }
     setViewSubs(student.id);
@@ -2999,7 +3004,7 @@ function AdminStudents({ token, saving, setSaving, flash, students, loadStudents
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: `${sb.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: `2px solid ${sb.color}` }}>🏀</div>
-                <div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{s.full_name}</p><p style={{ fontSize: 11, color: "#555" }}>{s.email}</p></div>
+                <div><p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600 }}>{s.full_name}</p><p style={{ fontSize: 11, color: "#555" }}>{s.email}{s.coach_id && getCoachName(s.coach_id) ? <span style={{ marginLeft: 8, background: "#3B82F618", color: "#3B82F6", padding: "2px 8px", borderRadius: 4, fontSize: 9, fontWeight: 700, border: "1px solid #3B82F633" }}>Coach: {getCoachName(s.coach_id)}</span> : null}</p></div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, background: `${sb.color}18`, padding: "4px 12px", borderRadius: 20, border: `1px solid ${sb.color}33` }}>
@@ -3495,6 +3500,17 @@ export default function LevelUpBallApp() {
       let profile;
       if (profiles.length > 0) {
         profile = profiles[0];
+        // If profile exists but coach_id is missing and metadata has coach_code, resolve it
+        const meta = data.user?.user_metadata || {};
+        if (!profile.coach_id && meta.coach_code) {
+          try {
+            const coaches = await supabase.from("profiles")._token(data.access_token).select("id", "&role=eq.coach&coach_code=eq." + meta.coach_code);
+            if (Array.isArray(coaches) && coaches.length > 0) {
+              await supabase.from("profiles")._token(data.access_token).update({ coach_id: coaches[0].id }, { id: profile.id });
+              profile.coach_id = coaches[0].id;
+            }
+          } catch(e) { console.log("Coach link update:", e.message); }
+        }
       } else {
         // Profile row doesn't exist yet — create it from auth metadata
         const meta = data.user?.user_metadata || {};
