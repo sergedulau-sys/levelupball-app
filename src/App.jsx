@@ -65,6 +65,13 @@ const supabase = {
       if (!res.ok) throw new Error(await res.text()); return res.json();
     },
   }),
+  rpc: (fnName, args, token) => {
+    return fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+      method: "POST",
+      headers: { "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json", "Authorization": `Bearer ${token || SUPABASE_ANON_KEY}` },
+      body: JSON.stringify(args),
+    }).then(r => { if (!r.ok) throw new Error("RPC failed"); return r.json(); });
+  },
 };
 // ============================================================
 // DESIGN SYSTEM — #1 updated belts, #8 branding
@@ -3931,7 +3938,7 @@ function AdminCoaches({ token }) {
     if (coaches.length > 0) {
       coaches.forEach(async (c) => {
         try {
-          const players = await supabase.from("profiles")._token(token).select("id", "&role=eq.student&coach_code=eq." + c.coach_code);
+          const players = await supabase.rpc("get_coach_players", { p_coach_code: c.coach_code }, token);
           setPlayerCounts(prev => ({ ...prev, [c.id]: Array.isArray(players) ? players.length : 0 }));
         } catch(e) {}
       });
@@ -4004,7 +4011,7 @@ function CoachDashboard({ profile, token, onLogout }) {
   const loadPlayers = async () => {
     setLoading(true);
     try {
-      const data = await supabase.from("profiles")._token(token).select("*", "&role=eq.student&coach_code=eq." + profile.coach_code + "&order=full_name");
+      const data = await supabase.rpc("get_coach_players", { p_coach_code: profile.coach_code }, token);
       setPlayers(Array.isArray(data) ? data : []);
     } catch(e) {}
     setLoading(false);
@@ -4014,10 +4021,10 @@ function CoachDashboard({ profile, token, onLogout }) {
     if (playerDetails[playerId]) return;
     try {
       const [weekComps, exComps, sessionComps, challengeRes] = await Promise.all([
-        supabase.from("workout_week_completions")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
-        supabase.from("completed_exercises")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
-        supabase.from("quick_session_completions")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
-        supabase.from("challenge_results")._token(token).select("*", "&student_id=eq." + playerId).catch(() => []),
+        supabase.rpc("get_student_data", { p_student_id: playerId, p_table: "workout_week_completions" }, token).catch(() => []),
+        supabase.rpc("get_student_data", { p_student_id: playerId, p_table: "completed_exercises" }, token).catch(() => []),
+        supabase.rpc("get_student_data", { p_student_id: playerId, p_table: "quick_session_completions" }, token).catch(() => []),
+        supabase.rpc("get_student_data", { p_student_id: playerId, p_table: "challenge_results" }, token).catch(() => []),
       ]);
       setPlayerDetails(prev => ({
         ...prev,
