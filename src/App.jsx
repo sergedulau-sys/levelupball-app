@@ -3876,16 +3876,31 @@ function AdminCoaches({ token }) {
   };
 
   const addCoach = async () => {
-    if (!nc.name || !nc.email || !nc.password) return;
+    if (!nc.name || !nc.email || !nc.password) { flash("Please fill in all fields."); return; }
+    if (nc.password.length < 6) { flash("Password must be at least 6 characters."); return; }
     setSaving(true);
     const code = nc.code || generateCode();
     try {
-      await supabase.auth.signUp(nc.email, nc.password, { full_name: nc.name, role: "coach", coach_code: code });
+      const authData = await supabase.auth.signUp(nc.email, nc.password, { full_name: nc.name, role: "coach", coach_code: code });
+      // Also create profile row directly in case trigger doesn't handle coach_code
+      if (authData?.user?.id || authData?.id) {
+        const userId = authData?.user?.id || authData?.id;
+        try {
+          await supabase.from("profiles")._token(token).upsert({
+            id: userId,
+            email: nc.email,
+            full_name: nc.name,
+            role: "coach",
+            coach_code: code,
+            belt_id: "white",
+          });
+        } catch(e2) { /* profile may already exist from trigger */ }
+      }
       setNc({ name: "", email: "", password: "", code: "" });
       setShowAdd(false);
       await loadCoaches();
       flash("Coach added! Code: " + code);
-    } catch(e) { flash("Error: " + e.message); }
+    } catch(e) { flash("Error: " + (e.message || "Signup failed. Check email/password.")); }
     setSaving(false);
   };
 
