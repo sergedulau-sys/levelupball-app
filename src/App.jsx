@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const SUPABASE_URL = "https://wvbzifqbugjusthwlfzl.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2YnppZnFidWdqdXN0aHdsZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3NTkxMTAsImV4cCI6MjA4NjMzNTExMH0._p8Firq7U6oiHsvvSwNxZT2WJ0MNMQEOze_mjt4xE7w";
 const SUBMISSION_EMAIL = "levelupball24@gmail.com";
+const WORKOUT_GUIDE_URL = ""; // Paste your YouTube workout guide video URL here
 
 // ============================================================
 // STRIPE CONFIG
@@ -187,7 +188,7 @@ input::placeholder, textarea::placeholder { color: ${C.textDim}; }
 // ============================================================
 function VideoPlayer({ url }) {
   const eu = embedUrl(url);
-  if (!eu) return (<div style={{ width: "100%", aspectRatio: "16/9", background: C.surface, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", border: `1px dashed ${C.border}` }}><div style={{ textAlign: "center", color: C.textDim }}><div style={{ fontSize: 28, marginBottom: 6 }}>🎬</div><div style={{ fontSize: 13 }}>No video yet</div></div></div>);
+  if (!eu) return null;
   return <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: 16, overflow: "hidden", background: "#000" }}><iframe src={eu} style={{ width: "100%", height: "100%", border: "none" }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div>;
 }
 function RestTimer({ seconds, label = "REST" }) {
@@ -1265,6 +1266,7 @@ function FollowAlongMode({ workout, weekNum, completedIds, onToggle, challengeRe
 function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, profile, completedWorkoutIds, weekCompletions, onCompleteWorkout, challengeResults, onSaveChallengeResult }) {
   const [expanded, setExpanded] = useState(null);
   const [followAlong, setFollowAlong] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const isWorkoutDone = weekNum ? (weekCompletions || []).some(wc => wc.workout_id === workout.id && wc.week_number === weekNum) : completedWorkoutIds.has(workout.id);
   // #7 Group exercises by superset
   const renderCategory = (cat) => {
@@ -1372,8 +1374,24 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
       <button onClick={onBack} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 16px", color: C.textMuted, cursor: "pointer", fontFamily: FONTS, fontSize: 13, marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back</button>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>{workout.name}</h1>
-        {!isWorkoutDone && <button onClick={() => setFollowAlong(true)} style={{ background: `linear-gradient(135deg, ${(BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0]).color}, ${(BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0]).color}CC)`, border: "none", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>▶ FOLLOW ALONG</button>}
+        <div style={{ display: "flex", gap: 8 }}>
+          {WORKOUT_GUIDE_URL && <button onClick={() => setShowGuide(true)} style={{ background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>📖 WORKOUT GUIDE</button>}
+          {!isWorkoutDone && <button onClick={() => setFollowAlong(true)} style={{ background: `linear-gradient(135deg, ${(BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0]).color}, ${(BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0]).color}CC)`, border: "none", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>▶ FOLLOW ALONG</button>}
+        </div>
       </div>
+      {/* Workout Guide Modal */}
+      {showGuide && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(8px)" }} onClick={() => setShowGuide(false)}>
+          <div className="fade-in" style={{ background: C.surface, borderRadius: 20, padding: 24, maxWidth: 640, width: "100%", border: "1px solid " + C.border }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800 }}>📖 Workout Guide</h2>
+              <button onClick={() => setShowGuide(false)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 22, cursor: "pointer" }}>✕</button>
+            </div>
+            <VideoPlayer url={WORKOUT_GUIDE_URL} />
+            <p style={{ color: C.textDim, fontSize: 13, marginTop: 12, textAlign: "center" }}>Watch this guide to learn how to get the most out of your workouts.</p>
+          </div>
+        </div>
+      )}
       {weekNum && <p style={{ fontSize: 13, color: C.textDim, marginBottom: 24 }}>Week {weekNum}</p>}
       {(workout.cats || []).map(cat => (
         <div key={cat.id} style={{ marginBottom: 24 }}>
