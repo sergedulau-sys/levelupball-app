@@ -4090,7 +4090,12 @@ function CoachDashboard({ profile, token, onLogout }) {
               const details = playerDetails[p.id];
               const wDone = details ? details.weekCompletions.length : "—";
               const sDone = details ? details.sessionCompletions.length : "—";
-              const xp = p.quick_session_xp || 0;
+              const workoutXp = typeof wDone === "number" ? wDone * (pb.xpPerWorkout || 200) : 0;
+              const sessionXp = p.quick_session_xp || 0;
+              const totalXp = workoutXp + sessionXp;
+              const xpGoal = pb.xpGoal || 0;
+              const xpRemaining = xpGoal > 0 ? Math.max(0, xpGoal - totalXp) : 0;
+              const xpPct = xpGoal > 0 ? Math.min(100, Math.round((totalXp / xpGoal) * 100)) : 100;
               return (
                 <div key={p.id} style={{ background: C.surface, borderRadius: 16, border: "1px solid " + (isOpen ? pb.color + "44" : C.border), marginBottom: 10, overflow: "hidden", transition: "border-color 0.2s" }}>
                   <div onClick={() => toggleExpand(p.id)} style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -4101,9 +4106,15 @@ function CoachDashboard({ profile, token, onLogout }) {
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
                           <span style={{ fontSize: 11, color: pb.color, fontWeight: 600 }}>{pb.name}</span>
                           <span style={{ fontSize: 11, color: C.textDim }}>·</span>
-                          <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>{xp} XP</span>
+                          <span style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>{totalXp}/{xpGoal} XP</span>
+                          {xpGoal > 0 && <span style={{ fontSize: 11, color: C.textDim }}>·</span>}
+                          {xpGoal > 0 && <span style={{ fontSize: 10, color: xpRemaining === 0 ? "#22C55E" : C.accent, fontWeight: 600 }}>{xpRemaining === 0 ? "READY TO LEVEL UP" : xpRemaining + " XP to go"}</span>}
                           {p.trial_expires_at && <span style={{ fontSize: 9, background: "rgba(249,115,22,0.15)", color: C.accent, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>TRIAL</span>}
                         </div>
+                        {/* XP Progress bar */}
+                        {xpGoal > 0 && <div style={{ marginTop: 6, width: 180, height: 6, borderRadius: 3, background: C.bg, border: "1px solid " + C.border }}>
+                          <div style={{ width: xpPct + "%", height: "100%", borderRadius: 3, background: xpRemaining === 0 ? "#22C55E" : `linear-gradient(90deg, ${pb.color}, ${C.accent})`, transition: "width 0.5s" }} />
+                        </div>}
                       </div>
                     </div>
                     <span style={{ color: C.textDim, fontSize: 14, transform: isOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }}>▾</span>
@@ -4124,12 +4135,12 @@ function CoachDashboard({ profile, token, onLogout }) {
                               <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Skill Sessions</p>
                             </div>
                             <div style={{ background: C.bg, borderRadius: 12, padding: 14, textAlign: "center", border: "1px solid " + C.border }}>
-                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#22C55E" }}>{xp}</p>
-                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Total XP</p>
+                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: "#22C55E" }}>{totalXp}<span style={{ fontSize: 12, color: C.textDim }}>/{xpGoal}</span></p>
+                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>XP Progress</p>
                             </div>
                             <div style={{ background: C.bg, borderRadius: 12, padding: 14, textAlign: "center", border: "1px solid " + C.border }}>
-                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: pb.color }}>{details.exerciseCompletions.length}</p>
-                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>Drills Done</p>
+                              <p style={{ fontFamily: DISPLAY, fontSize: 24, fontWeight: 800, color: xpRemaining === 0 ? "#22C55E" : C.accent }}>{xpRemaining === 0 ? "✓" : xpRemaining}</p>
+                              <p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5 }}>{xpRemaining === 0 ? "Ready to Level Up" : "XP to Level Up"}</p>
                             </div>
                           </div>
                           {details.challengeResults.length > 0 && (
