@@ -590,15 +590,24 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
 
         {hasVideos ? (
           // Video grid for Q3/Q4
+          <>
+          <p style={{ textAlign: "center", color: C.accent, fontSize: 13, fontWeight: 600, marginBottom: 14, marginTop: -10 }}>👇 Tap a video to watch, then select your answer</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
             {q.options.map((opt, i) => {
               const selected = answers[qIdx] === i;
               return (
                 <div key={i} onClick={() => selectAnswer(qIdx, i)}
-                  style={{ background: selected ? `${C.accent}15` : C.surface, border: `2px solid ${selected ? C.accent : C.border}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", transition: "all 0.15s" }}>
+                  style={{ background: selected ? `${C.accent}15` : C.surface, border: `2px solid ${selected ? C.accent : C.border}`, borderRadius: 16, overflow: "hidden", cursor: "pointer", transition: "all 0.2s", transform: selected ? "scale(1.02)" : "scale(1)" }}
+                  onMouseEnter={e => { if (!selected) e.currentTarget.style.border = `2px solid ${C.accent}80`; e.currentTarget.style.transform = "scale(1.03)"; }}
+                  onMouseLeave={e => { if (!selected) e.currentTarget.style.border = `2px solid ${C.border}`; e.currentTarget.style.transform = selected ? "scale(1.02)" : "scale(1)"; }}>
                   {q.videos[i] ? (
-                    <div style={{ aspectRatio: "16/9", background: C.bg }}>
+                    <div style={{ aspectRatio: "16/9", background: C.bg, position: "relative" }}>
                       <VideoPlayer url={q.videos[i]} />
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+                          <span style={{ fontSize: 22, marginLeft: 3, color: "#fff" }}>▶</span>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div style={{ aspectRatio: "16/9", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -606,13 +615,14 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
                     </div>
                   )}
                   <div style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: selected ? C.accent : C.text }}>{opt}</span>
-                    {selected && <span style={{ color: C.accent, fontSize: 16 }}>✓</span>}
+                    <span style={{ fontSize: 13, fontWeight: 600, color: selected ? C.accent : C.text }}>▶ {opt}</span>
+                    {selected ? <span style={{ color: C.accent, fontSize: 16 }}>✓</span> : <span style={{ fontSize: 10, color: C.textDim }}>TAP TO SELECT</span>}
                   </div>
                 </div>
               );
             })}
           </div>
+          </>
         ) : (
           // Text options for Q1/Q2
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
