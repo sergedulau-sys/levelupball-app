@@ -748,7 +748,7 @@ function Sidebar({ activeTab, setActiveTab, profile, onLogout, trialMode }) {
         <div style={{ padding: "16px 12px" }}><button onClick={onLogout} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "transparent", color: C.textDim, fontSize: 13, cursor: "pointer", fontFamily: FONTS }}><span>↩</span> Log Out</button></div>
       </div>
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.surface, borderTop: `1px solid ${C.border}`, display: "none", padding: "6px 8px 10px", zIndex: 100 }} className="mobile-nav">
-        {tabs.map(t => (<button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 0", border: "none", background: "transparent", color: activeTab === t.id ? C.accent : C.textDim, cursor: "pointer", fontFamily: FONTS, fontSize: 10, fontWeight: activeTab === t.id ? 600 : 400 }}><span style={{ fontSize: 18 }}>{t.icon}</span>{t.label}</button>))}
+        {tabs.filter(t => t.id !== "quick").map(t => (<button key={t.id} onClick={() => setActiveTab(t.id === "workouts" && activeTab === "quick" ? "workouts" : t.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 0", border: "none", background: "transparent", color: (activeTab === t.id || (t.id === "workouts" && activeTab === "quick")) ? C.accent : C.textDim, cursor: "pointer", fontFamily: FONTS, fontSize: 10, fontWeight: (activeTab === t.id || (t.id === "workouts" && activeTab === "quick")) ? 600 : 400 }}><span style={{ fontSize: 18 }}>{t.icon}</span>{t.label}</button>))}
       </div>
     </>
   );
@@ -3296,7 +3296,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
   return (
     <>
       <style>{`
-        @media (max-width: 768px) { .sidebar-desktop { display: none !important; } .mobile-nav { display: flex !important; } .main-content { padding-bottom: 80px !important; } }
+        @media (max-width: 768px) { .sidebar-desktop { display: none !important; } .mobile-nav { display: flex !important; } .main-content { padding-bottom: 80px !important; } .mobile-subtabs { display: block !important; } }
         @media (min-width: 769px) { .sidebar-desktop { display: flex !important; } .mobile-nav { display: none !important; } }
       `}</style>
       {trialMode && (
@@ -3314,10 +3314,20 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
             <WorkoutView workout={activeWorkout} weekNum={activeWeek} onBack={() => { setActiveWorkout(null); setActiveWeek(null); }} completedIds={completedIds} onToggle={toggleComplete} token={token} profile={profile} completedWorkoutIds={completedWorkoutIds} weekCompletions={weekCompletions} onCompleteWorkout={completeWeekWorkout} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
           ) : activeTab === "dashboard" ? (
             <DashboardView profile={profile} workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} totalWeekCompletions={totalWeekCompletions} onSelectWorkout={(w, week) => { setActiveWorkout(w); setActiveWeek(week); setActiveTab("workouts"); }} />
-          ) : activeTab === "workouts" ? (
-            <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} />
-          ) : activeTab === "quick" ? (
-            <QuickSessions token={token} profile={profile} trialMode={trialMode} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
+          ) : activeTab === "workouts" || activeTab === "quick" ? (
+            <>
+              <div className="mobile-subtabs" style={{ display: "none", marginBottom: 20 }}>
+                <div style={{ display: "flex", background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 3 }}>
+                  <button onClick={() => setActiveTab("workouts")} style={{ flex: 1, padding: "10px 0", borderRadius: 11, border: "none", background: activeTab === "workouts" ? C.accent : "transparent", color: activeTab === "workouts" ? "#fff" : C.textDim, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONTS, transition: "all 0.15s" }}>🏀 Workouts</button>
+                  <button onClick={() => setActiveTab("quick")} style={{ flex: 1, padding: "10px 0", borderRadius: 11, border: "none", background: activeTab === "quick" ? C.accent : "transparent", color: activeTab === "quick" ? "#fff" : C.textDim, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONTS, transition: "all 0.15s" }}>⏱️ Quick Sessions</button>
+                </div>
+              </div>
+              {activeTab === "workouts" ? (
+                <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} />
+              ) : (
+                <QuickSessions token={token} profile={profile} trialMode={trialMode} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
+              )}
+            </>
           ) : activeTab === "challenges" ? (
             <StudentChallenges token={token} profile={profile} trialMode={trialMode} />
           ) : activeTab === "resources" ? (
