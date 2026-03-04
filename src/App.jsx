@@ -896,6 +896,16 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
   const [showGuide, setShowGuide] = useState(false);
+
+  // Workout guide content per level
+  const guideContent = {
+    white: { title: "Level 1", desc: "Level 1 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 1." },
+    blue: { title: "Level 2", desc: "Level 2 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 2." },
+    purple: { title: "Level 3", desc: "Level 3 has two sub-levels (3A and 3B). Each sub-level is made up of 12 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 3." },
+    brown: { title: "Level 4", desc: "Level 4 has two sub-levels (4A and 4B). Each sub-level is made up of 16 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 4." },
+    black: { title: "Level 5", desc: "Level 5 has two sub-levels (5A and 5B). Each sub-level is made up of 20 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 5." },
+  };
+  const guide = guideContent[belt.id] || guideContent.white;
   // Rolling unlock: first workout unlocked, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
@@ -915,33 +925,24 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
     <div className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>My Workouts</h1>
-        <button onClick={() => setShowGuide(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "7px 14px", cursor: "pointer", fontFamily: FONTS }}>
-          <span style={{ fontSize: 13 }}>📖</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444" }}>Workout Guide</span>
+        <button onClick={() => setShowGuide(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
+          <span style={{ fontSize: 15 }}>📖</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>Workout Guide</span>
         </button>
       </div>
       <p style={{ fontSize: 13, color: C.textDim, marginBottom: 32 }}>Complete each workout to progress</p>
 
       {/* Workout Guide Modal */}
-      {showGuide && (() => {
-        const levelGuides = {
-          white: { title: "Level 1", desc: "Level 1 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 1." },
-          blue: { title: "Level 2", desc: "Level 2 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 2." },
-          purple: { title: "Level 3", desc: "Level 3 has two sub-levels (3A and 3B). Each sub-level is made up of 12 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 3." },
-          brown: { title: "Level 4", desc: "Level 4 has two sub-levels (4A and 4B). Each sub-level is made up of 16 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 4." },
-          black: { title: "Level 5", desc: "Level 5 has two sub-levels (5A and 5B). Each sub-level is made up of 20 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 5." },
-        };
-        const guide = levelGuides[belt.id] || levelGuides.white;
-        return (
+      {showGuide && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }} onClick={() => setShowGuide(false)}>
           <div className="fade-in" style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: C.surface, borderRadius: 24, border: `1px solid ${C.border}`, padding: 28 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800 }}>📖 Workout Guide</h2>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: C.text }}>📖 Workout Guide</h2>
               <button onClick={() => setShowGuide(false)} style={{ background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: C.textMuted, fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Level description - changes per belt */}
+              {/* Level description */}
               <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
                 <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>{guide.title}</h3>
                 <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>{guide.desc}</p>
@@ -980,8 +981,7 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
             <button onClick={() => setShowGuide(false)} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
           </div>
         </div>
-        );
-      })()}
+      )}
 
       {weekSlots.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
