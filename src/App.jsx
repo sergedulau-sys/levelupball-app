@@ -934,51 +934,51 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
 
       {/* Workout Guide Modal */}
       {showGuide && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }} onClick={() => setShowGuide(false)}>
-          <div className="fade-in" style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: "#1e1e22", borderRadius: 24, border: `2px solid ${C.accent}`, padding: 28 }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowGuide(false)}>
+          <div className="fade-in" style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: "#ffffff", borderRadius: 24, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#fff" }}>📖 Workout Guide</h2>
-              <button onClick={() => setShowGuide(false)} style={{ background: "#333", border: "none", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, cursor: "pointer" }}>✕</button>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#111" }}>📖 Workout Guide</h2>
+              <button onClick={() => setShowGuide(false)} style={{ background: "#eee", border: "none", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 18, cursor: "pointer" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Level description */}
-              <div style={{ background: "#111114", borderRadius: 14, padding: 18, border: `1px solid #333` }}>
+              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
                 <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>{guide.title}</h3>
-                <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.7 }}>{guide.desc}</p>
+                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>{guide.desc}</p>
                 <p style={{ fontSize: 13, color: C.accent, lineHeight: 1.7, marginTop: 8, fontWeight: 600 }}>{guide.freq}</p>
               </div>
 
               {/* Supersets */}
-              <div style={{ background: "#111114", borderRadius: 14, padding: 18, border: `1px solid #333` }}>
+              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
                 <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>⚡ Supersets</h3>
-                <img src="https://i.imgur.com/DX6YyMX.png" alt="Superset example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid #333` }} />
-                <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.7 }}>Supersets group multiple drills together that you do back-to-back without rest in between. Complete all the drills in the superset, then take the rest time shown before starting the next round.</p>
+                <img src="https://i.imgur.com/DX6YyMX.png" alt="Superset example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
+                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>Supersets group multiple drills together that you do back-to-back without rest in between. Complete all the drills in the superset, then take the rest time shown before starting the next round.</p>
               </div>
 
               {/* Moving/Dribbling drills */}
-              <div style={{ background: "#111114", borderRadius: 14, padding: 18, border: `1px solid #333` }}>
+              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
                 <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>🏀 Moving Dribbling Drills</h3>
-                <img src="https://i.imgur.com/54z1qYE.png" alt="Moving drills example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid #333` }} />
-                <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.7 }}>Each moving drill tells you whether to go full court and back or half court and back — the last drill in the superset includes a rest period before repeating. Complete the entire group of drills for the number of rounds shown, then move on to the next section.</p>
+                <img src="https://i.imgur.com/54z1qYE.png" alt="Moving drills example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
+                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>Each moving drill tells you whether to go full court and back or half court and back — the last drill in the superset includes a rest period before repeating. Complete the entire group of drills for the number of rounds shown, then move on to the next section.</p>
               </div>
 
               {/* Challenge drills */}
-              <div style={{ background: "#111114", borderRadius: 14, padding: 18, border: `1px solid #333` }}>
+              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
                 <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>⭐ Challenge Drills</h3>
-                <img src="https://i.imgur.com/3UO3bzU.png" alt="Challenge drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid #333` }} />
-                <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.7 }}>After a challenge drill, enter how many reps you completed in the given time — the next time you do that workout, it will show your personal record so you can try to beat it.</p>
+                <img src="https://i.imgur.com/3UO3bzU.png" alt="Challenge drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
+                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>After a challenge drill, enter how many reps you completed in the given time — the next time you do that workout, it will show your personal record so you can try to beat it.</p>
               </div>
 
               {/* Shooting & Finishing drills */}
-              <div style={{ background: "#111114", borderRadius: 14, padding: 18, border: `1px solid #333` }}>
+              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
                 <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>🎯 Shooting & Finishing Drills</h3>
-                <img src="https://i.imgur.com/jQzVtYM.png" alt="Shooting drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid #333` }} />
-                <p style={{ fontSize: 13, color: "#ccc", lineHeight: 1.7 }}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
+                <img src="https://i.imgur.com/jQzVtYM.png" alt="Shooting drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
+                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
               </div>
             </div>
 
-            <button onClick={() => setShowGuide(false)} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
+            <button onClick={() => setShowGuide(false)} style={{ width: "100%", background: "linear-gradient(135deg, #F97316, #EA580C)", color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
           </div>
         </div>
       )}
