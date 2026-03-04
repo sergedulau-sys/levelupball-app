@@ -78,11 +78,25 @@ const supabase = {
 // DESIGN SYSTEM — #1 updated belts, #8 branding
 // ============================================================
 const BELT_LEVELS = [
-  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, weeks: 3, workoutsPerWeek: 3, code: "WHITE2026" },
-  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, weeks: 4, workoutsPerWeek: 3, code: "BLUE2026" },
-  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, phases: [{ name: "Level 3A", workouts: 4, weeks: 3 }, { name: "Level 3B", workoutStart: 4, workouts: 4, weeks: 3 }], code: "PURPLE2026" },
-  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, phases: [{ name: "Level 4A", workouts: 4, weeks: 5 }, { name: "Level 4B", workoutStart: 4, workouts: 4, weeks: 5 }], code: "BROWN2026" },
-  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, weeks: 0, workoutsPerWeek: 3, code: "BLACK2026" },
+  // Level 1: 3 DB workouts, cycle to 21 total
+  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, totalWorkouts: 21, dbWorkouts: 3, code: "WHITE2026" },
+  // Level 2: 3 DB workouts, cycle to 27 total
+  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, totalWorkouts: 27, dbWorkouts: 3, code: "BLUE2026" },
+  // Level 3: 8 DB workouts → 3A(1-4 x3=12) + 3B(5-8 x3=12) + repeat 3B to 40
+  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, totalWorkouts: 40, repeatMap: [
+    { start: 0, count: 4, repeat: 3 },  // 3A: workouts 1-4, 3 times = 12
+    { start: 4, count: 4, fill: 40 },    // 3B: workouts 5-8, repeat until 40
+  ], code: "PURPLE2026" },
+  // Level 4: 8 DB workouts → 4A(1-4 x4=16) + 4B(5-8 x4=16) + repeat 4B to 50
+  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, totalWorkouts: 50, repeatMap: [
+    { start: 0, count: 4, repeat: 4 },  // 4A: workouts 1-4, 4 times = 16
+    { start: 4, count: 4, fill: 50 },    // 4B: workouts 5-8, repeat until 50
+  ], code: "BROWN2026" },
+  // Level 5: 10 DB workouts → 5A(1-5 x8=40) + 5B(6-10 x8=40) = 80
+  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, totalWorkouts: 80, repeatMap: [
+    { start: 0, count: 5, repeat: 8 },  // 5A: workouts 1-5, 8 times = 40
+    { start: 5, count: 5, repeat: 8 },  // 5B: workouts 6-10, 8 times = 40
+  ], code: "BLACK2026" },
 ];
 const C = {
   bg: "#09090b", surface: "#18181b", surfaceHover: "#27272a", border: "#27272a", borderLight: "#3f3f46",
@@ -859,8 +873,8 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
           <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Up Next</h2>
           <button onClick={() => onSelectWorkout(nextWorkout, nextSlot?.week)} style={{ width: "100%", background: C.surface, border: `1.5px solid ${belt.color}44`, borderRadius: 18, padding: 20, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: FONTS, transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.3)"; }} onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextWorkout.name.replace("Workout ", "")}</div>
-              <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>{nextWorkout.name}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: "#fff" }}>{nextSlot?.displayNum || nextWorkout.name.replace("Workout ", "")}</div>
+              <div><p style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 700, color: C.text }}>Workout {nextSlot?.displayNum || nextWorkout.name.replace("Workout ", "")}</p><p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>{(nextWorkout.cats||[]).length} categories · {(nextWorkout.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p></div>
             </div>
             <span style={{ color: belt.color, fontSize: 20 }}>→</span>
           </button>
@@ -881,21 +895,14 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile, trialMode }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
-  const totalWeeks = belt.phases ? belt.phases.reduce((s, p) => s + p.weeks, 0) : (belt.weeks || 1);
-  const wpw = belt.workoutsPerWeek || workoutsData.length || 3;
-  const isSlotDone = (workoutId, week) => weekCompletions.some(wc => wc.workout_id === workoutId && wc.week_number === week);
-  // Rolling unlock: first week's workouts visible, then 1 unlocks per completion
+  // Rolling unlock: first workout unlocked, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
     if (trialMode) {
-      // Trial: only first workout
       if (weekSlots.length > 0) unlocked.add(0);
       return unlocked;
     }
-    // Find how many workouts are in the first week (or first phase week)
-    const firstWeek = weekSlots.length > 0 ? weekSlots[0].week : 1;
-    const firstWeekCount = weekSlots.filter(s => s.week === firstWeek).length;
-    let budget = firstWeekCount; // start with first week's workouts unlocked
+    let budget = 1; // start with first workout unlocked
     for (let i = 0; i < weekSlots.length; i++) {
       if (i < budget) unlocked.add(i);
       if (weekSlots[i].isWeekCompleted && i < budget) budget++;
@@ -903,13 +910,6 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
     return unlocked;
   };
   const unlockedSet = getUnlocked();
-  // Group by week, with phase headers
-  const weeks = [];
-  for (let w = 1; w <= totalWeeks; w++) {
-    const wSlots = weekSlots.filter(s => s.week === w);
-    const phase = wSlots[0]?.phase || null;
-    weeks.push({ week: w, phaseWeek: wSlots[0]?.phaseWeek || w, phase, slots: wSlots });
-  }
   return (
     <div className="fade-in">
       <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>My Workouts</h1>
@@ -918,53 +918,36 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
-          {weeks.map((weekGroup, wi) => (
-            <div key={wi} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              {/* Phase header - show when first week of a new phase */}
-              {weekGroup.phase && weekGroup.phaseWeek === 1 && (
-                <div style={{ background: `linear-gradient(135deg, ${bc}22, ${bc}11)`, borderRadius: 18, padding: "18px 28px", marginBottom: 16, marginTop: wi > 0 ? 32 : 0, border: `2px solid ${bc}44`, textAlign: "center" }}>
-                  <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: bc, letterSpacing: 3 }}>{weekGroup.phase.toUpperCase()}</span>
-                </div>
-              )}
-              {/* Week header */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: (!weekGroup.phase || weekGroup.phaseWeek !== 1) && wi > 0 ? 20 : 8 }}>
-                <div style={{ height: 1, width: 40, background: C.border }} />
-                <span style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, color: bc, letterSpacing: 2, textTransform: "uppercase" }}>Week {weekGroup.phaseWeek || weekGroup.week}</span>
-                <div style={{ height: 1, width: 40, background: C.border }} />
-              </div>
-              {weekGroup.slots.map((slot, si) => {
-                const wDone = slot.isWeekCompleted;
-                const slotIdx = slot.slotIndex;
-                const isUnlocked = unlockedSet.has(slotIdx);
-                const isNext = !wDone && isUnlocked;
-                const isLocked = !isUnlocked && !wDone;
-                const nodeColor = wDone ? C.success : isNext ? bc : C.textDim;
-                const offset = slotIdx % 2 === 0 ? -40 : 40;
-                const xpVal = belt.xpPerWorkout || 200;
-                return (
-                  <div key={`${slot.id}-${slot.week}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: "100%" }}>
-                    {/* Dotted trail */}
-                    {slotIdx > 0 && (
-                      <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
-                        <path d={`M ${60 - offset} 0 Q 60 25 ${60 + offset} 50`} fill="none" stroke={weekCompletions.some(wc => wc.workout_id === weekSlots[slotIdx-1]?.id && wc.week_number === weekSlots[slotIdx-1]?.week) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
-                      </svg>
-                    )}
-                    <button onClick={() => !isLocked && onSelect(slot, slot.week)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${bc}11, ${bc}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${bc}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${bc}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
-                      <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? bc : C.bg, border: `2px solid ${wDone ? C.success : isNext ? bc : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${bc}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
-                        {wDone ? <span style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>✓</span> : isLocked ? <span style={{ fontSize: 18 }}>🔒</span> : <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: isNext ? "#fff" : C.textDim }}>{slot.originalIndex + 1}</span>}
-                      </div>
-                      <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: wDone ? C.success : isNext ? C.text : C.textDim, marginBottom: 4 }}>{slot.name}</p>
-                      <p style={{ fontSize: 11, color: C.textDim }}>{(slot.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p>
-                      <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, background: wDone ? C.successGlow : C.bg, padding: "3px 10px", borderRadius: 12, border: `1px solid ${wDone ? C.success + "33" : C.border}` }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: wDone ? C.success : "#22C55E" }}>+{xpVal} XP</span>
-                      </div>
-                      {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: bc, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
-                    </button>
+          {weekSlots.map((slot, si) => {
+            const wDone = slot.isWeekCompleted;
+            const slotIdx = slot.slotIndex;
+            const isUnlocked = unlockedSet.has(slotIdx);
+            const isNext = !wDone && isUnlocked;
+            const isLocked = !isUnlocked && !wDone;
+            const offset = slotIdx % 2 === 0 ? -40 : 40;
+            const xpVal = belt.xpPerWorkout || 200;
+            return (
+              <div key={`${slot.id}-${slot.week}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: "100%" }}>
+                {/* Dotted trail */}
+                {slotIdx > 0 && (
+                  <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
+                    <path d={`M ${60 - offset} 0 Q 60 25 ${60 + offset} 50`} fill="none" stroke={weekSlots[slotIdx-1]?.isWeekCompleted ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
+                  </svg>
+                )}
+                <button onClick={() => !isLocked && onSelect(slot, slot.week)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${bc}11, ${bc}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${bc}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${bc}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: wDone ? C.success : isNext ? bc : C.bg, border: `2px solid ${wDone ? C.success : isNext ? bc : C.border}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", boxShadow: isNext ? `0 0 16px ${bc}44` : wDone ? `0 0 16px ${C.success}33` : "none" }}>
+                    {wDone ? <span style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>✓</span> : isLocked ? <span style={{ fontSize: 18 }}>🔒</span> : <span style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: isNext ? "#fff" : C.textDim }}>{slot.displayNum}</span>}
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                  <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: wDone ? C.success : isNext ? C.text : C.textDim, marginBottom: 4 }}>Workout {slot.displayNum}</p>
+                  <p style={{ fontSize: 11, color: C.textDim }}>{(slot.cats||[]).reduce((s,c)=>s+(c.exercises||[]).length,0)} exercises</p>
+                  <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 4, background: wDone ? C.successGlow : C.bg, padding: "3px 10px", borderRadius: 12, border: `1px solid ${wDone ? C.success + "33" : C.border}` }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: wDone ? C.success : "#22C55E" }}>+{xpVal} XP</span>
+                  </div>
+                  {isNext && <div style={{ marginTop: 8, fontSize: 10, fontWeight: 700, color: bc, letterSpacing: 1, textTransform: "uppercase" }}>▶ START</div>}
+                </button>
+              </div>
+            );
+          })}
           {/* Final node: Level Up */}
           <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
             <path d={`M ${60 - (weekSlots.length % 2 === 0 ? -40 : 40)} 0 Q 60 25 60 50`} fill="none" stroke={weekSlots.every(s => s.isWeekCompleted) ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
@@ -1402,7 +1385,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
           </div>
         </div>
       )}
-      {weekNum && <p style={{ fontSize: 13, color: C.textDim, marginBottom: 24 }}>Week {weekNum}</p>}
+      {/* Workout number shown in header instead of week */}
       {(workout.cats || []).map(cat => (
         <div key={cat.id} style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -3191,40 +3174,52 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
   const [activeWeek, setActiveWeek] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
-  const totalWeeks = belt.phases ? belt.phases.reduce((s, p) => s + p.weeks, 0) : (belt.weeks || 1);
-  // Build virtual workout slots: supports phases (e.g. 3A/3B) or simple week cycling
-  const buildWeekSlots = () => {
+  // Build virtual workout slots: flat numbered list with repeating from DB workouts
+  const buildWorkoutSlots = () => {
     const bw = workoutsData || [];
+    if (bw.length === 0) return [];
     const slots = [];
-    if (belt.phases) {
-      // Phase-based belt (e.g. Purple with 3A and 3B)
-      let globalWeek = 1;
-      belt.phases.forEach(phase => {
-        const startIdx = phase.workoutStart || 0;
-        const phaseWorkouts = bw.slice(startIdx, startIdx + phase.workouts);
-        for (let week = 1; week <= phase.weeks; week++) {
-          for (let i = 0; i < phaseWorkouts.length; i++) {
-            const w = phaseWorkouts[i];
-            const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === globalWeek);
-            slots.push({ ...w, week: globalWeek, phaseWeek: week, phase: phase.name, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: i });
+    const total = belt.totalWorkouts || bw.length;
+
+    if (belt.repeatMap) {
+      // Phase-based repeat: e.g. Level 3 has 3A then 3B sections
+      belt.repeatMap.forEach(section => {
+        const sectionWorkouts = bw.slice(section.start, section.start + section.count);
+        if (sectionWorkouts.length === 0) return;
+        if (section.fill) {
+          // Repeat until we hit the fill target total
+          while (slots.length < section.fill) {
+            for (let i = 0; i < sectionWorkouts.length && slots.length < section.fill; i++) {
+              const w = sectionWorkouts[i];
+              const slotNum = slots.length + 1;
+              const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === slotNum);
+              slots.push({ ...w, week: slotNum, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: section.start + i, displayNum: slotNum });
+            }
           }
-          globalWeek++;
+        } else {
+          // Fixed repeat count
+          for (let r = 0; r < (section.repeat || 1); r++) {
+            for (let i = 0; i < sectionWorkouts.length; i++) {
+              const w = sectionWorkouts[i];
+              const slotNum = slots.length + 1;
+              const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === slotNum);
+              slots.push({ ...w, week: slotNum, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: section.start + i, displayNum: slotNum });
+            }
+          }
         }
       });
     } else {
-      // Simple cycling
-      const wpw = belt.workoutsPerWeek || bw.length || 3;
-      for (let week = 1; week <= totalWeeks; week++) {
-        for (let i = 0; i < Math.min(wpw, bw.length); i++) {
-          const w = bw[i % bw.length];
-          const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === week);
-          slots.push({ ...w, week, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: i });
-        }
+      // Simple cycling: e.g. Level 1 has 3 workouts cycling to 21
+      for (let n = 0; n < total; n++) {
+        const w = bw[n % bw.length];
+        const slotNum = n + 1;
+        const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === slotNum);
+        slots.push({ ...w, week: slotNum, slotIndex: n, isWeekCompleted: isCompleted, originalIndex: n % bw.length, displayNum: slotNum });
       }
     }
     return slots;
   };
-  const weekSlots = buildWeekSlots();
+  const weekSlots = buildWorkoutSlots();
   const totalWeekCompletions = weekCompletions.length;
   useEffect(() => {
     (async () => {
