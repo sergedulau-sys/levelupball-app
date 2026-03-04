@@ -892,20 +892,9 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 // ============================================================
 // WORKOUTS LIST — #3 numbered, #4/#6 show completion status
 // ============================================================
-function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile, trialMode }) {
+function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile, trialMode, onShowGuide }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
-  const [showGuide, setShowGuide] = useState(false);
-
-  // Workout guide content per level
-  const guideContent = {
-    white: { title: "Level 1", desc: "Level 1 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 1." },
-    blue: { title: "Level 2", desc: "Level 2 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 2." },
-    purple: { title: "Level 3", desc: "Level 3 has two sub-levels (3A and 3B). Each sub-level is made up of 12 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 3." },
-    brown: { title: "Level 4", desc: "Level 4 has two sub-levels (4A and 4B). Each sub-level is made up of 16 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 4." },
-    black: { title: "Level 5", desc: "Level 5 has two sub-levels (5A and 5B). Each sub-level is made up of 20 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 5." },
-  };
-  const guide = guideContent[belt.id] || guideContent.white;
   // Rolling unlock: first workout unlocked, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
@@ -925,63 +914,13 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
     <div className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>My Workouts</h1>
-        <button onClick={() => setShowGuide(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
+        <button onClick={onShowGuide} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
           <span style={{ fontSize: 15 }}>📖</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>Workout Guide</span>
         </button>
       </div>
       <p style={{ fontSize: 13, color: C.textDim, marginBottom: 32 }}>Complete each workout to progress</p>
 
-      {/* Workout Guide Modal */}
-      {showGuide && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowGuide(false)}>
-          <div className="fade-in" style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: "#ffffff", borderRadius: 24, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#111" }}>📖 Workout Guide</h2>
-              <button onClick={() => setShowGuide(false)} style={{ background: "#eee", border: "none", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 18, cursor: "pointer" }}>✕</button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Level description */}
-              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>{guide.title}</h3>
-                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>{guide.desc}</p>
-                <p style={{ fontSize: 13, color: C.accent, lineHeight: 1.7, marginTop: 8, fontWeight: 600 }}>{guide.freq}</p>
-              </div>
-
-              {/* Supersets */}
-              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>⚡ Supersets</h3>
-                <img src="https://i.imgur.com/DX6YyMX.png" alt="Superset example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
-                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>Supersets group multiple drills together that you do back-to-back without rest in between. Complete all the drills in the superset, then take the rest time shown before starting the next round.</p>
-              </div>
-
-              {/* Moving/Dribbling drills */}
-              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>🏀 Moving Dribbling Drills</h3>
-                <img src="https://i.imgur.com/54z1qYE.png" alt="Moving drills example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
-                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>Each moving drill tells you whether to go full court and back or half court and back — the last drill in the superset includes a rest period before repeating. Complete the entire group of drills for the number of rounds shown, then move on to the next section.</p>
-              </div>
-
-              {/* Challenge drills */}
-              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>⭐ Challenge Drills</h3>
-                <img src="https://i.imgur.com/3UO3bzU.png" alt="Challenge drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
-                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>After a challenge drill, enter how many reps you completed in the given time — the next time you do that workout, it will show your personal record so you can try to beat it.</p>
-              </div>
-
-              {/* Shooting & Finishing drills */}
-              <div style={{ background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>🎯 Shooting & Finishing Drills</h3>
-                <img src="https://i.imgur.com/jQzVtYM.png" alt="Shooting drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" }} />
-                <p style={{ fontSize: 13, color: "#444", lineHeight: 1.7 }}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
-              </div>
-            </div>
-
-            <button onClick={() => setShowGuide(false)} style={{ width: "100%", background: "linear-gradient(135deg, #F97316, #EA580C)", color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
-          </div>
-        </div>
-      )}
 
       {weekSlots.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
@@ -3243,6 +3182,64 @@ function StudentMessages({ token, profile, trialMode }) {
 // ============================================================
 // STUDENT LAYOUT
 // ============================================================
+// ============================================================
+// WORKOUT GUIDE MODAL — standalone component
+// ============================================================
+const GUIDE_CONTENT = {
+  white: { title: "Level 1", desc: "Level 1 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 1." },
+  blue: { title: "Level 2", desc: "Level 2 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 2." },
+  purple: { title: "Level 3", desc: "Level 3 has two sub-levels (3A and 3B). Each sub-level is made up of 12 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 3." },
+  brown: { title: "Level 4", desc: "Level 4 has two sub-levels (4A and 4B). Each sub-level is made up of 16 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 4." },
+  black: { title: "Level 5", desc: "Level 5 has two sub-levels (5A and 5B). Each sub-level is made up of 20 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 5." },
+};
+
+function WorkoutGuideModal({ beltId, onClose }) {
+  const guide = GUIDE_CONTENT[beltId] || GUIDE_CONTENT.white;
+  const sectionStyle = { background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" };
+  const headingStyle = { fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: "#F97316", marginBottom: 8 };
+  const textStyle = { fontSize: 13, color: "#444", lineHeight: 1.7 };
+  const imgStyle = { width: "100%", borderRadius: 10, marginBottom: 10, border: "1px solid #ddd" };
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
+      <div style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: "#ffffff", borderRadius: 24, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} onClick={function(e) { e.stopPropagation(); }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#111" }}>📖 Workout Guide</h2>
+          <button onClick={onClose} style={{ background: "#eee", border: "none", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 18, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>{guide.title}</h3>
+            <p style={textStyle}>{guide.desc}</p>
+            <p style={{ fontSize: 13, color: "#F97316", lineHeight: 1.7, marginTop: 8, fontWeight: 600 }}>{guide.freq}</p>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>⚡ Supersets</h3>
+            <img src="https://i.imgur.com/DX6YyMX.png" alt="Superset example" style={imgStyle} />
+            <p style={textStyle}>Supersets group multiple drills together that you do back-to-back without rest in between. Complete all the drills in the superset, then take the rest time shown before starting the next round.</p>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>🏀 Moving Dribbling Drills</h3>
+            <img src="https://i.imgur.com/54z1qYE.png" alt="Moving drills example" style={imgStyle} />
+            <p style={textStyle}>Each moving drill tells you whether to go full court and back or half court and back — the last drill in the superset includes a rest period before repeating. Complete the entire group of drills for the number of rounds shown, then move on to the next section.</p>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>⭐ Challenge Drills</h3>
+            <img src="https://i.imgur.com/3UO3bzU.png" alt="Challenge drill example" style={imgStyle} />
+            <p style={textStyle}>After a challenge drill, enter how many reps you completed in the given time — the next time you do that workout, it will show your personal record so you can try to beat it.</p>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>🎯 Shooting & Finishing Drills</h3>
+            <img src="https://i.imgur.com/jQzVtYM.png" alt="Shooting drill example" style={imgStyle} />
+            <p style={textStyle}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
+          </div>
+        </div>
+        <button onClick={onClose} style={{ width: "100%", background: "linear-gradient(135deg, #F97316, #EA580C)", color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
+      </div>
+    </div>
+  );
+}
+
 function StudentLayout({ profile, token, onLogout, trialMode }) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [workoutsData, setWorkoutsData] = useState([]);
@@ -3253,6 +3250,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [activeWeek, setActiveWeek] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [showWorkoutGuide, setShowWorkoutGuide] = useState(false);
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
   // Build virtual workout slots: flat numbered list with repeating from DB workouts
   const buildWorkoutSlots = () => {
@@ -3401,7 +3399,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
                 </div>
               </div>
               {activeTab === "workouts" ? (
-                <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} />
+                <WorkoutsList workoutsData={workoutsData} completedIds={completedIds} completedWorkoutIds={completedWorkoutIds} weekSlots={weekSlots} weekCompletions={weekCompletions} onSelect={(w, week) => { setActiveWorkout(w); setActiveWeek(week); }} profile={profile} trialMode={trialMode} onShowGuide={() => setShowWorkoutGuide(true)} />
               ) : (
                 <QuickSessions token={token} profile={profile} trialMode={trialMode} challengeResults={challengeResults} onSaveChallengeResult={saveChallengeResult} />
               )}
@@ -3417,6 +3415,8 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
           ) : null}
         </main>
       </div>
+      {/* Workout Guide Modal — rendered at top level so nothing can block it */}
+      {showWorkoutGuide && <WorkoutGuideModal beltId={belt.id} onClose={() => setShowWorkoutGuide(false)} />}
     </>
   );
 }
