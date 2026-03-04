@@ -923,7 +923,16 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
       <p style={{ fontSize: 13, color: C.textDim, marginBottom: 32 }}>Complete each workout to progress</p>
 
       {/* Workout Guide Modal */}
-      {showGuide && (
+      {showGuide && (() => {
+        const levelGuides = {
+          white: { title: "Level 1", desc: "Level 1 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 1." },
+          blue: { title: "Level 2", desc: "Level 2 has 3 workouts which alternate. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-5 days per week on Level 2." },
+          purple: { title: "Level 3", desc: "Level 3 has two sub-levels (3A and 3B). Each sub-level is made up of 12 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 3." },
+          brown: { title: "Level 4", desc: "Level 4 has two sub-levels (4A and 4B). Each sub-level is made up of 16 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 4." },
+          black: { title: "Level 5", desc: "Level 5 has two sub-levels (5A and 5B). Each sub-level is made up of 20 workouts. As soon as you receive enough points, you can submit your videos to level up. If your level up submission is denied, keep completing the workouts down the path until you get enough points to submit videos again.", freq: "We recommend training 3-6 days per week on Level 5." },
+        };
+        const guide = levelGuides[belt.id] || levelGuides.white;
+        return (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }} onClick={() => setShowGuide(false)}>
           <div className="fade-in" style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: C.surface, borderRadius: 24, border: `1px solid ${C.border}`, padding: 28 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
@@ -932,31 +941,47 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Level description - changes per belt */}
               <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>How It Works</h3>
-                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Each workout is a full training session with video demonstrations for every drill. Just press play and follow along — the app guides you through every rep with built-in timers.</p>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>{guide.title}</h3>
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>{guide.desc}</p>
+                <p style={{ fontSize: 13, color: C.accent, lineHeight: 1.7, marginTop: 8, fontWeight: 600 }}>{guide.freq}</p>
               </div>
 
+              {/* Supersets */}
               <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Workout Progression</h3>
-                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Workouts unlock one at a time. Complete the current workout to unlock the next one. You'll notice the same workouts repeat — this is intentional! Repetition is how skills become automatic. Each time you do a workout, push yourself to be sharper and faster than the last time.</p>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>⚡ Supersets</h3>
+                <img src="https://i.imgur.com/DX6YyMX.png" alt="Superset example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid ${C.border}` }} />
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Supersets group multiple drills together that you do back-to-back without rest in between. Complete all the drills in the superset, then take the rest time shown before starting the next round.</p>
               </div>
 
+              {/* Moving/Dribbling drills */}
               <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Earning XP</h3>
-                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Every completed workout earns you {belt.xpPerWorkout || 200} XP. Once you hit your XP goal, you unlock the Level Up Test where you submit videos of yourself performing drills for coach review.</p>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>🏀 Moving Dribbling Drills</h3>
+                <img src="https://i.imgur.com/54z1qYE.png" alt="Moving drills example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid ${C.border}` }} />
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Each moving drill tells you whether to go full court and back or half court and back — the last drill in the superset includes a rest period before repeating. Complete the entire group of drills for the number of rounds shown, then move on to the next section.</p>
               </div>
 
+              {/* Challenge drills */}
               <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
-                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Training Tips</h3>
-                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Aim for 3-6 training days per week. Focus on quality over speed — do each drill with proper form. If a drill feels easy, challenge yourself to go faster or add more intensity.</p>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>⭐ Challenge Drills</h3>
+                <img src="https://i.imgur.com/3UO3bzU.png" alt="Challenge drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid ${C.border}` }} />
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>After a challenge drill, enter how many reps you completed in the given time — the next time you do that workout, it will show your personal record so you can try to beat it.</p>
+              </div>
+
+              {/* Shooting & Finishing drills */}
+              <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>🎯 Shooting & Finishing Drills</h3>
+                <img src="https://i.imgur.com/jQzVtYM.png" alt="Shooting drill example" style={{ width: "100%", borderRadius: 10, marginBottom: 10, border: `1px solid ${C.border}` }} />
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
               </div>
             </div>
 
             <button onClick={() => setShowGuide(false)} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {weekSlots.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
