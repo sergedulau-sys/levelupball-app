@@ -895,14 +895,16 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile, trialMode, onShowGuide }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
-  // Rolling unlock: first workout unlocked, then 1 unlocks per completion
+  // Rolling unlock: first cycle of DB workouts unlocked, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
     if (trialMode) {
       if (weekSlots.length > 0) unlocked.add(0);
       return unlocked;
     }
-    let budget = 1; // start with first workout unlocked
+    // First batch = number of unique DB workouts in the first section
+    const firstBatch = belt.repeatMap ? belt.repeatMap[0].count : (belt.dbWorkouts || 3);
+    let budget = firstBatch; // unlock the first full set of unique workouts
     for (let i = 0; i < weekSlots.length; i++) {
       if (i < budget) unlocked.add(i);
       if (weekSlots[i].isWeekCompleted && i < budget) budget++;
@@ -1388,22 +1390,12 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
         <h1 style={{ fontFamily: DISPLAY, fontSize: 26, fontWeight: 800, letterSpacing: -0.5 }}>{workout.name}</h1>
         <div style={{ display: "flex", gap: 8 }}>
           {WORKOUT_GUIDE_URL && <button onClick={() => setShowGuide(true)} style={{ background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>📖 WORKOUT GUIDE</button>}
+          <button onClick={() => setShowGuide(true)} style={{ background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>📖 GUIDE</button>
           {!isWorkoutDone && <button onClick={() => setFollowAlong(true)} style={{ background: `linear-gradient(135deg, ${(BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0]).color}, ${(BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0]).color}CC)`, border: "none", borderRadius: 12, padding: "10px 18px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>▶ FOLLOW ALONG</button>}
         </div>
       </div>
       {/* Workout Guide Modal */}
-      {showGuide && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(8px)" }} onClick={() => setShowGuide(false)}>
-          <div className="fade-in" style={{ background: C.surface, borderRadius: 20, padding: 24, maxWidth: 640, width: "100%", border: "1px solid " + C.border }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h2 style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800 }}>📖 Workout Guide</h2>
-              <button onClick={() => setShowGuide(false)} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 22, cursor: "pointer" }}>✕</button>
-            </div>
-            <VideoPlayer url={WORKOUT_GUIDE_URL} />
-            <p style={{ color: C.textDim, fontSize: 13, marginTop: 12, textAlign: "center" }}>Watch this guide to learn how to get the most out of your workouts.</p>
-          </div>
-        </div>
-      )}
+      {showGuide && <WorkoutGuideModal beltId={profile?.belt_id || "white"} onClose={() => setShowGuide(false)} />}
       {/* Workout number shown in header instead of week */}
       {(workout.cats || []).map(cat => (
         <div key={cat.id} style={{ marginBottom: 24 }}>
@@ -3231,7 +3223,7 @@ function WorkoutGuideModal({ beltId, onClose }) {
           <div style={sectionStyle}>
             <h3 style={headingStyle}>🎯 Shooting & Finishing Drills</h3>
             <img src="https://i.imgur.com/jQzVtYM.png" alt="Shooting drill example" style={imgStyle} />
-            <p style={textStyle}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
+            <p style={textStyle}>Each shooting or finishing drill has a set number of reps, and most drills are done on both sides which the app will tell you. For example, if a drill says "8 reps on each side" that means 8 on the right and 8 on the left for 16 total. Complete all your reps, then rest for the time shown before moving on to the next drill.</p>
           </div>
         </div>
         <button onClick={onClose} style={{ width: "100%", background: "linear-gradient(135deg, #F97316, #EA580C)", color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
