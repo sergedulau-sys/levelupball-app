@@ -84,18 +84,18 @@ const BELT_LEVELS = [
   { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, totalWorkouts: 27, dbWorkouts: 3, code: "BLUE2026" },
   // Level 3: 8 DB workouts → 3A(1-4 x3=12) + 3B(5-8 x3=12) + repeat 3B to 40
   { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, totalWorkouts: 40, repeatMap: [
-    { start: 0, count: 4, repeat: 3 },  // 3A: workouts 1-4, 3 times = 12
-    { start: 4, count: 4, fill: 40 },    // 3B: workouts 5-8, repeat until 40
+    { start: 0, count: 4, repeat: 3, label: "Level 3A" },  // 3A: workouts 1-4, 3 times = 12
+    { start: 4, count: 4, fill: 40, label: "Level 3B" },    // 3B: workouts 5-8, repeat until 40
   ], code: "PURPLE2026" },
   // Level 4: 8 DB workouts → 4A(1-4 x4=16) + 4B(5-8 x4=16) + repeat 4B to 50
   { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, totalWorkouts: 50, repeatMap: [
-    { start: 0, count: 4, repeat: 4 },  // 4A: workouts 1-4, 4 times = 16
-    { start: 4, count: 4, fill: 50 },    // 4B: workouts 5-8, repeat until 50
+    { start: 0, count: 4, repeat: 4, label: "Level 4A" },  // 4A: workouts 1-4, 4 times = 16
+    { start: 4, count: 4, fill: 50, label: "Level 4B" },    // 4B: workouts 5-8, repeat until 50
   ], code: "BROWN2026" },
   // Level 5: 10 DB workouts → 5A(1-5 x8=40) + 5B(6-10 x8=40) = 80
   { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, totalWorkouts: 80, repeatMap: [
-    { start: 0, count: 5, repeat: 8 },  // 5A: workouts 1-5, 8 times = 40
-    { start: 5, count: 5, repeat: 8 },  // 5B: workouts 6-10, 8 times = 40
+    { start: 0, count: 5, repeat: 8, label: "Level 5A" },  // 5A: workouts 1-5, 8 times = 40
+    { start: 5, count: 5, repeat: 8, label: "Level 5B" },  // 5B: workouts 6-10, 8 times = 40
   ], code: "BLACK2026" },
 ];
 const C = {
@@ -895,6 +895,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
 function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlots, weekCompletions, onSelect, profile, trialMode }) {
   const belt = BELT_LEVELS.find(b => b.id === profile?.belt_id) || BELT_LEVELS[0];
   const bc = belt.color;
+  const [showGuide, setShowGuide] = useState(false);
   // Rolling unlock: first workout unlocked, then 1 unlocks per completion
   const getUnlocked = () => {
     const unlocked = new Set();
@@ -912,8 +913,51 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
   const unlockedSet = getUnlocked();
   return (
     <div className="fade-in">
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>My Workouts</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>My Workouts</h1>
+        <button onClick={() => setShowGuide(true)} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "7px 14px", cursor: "pointer", fontFamily: FONTS }}>
+          <span style={{ fontSize: 13 }}>📖</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444" }}>Workout Guide</span>
+        </button>
+      </div>
       <p style={{ fontSize: 13, color: C.textDim, marginBottom: 32 }}>Complete each workout to progress</p>
+
+      {/* Workout Guide Modal */}
+      {showGuide && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, backdropFilter: "blur(6px)" }} onClick={() => setShowGuide(false)}>
+          <div className="fade-in" style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: C.surface, borderRadius: 24, border: `1px solid ${C.border}`, padding: 28 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800 }}>📖 Workout Guide</h2>
+              <button onClick={() => setShowGuide(false)} style={{ background: C.surfaceHover, border: `1px solid ${C.border}`, borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: C.textMuted, fontSize: 18, cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>How It Works</h3>
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Each workout is a full training session with video demonstrations for every drill. Just press play and follow along — the app guides you through every rep with built-in timers.</p>
+              </div>
+
+              <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Workout Progression</h3>
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Workouts unlock one at a time. Complete the current workout to unlock the next one. You'll notice the same workouts repeat — this is intentional! Repetition is how skills become automatic. Each time you do a workout, push yourself to be sharper and faster than the last time.</p>
+              </div>
+
+              <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Earning XP</h3>
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Every completed workout earns you {belt.xpPerWorkout || 200} XP. Once you hit your XP goal, you unlock the Level Up Test where you submit videos of yourself performing drills for coach review.</p>
+              </div>
+
+              <div style={{ background: C.bg, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
+                <h3 style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.accent, marginBottom: 8 }}>Training Tips</h3>
+                <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7 }}>Aim for 3-6 training days per week. Focus on quality over speed — do each drill with proper form. If a drill feels easy, challenge yourself to go faster or add more intensity.</p>
+              </div>
+            </div>
+
+            <button onClick={() => setShowGuide(false)} style={{ width: "100%", background: `linear-gradient(135deg, ${belt.color}, ${belt.color}CC)`, color: belt.id === "white" ? "#111" : "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
+          </div>
+        </div>
+      )}
+
       {weekSlots.length === 0 ? (
         <div style={{ background: C.surface, borderRadius: 20, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}><div style={{ fontSize: 40, marginBottom: 12 }}>📋</div><p style={{ color: C.textMuted }}>No workouts assigned yet</p></div>
       ) : (
@@ -928,10 +972,21 @@ function WorkoutsList({ workoutsData, completedIds, completedWorkoutIds, weekSlo
             const xpVal = belt.xpPerWorkout || 200;
             return (
               <div key={`${slot.id}-${slot.week}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", width: "100%" }}>
+                {/* Phase header — show at transition between A and B */}
+                {slot.phaseStart && slot.phaseLabel && (
+                  <div style={{ background: `linear-gradient(135deg, ${bc}22, ${bc}11)`, borderRadius: 18, padding: "14px 24px", marginBottom: 16, marginTop: slotIdx > 0 ? 24 : 0, border: `2px solid ${bc}44`, textAlign: "center" }}>
+                    <span style={{ fontFamily: DISPLAY, fontSize: 16, fontWeight: 800, color: bc, letterSpacing: 3 }}>{slot.phaseLabel.toUpperCase()}</span>
+                  </div>
+                )}
                 {/* Dotted trail */}
-                {slotIdx > 0 && (
+                {slotIdx > 0 && !slot.phaseStart && (
                   <svg width="120" height="50" viewBox="0 0 120 50" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
                     <path d={`M ${60 - offset} 0 Q 60 25 ${60 + offset} 50`} fill="none" stroke={weekSlots[slotIdx-1]?.isWeekCompleted ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
+                  </svg>
+                )}
+                {slotIdx > 0 && slot.phaseStart && (
+                  <svg width="120" height="30" viewBox="0 0 120 30" style={{ position: "relative", marginBottom: -4, marginTop: -4 }}>
+                    <path d={`M 60 0 L 60 30`} fill="none" stroke={weekSlots[slotIdx-1]?.isWeekCompleted ? C.success : C.border} strokeWidth="2" strokeDasharray="6 4" strokeLinecap="round" />
                   </svg>
                 )}
                 <button onClick={() => !isLocked && onSelect(slot, slot.week)} style={{ position: "relative", transform: `translateX(${offset}px)`, background: wDone ? `linear-gradient(135deg, ${C.success}11, ${C.success}08)` : isNext ? `linear-gradient(135deg, ${bc}11, ${bc}08)` : C.surface, border: wDone ? `2px solid ${C.success}44` : isNext ? `2px solid ${bc}66` : `1px solid ${C.border}`, borderRadius: 20, padding: "16px 24px", cursor: isLocked ? "default" : "pointer", textAlign: "center", width: 220, fontFamily: FONTS, transition: "all 0.2s", opacity: isLocked ? 0.5 : 1, boxShadow: isNext ? `0 4px 20px ${bc}22` : wDone ? `0 4px 20px ${C.success}11` : "none" }}>
@@ -3186,6 +3241,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
       belt.repeatMap.forEach(section => {
         const sectionWorkouts = bw.slice(section.start, section.start + section.count);
         if (sectionWorkouts.length === 0) return;
+        const sectionStartIdx = slots.length; // mark where this section begins
         if (section.fill) {
           // Repeat until we hit the fill target total
           while (slots.length < section.fill) {
@@ -3193,7 +3249,7 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
               const w = sectionWorkouts[i];
               const slotNum = slots.length + 1;
               const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === slotNum);
-              slots.push({ ...w, week: slotNum, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: section.start + i, displayNum: slotNum });
+              slots.push({ ...w, week: slotNum, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: section.start + i, displayNum: slotNum, phaseLabel: section.label || null, phaseStart: slots.length === sectionStartIdx });
             }
           }
         } else {
@@ -3203,10 +3259,12 @@ function StudentLayout({ profile, token, onLogout, trialMode }) {
               const w = sectionWorkouts[i];
               const slotNum = slots.length + 1;
               const isCompleted = weekCompletions.some(wc => wc.workout_id === w.id && wc.week_number === slotNum);
-              slots.push({ ...w, week: slotNum, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: section.start + i, displayNum: slotNum });
+              slots.push({ ...w, week: slotNum, slotIndex: slots.length, isWeekCompleted: isCompleted, originalIndex: section.start + i, displayNum: slotNum, phaseLabel: section.label || null, phaseStart: slots.length === sectionStartIdx });
             }
           }
         }
+        // Mark the first slot of this section
+        if (slots.length > sectionStartIdx) slots[sectionStartIdx].phaseStart = true;
       });
     } else {
       // Simple cycling: e.g. Level 1 has 3 workouts cycling to 21
