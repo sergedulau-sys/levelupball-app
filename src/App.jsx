@@ -1204,7 +1204,7 @@ function FollowAlongMode({ workout, weekNum, completedIds, onToggle, challengeRe
         {ex.instructions && phase === "show" && (
           <div style={{ background: "#111", borderRadius: 12, padding: 14, marginBottom: 16, width: "100%", maxWidth: 400, border: "1px solid #222" }}>
             <p style={{ fontSize: 9, color: C.accent, letterSpacing: 1, marginBottom: 4 }}>INSTRUCTIONS</p>
-            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{ex.instructions}</p>
+            <p style={{ fontSize: 14, color: "#fff", fontWeight: 500, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{ex.instructions}</p>
           </div>
         )}
         {/* PHASE: Show - waiting to start */}
@@ -1337,7 +1337,7 @@ function WorkoutView({ workout, weekNum, onBack, completedIds, onToggle, token, 
                   {open && (
                     <div style={{ padding: "0 16px 14px" }} className="fade-in">
                       <VideoPlayer url={ex.video_url} />
-                      {ex.instructions && (<div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instructions</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ex.instructions}</p></div>)}
+                      {ex.instructions && (<div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Instructions</p><p style={{ color: "#fff", fontSize: 14, fontWeight: 500, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{ex.instructions}</p></div>)}
                       {ex.image_url && <img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10, border: `1px solid ${C.border}` }} />}
                       <div style={{ display: "grid", gridTemplateColumns: `repeat(${[!ex.hide_sets, !ex.hide_reps, (ex.time_seconds || 0) > 0 && !ex.hide_time, showRest && !ex.hide_rest].filter(Boolean).length || 1}, 1fr)`, gap: 8, marginTop: 10 }}>
                         {[!ex.hide_sets && ["Sets", ex.sets], !ex.hide_reps && ["Reps", ex.both_sides ? ex.reps + " each side" : ex.reps], (ex.time_seconds || 0) > 0 && !ex.hide_time && ["Time", ex.time_seconds + "s"], showRest && !ex.hide_rest && ["Rest", ex.rest_seconds + "s"]].filter(Boolean).map(([l, v]) => (<div key={l} style={{ background: C.bg, borderRadius: 10, padding: 10, textAlign: "center", border: `1px solid ${C.border}` }}><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.accent }}>{v}</p><p style={{ fontSize: 9, color: C.textDim, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>{l}</p></div>))}
