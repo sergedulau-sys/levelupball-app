@@ -271,26 +271,26 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
     },
     {
       id: "q3", label: "Which example looks most like your player? (Dribbling)",
-      options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
+      options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Being Updated", "Example E – Level 5"],
       scores: [1, 2, 3, 4, 5],
       videos: [
         "https://youtu.be/Zg-knUYZZJc",
-        "https://youtu.be/KYX6VmdeLvI",
         "https://youtu.be/2JrrrFtUrzY",
         "https://youtu.be/9jGcwJqKrqk",
-        "https://youtu.be/qbXax7D-CRs",
+        "",
+        "https://youtu.be/2euD9OIQvwo",
       ],
     },
     {
       id: "q4", label: "Which example looks most like your player? (Finishing)",
-      options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
+      options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Being Updated", "Example E – Level 5"],
       scores: [1, 2, 3, 4, 5],
       videos: [
         "https://youtu.be/IswbFmpOR7E",
-        "https://youtu.be/33Luz0FA9m0",
         "https://youtu.be/8WDtkeqWy-k",
         "https://youtu.be/3UtDlQGitLY",
-        "https://youtu.be/13IOpJqudR8",
+        "",
+        "https://youtu.be/Snf2DB1312s",
       ],
     },
   ];
