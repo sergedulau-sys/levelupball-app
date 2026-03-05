@@ -79,16 +79,16 @@ const supabase = {
 // ============================================================
 const BELT_LEVELS = [
   // Level 1: 3 DB workouts, cycle to 21 total
-  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, totalWorkouts: 21, dbWorkouts: 3, code: "WHITE2026" },
+  { id: "white", name: "White Belt", color: "#E0E0E0", bg: "rgba(224,224,224,0.08)", tc: "#333", level: 1, xpPerWorkout: 200, xpGoal: 1000, resubmitXp: 600, totalWorkouts: 21, dbWorkouts: 3, code: "WHITE2026" },
   // Level 2: 3 DB workouts, cycle to 27 total
-  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, totalWorkouts: 27, dbWorkouts: 3, code: "BLUE2026" },
+  { id: "blue", name: "Blue Belt", color: "#3B82F6", bg: "rgba(59,130,246,0.08)", tc: "#fff", level: 2, xpPerWorkout: 200, xpGoal: 1600, resubmitXp: 1200, totalWorkouts: 27, dbWorkouts: 3, code: "BLUE2026" },
   // Level 3: 8 DB workouts → 3A(1-4 x3=12) + 3B(5-8 x3=12) + repeat 3B to 40
-  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, totalWorkouts: 40, repeatMap: [
+  { id: "purple", name: "Purple Belt", color: "#A855F7", bg: "rgba(168,85,247,0.08)", tc: "#fff", level: 3, xpPerWorkout: 200, xpGoal: 3200, resubmitXp: 1600, totalWorkouts: 40, repeatMap: [
     { start: 0, count: 4, repeat: 3, label: "Level 3A" },  // 3A: workouts 1-4, 3 times = 12
     { start: 4, count: 4, fill: 40, label: "Level 3B" },    // 3B: workouts 5-8, repeat until 40
   ], code: "PURPLE2026" },
   // Level 4: 8 DB workouts → 4A(1-4 x4=16) + 4B(5-8 x4=16) + repeat 4B to 50
-  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, totalWorkouts: 50, repeatMap: [
+  { id: "brown", name: "Brown Belt", color: "#A16207", bg: "rgba(161,98,7,0.08)", tc: "#fff", level: 4, xpPerWorkout: 200, xpGoal: 5200, resubmitXp: 2000, totalWorkouts: 50, repeatMap: [
     { start: 0, count: 4, repeat: 4, label: "Level 4A" },  // 4A: workouts 1-4, 4 times = 16
     { start: 4, count: 4, fill: 50, label: "Level 4B" },    // 4B: workouts 5-8, repeat until 50
   ], code: "BROWN2026" },
@@ -2494,19 +2494,44 @@ function AdminSubmissions({ token }) {
   };
   if (loading) return <p style={{ color: "#555", fontSize: 12 }}>Loading submissions...</p>;
   if (subs.length === 0) return <p style={{ color: "#555", fontSize: 12 }}>No submissions yet.</p>;
-  return subs.map(s => {
+  // Group by belt
+  const grouped = {};
+  BELT_LEVELS.forEach(b => { grouped[b.id] = []; });
+  subs.forEach(s => {
     const author = profiles[s.student_id];
-    return (
-      <div key={s.id} style={{ background: "#0a0a0a", borderRadius: 10, border: "1px solid #222", marginBottom: 8, padding: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div><span style={{ fontFamily: F, fontSize: 13, color: "#fff", fontWeight: 600 }}>{author?.full_name || "Unknown"}</span><span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>{new Date(s.created_at).toLocaleDateString()}</span></div>
-          <button onClick={() => deleteSub(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "3px 10px", color: "#ff4444", fontSize: 10, cursor: "pointer", fontFamily: F }}>DELETE</button>
-        </div>
-        <div style={{ borderRadius: 10, overflow: "hidden" }}><VideoPlayer url={s.video_url} /></div>
-        {s.caption && <p style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{s.caption}</p>}
-      </div>
-    );
+    const beltId = author?.belt_id || "white";
+    if (!grouped[beltId]) grouped[beltId] = [];
+    grouped[beltId].push(s);
   });
+  return (
+    <div>
+      {BELT_LEVELS.map(b => {
+        const beltSubs = grouped[b.id] || [];
+        if (beltSubs.length === 0) return null;
+        return (
+          <div key={b.id} style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <BeltBadge beltId={b.id} size="sm" />
+              <span style={{ fontSize: 12, color: "#888" }}>{beltSubs.length} submission{beltSubs.length !== 1 ? "s" : ""}</span>
+            </div>
+            {beltSubs.map(s => {
+              const author = profiles[s.student_id];
+              return (
+                <div key={s.id} style={{ background: "#0a0a0a", borderRadius: 10, border: "1px solid #222", marginBottom: 8, padding: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div><span style={{ fontFamily: F, fontSize: 13, color: "#fff", fontWeight: 600 }}>{author?.full_name || "Unknown"}</span><span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>{new Date(s.created_at).toLocaleDateString()}</span></div>
+                    <button onClick={() => deleteSub(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 6, padding: "3px 10px", color: "#ff4444", fontSize: 10, cursor: "pointer", fontFamily: F }}>DELETE</button>
+                  </div>
+                  <div style={{ borderRadius: 10, overflow: "hidden" }}><VideoPlayer url={s.video_url} /></div>
+                  {s.caption && <p style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{s.caption}</p>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 // ============================================================
 // ADMIN: MESSAGES
@@ -3816,6 +3841,14 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
   const currentXp = wDone * (belt.xpPerWorkout || 200);
   const xpGoal = belt.xpGoal || 1000;
   const xpUnlocked = currentXp >= xpGoal;
+  // Resubmit XP check — after denial, student must earn more XP before resubmitting
+  const denialWorkoutCount = profile?.denial_workout_count;
+  const wasDenied = denialWorkoutCount !== null && denialWorkoutCount !== undefined;
+  const resubmitXpNeeded = belt.resubmitXp || 600;
+  const xpSinceDenial = wasDenied ? Math.max(0, (wDone - denialWorkoutCount)) * (belt.xpPerWorkout || 200) : 0;
+  const resubmitUnlocked = !wasDenied || xpSinceDenial >= resubmitXpNeeded;
+  // Combined unlock: first time needs xpGoal, after denial needs resubmitXp earned since denial
+  const canSubmit = xpUnlocked && resubmitUnlocked;
   useEffect(() => {
     (async () => {
       try {
@@ -3920,7 +3953,47 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
           <p style={{ color: C.textMuted }}>No level up drills set for your belt yet</p>
           <p style={{ color: C.textDim, fontSize: 13, marginTop: 4 }}>Your coach will add them soon!</p>
         </div>
-      ) : Object.entries(categories).map(([catName, catDrills]) => (
+      ) : (() => {
+        // Check if any submission was denied
+        const anyRejected = Object.values(submissions).some(s => s.status === "rejected");
+        const rejectionNote = Object.values(submissions).find(s => s.status === "rejected" && s.admin_note)?.admin_note;
+        return (
+          <div>
+            {anyRejected && (
+              <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 16, padding: 20, border: `1.5px solid ${C.danger}33`, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 24 }}>❌</span>
+                  <div>
+                    <p style={{ fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: C.danger }}>Submission Denied</p>
+                    <p style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Review the feedback below. You need to earn more XP before you can resubmit.</p>
+                  </div>
+                </div>
+                {rejectionNote && (
+                  <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.danger}22` }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: C.danger, letterSpacing: 1, marginBottom: 4 }}>COACH FEEDBACK</p>
+                    <p style={{ fontSize: 14, color: "#fff", fontWeight: 500, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{rejectionNote}</p>
+                  </div>
+                )}
+                {wasDenied && !resubmitUnlocked && (
+                  <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: C.textDim, letterSpacing: 1 }}>RESUBMIT PROGRESS</p>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{xpSinceDenial}/{resubmitXpNeeded} XP</p>
+                    </div>
+                    <div style={{ height: 6, background: C.border, borderRadius: 3 }}>
+                      <div style={{ height: "100%", width: `${Math.min(100, Math.round((xpSinceDenial / resubmitXpNeeded) * 100))}%`, background: `linear-gradient(90deg, ${C.accent}, ${C.accentLight})`, borderRadius: 3, transition: "width 0.8s" }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>Complete more workouts to earn the {resubmitXpNeeded - xpSinceDenial} XP needed to resubmit</p>
+                  </div>
+                )}
+                {wasDenied && resubmitUnlocked && (
+                  <div style={{ background: "rgba(34,197,94,0.08)", borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.success}33` }}>
+                    <p style={{ fontSize: 13, color: C.success, fontWeight: 600 }}>✓ You've earned enough XP to resubmit! Update your videos below.</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {Object.entries(categories).map(([catName, catDrills]) => (
         <div key={catName} style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <div style={{ width: 5, height: 28, borderRadius: 2, background: C.accent }} />
@@ -3948,20 +4021,20 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
                 {drill.image_url && <div style={{ marginBottom: 10 }}><img src={fixImgurUrl(drill.image_url)} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
-                {!isApproved && xpUnlocked && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
+                {!isApproved && canSubmit && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={videoUrls[drill.id] || ""} onChange={e => setVideoUrls({ ...videoUrls, [drill.id]: e.target.value })} placeholder="Paste your YouTube/Vimeo link..." style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", color: C.text, fontSize: 12, outline: "none", fontFamily: FONTS }} />
                     <button onClick={() => submitVideo(drill.id)} disabled={!videoUrls[drill.id] || submitting === drill.id} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, fontWeight: 600, cursor: videoUrls[drill.id] ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrls[drill.id] ? 1 : 0.5, whiteSpace: "nowrap" }}>{sub ? "Resubmit" : "Submit"}</button>
                   </div>
                 )}
-                {!isApproved && xpUnlocked && (profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
+                {!isApproved && canSubmit && (profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
                   <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
                     <p style={{ fontSize: 12, color: C.textDim }}>🔒 Enroll in the full program to submit Level Up videos</p>
                   </div>
                 )}
-                {!isApproved && !xpUnlocked && (
+                {!isApproved && !canSubmit && (
                   <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
-                    <p style={{ fontSize: 12, color: C.textDim }}>🔒 Earn {xpGoal - currentXp} more XP to unlock submissions</p>
+                    <p style={{ fontSize: 12, color: C.textDim }}>{!xpUnlocked ? `🔒 Earn ${xpGoal - currentXp} more XP to unlock submissions` : `🔒 Earn ${resubmitXpNeeded - xpSinceDenial} more XP before you can resubmit (${xpSinceDenial}/${resubmitXpNeeded} XP)`}</p>
                   </div>
                 )}
               </div>
@@ -3969,6 +4042,9 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
           })}
         </div>
       ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -4023,39 +4099,83 @@ function AdminLevelUp({ token }) {
       await loadSubmissions(); showFlash(status === "approved" ? "Approved!" : "Rejected.");
     } catch(e) {}
   };
+  const reviewAllForStudent = async (studentId, status, note) => {
+    setSaving(true);
+    try {
+      const studentSubs = submissions.filter(s => s.student_id === studentId && s.status !== "approved");
+      for (const sub of studentSubs) {
+        await supabase.from("levelup_submissions")._token(token).update({ status, admin_note: note || "" }, { id: sub.id });
+      }
+      // On denial, save the student's current workout count so they need to earn resubmit XP
+      if (status === "rejected") {
+        const wComps = await supabase.from("workout_week_completions")._token(token).select("id", `&student_id=eq.${studentId}`);
+        await supabase.from("profiles")._token(token).update({ denial_workout_count: wComps.length }, { id: studentId });
+      }
+      // On approve, clear the denial checkpoint
+      if (status === "approved") {
+        await supabase.from("profiles")._token(token).update({ denial_workout_count: null }, { id: studentId });
+      }
+      await loadSubmissions();
+      showFlash(status === "approved" ? "All videos approved!" : "Submission denied — student must earn more XP before resubmitting.");
+    } catch(e) { showFlash("Error updating"); }
+    setSaving(false);
+  };
   const pendingSubs = submissions.filter(s => s.status !== "approved");
+  // Group pending by student
+  const pendingByStudent = {};
+  pendingSubs.forEach(sub => {
+    if (!pendingByStudent[sub.student_id]) pendingByStudent[sub.student_id] = [];
+    pendingByStudent[sub.student_id].push(sub);
+  });
   return (
     <div>
       {flash && <div style={{ background: "#16A34A22", border: "1px solid #16A34A44", borderRadius: 10, padding: "8px 14px", marginBottom: 14, color: "#22C55E", fontSize: 13 }}>{flash}</div>}
-      {/* Pending submissions */}
-      {pendingSubs.length > 0 && (
+      {/* Pending submissions - grouped by student */}
+      {Object.keys(pendingByStudent).length > 0 && (
         <div style={{ marginBottom: 28 }}>
-          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 1, marginBottom: 14 }}>🔥 SUBMISSIONS TO REVIEW <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8 }}>{pendingSubs.length}</span></h3>
-          {pendingSubs.map(sub => {
-            const student = profiles[sub.student_id];
-            const drill = drills.find(d => d.id === sub.drill_id) || {};
+          <h3 style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 600, letterSpacing: 1, marginBottom: 14 }}>🔥 SUBMISSIONS TO REVIEW <span style={{ background: "#EF4444", color: "#fff", fontSize: 11, padding: "2px 8px", borderRadius: 10, marginLeft: 8 }}>{Object.keys(pendingByStudent).length} student{Object.keys(pendingByStudent).length !== 1 ? "s" : ""}</span></h3>
+          {Object.entries(pendingByStudent).map(([studentId, studentSubs]) => {
+            const student = profiles[studentId];
+            const allRejected = studentSubs.every(s => s.status === "rejected");
+            const rejectionNote = studentSubs.find(s => s.admin_note)?.admin_note || "";
             return (
-              <div key={sub.id} style={{ background: "#141414", borderRadius: 14, border: "1px solid #222", padding: 16, marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div key={studentId} style={{ background: "#141414", borderRadius: 14, border: allRejected ? "1px solid #EF444444" : "1px solid #222", padding: 18, marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <div>
-                    <p style={{ fontFamily: F, fontSize: 14, color: "#fff", fontWeight: 600 }}>{student?.full_name || student?.email || "Unknown"}</p>
-                    <p style={{ fontSize: 11, color: "#888", marginTop: 2 }}>Drill: {drill.name || "Unknown"} · {new Date(sub.created_at).toLocaleDateString()}</p>
+                    <p style={{ fontFamily: F, fontSize: 16, color: "#fff", fontWeight: 700 }}>{student?.full_name || student?.email || "Unknown"}</p>
+                    <p style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{studentSubs.length} drill video{studentSubs.length !== 1 ? "s" : ""} · {new Date(studentSubs[0].created_at).toLocaleDateString()}</p>
                   </div>
                   <BeltBadge beltId={student?.belt_id || "white"} size="sm" />
                 </div>
-                <div style={{ borderRadius: 10, overflow: "hidden", marginBottom: 10 }}><VideoPlayer url={sub.video_url} /></div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {sub.status === "pending" && <>
-                    <button onClick={() => reviewSubmission(sub.id, "approved", "")} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>APPROVE ✓</button>
-                    <button onClick={() => { const note = prompt("Feedback for student (optional):"); reviewSubmission(sub.id, "rejected", note || ""); }} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 16px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>REJECT ✗</button>
-                  </>}
-                  {sub.status === "rejected" && <>
-                    <span style={{ fontSize: 10, color: "#ff4444", fontWeight: 600, fontFamily: F, letterSpacing: 1 }}>REJECTED</span>
-                    <button onClick={() => reviewSubmission(sub.id, "pending", "")} style={{ background: "#3B82F6", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>ALLOW RESUBMIT ↺</button>
-                    <button onClick={() => reviewSubmission(sub.id, "approved", "")} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>APPROVE ✓</button>
-                  </>}
-                  {sub.status === "approved" && <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 600, fontFamily: F, letterSpacing: 1 }}>APPROVED ✓</span>}
-                </div>
+                {/* All drill videos */}
+                {studentSubs.map(sub => {
+                  const drill = drills.find(d => d.id === sub.drill_id) || {};
+                  return (
+                    <div key={sub.id} style={{ marginBottom: 12 }}>
+                      <p style={{ fontSize: 11, color: "#FF6D00", fontWeight: 600, fontFamily: F, letterSpacing: 1, marginBottom: 6 }}>{drill.name || "Unknown Drill"}</p>
+                      <div style={{ borderRadius: 10, overflow: "hidden" }}><VideoPlayer url={sub.video_url} /></div>
+                    </div>
+                  );
+                })}
+                {/* Approve/Deny ALL buttons */}
+                {!allRejected && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 14, borderTop: "1px solid #222", paddingTop: 14 }}>
+                    <button onClick={() => reviewAllForStudent(studentId, "approved", "")} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 10, padding: "10px 24px", color: "#fff", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 700, flex: 1 }}>✓ APPROVE ALL</button>
+                    <button onClick={() => { const note = prompt("Explain why the submission is denied (the student will see this):"); if (note !== null) reviewAllForStudent(studentId, "rejected", note); }} disabled={saving} style={{ background: "none", border: "1px solid #EF444466", borderRadius: 10, padding: "10px 24px", color: "#EF4444", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600, flex: 1 }}>✗ DENY</button>
+                  </div>
+                )}
+                {allRejected && (
+                  <div style={{ marginTop: 14, borderTop: "1px solid #222", paddingTop: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 700, fontFamily: F, letterSpacing: 1 }}>DENIED</span>
+                      {rejectionNote && <span style={{ fontSize: 12, color: "#888" }}>— {rejectionNote}</span>}
+                    </div>
+                    <p style={{ fontSize: 11, color: "#666", marginBottom: 8 }}>Student must earn resubmit XP before they can submit again.</p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => reviewAllForStudent(studentId, "approved", "")} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 10, padding: "10px 20px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>✓ APPROVE ALL</button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
