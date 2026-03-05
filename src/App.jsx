@@ -2216,7 +2216,7 @@ function StudentChallenges({ token, profile, trialMode }) {
     <div className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>Monthly Challenge</h1>
-        {!trialMode && !profile?.trial_expires_at && (
+        {!trialMode && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
           <button onClick={() => setShowUploadGuide(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
             <span style={{ fontSize: 15 }}>🎬</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>How to Submit</span>
@@ -2251,9 +2251,9 @@ function StudentChallenges({ token, profile, trialMode }) {
       )}
       {/* #11 Social submissions */}
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginTop: 8 }}>
-        {!trialMode && !profile?.trial_expires_at && <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>}
+        {!trialMode && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>}
         {/* Submit form */}
-        {!isExpired && !trialMode && !profile?.trial_expires_at && !submissions.find(s => s.student_id === profile.id) && (
+        {!isExpired && !trialMode && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && !submissions.find(s => s.student_id === profile.id) && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 10 }}>Share your attempt</p>
             <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="Paste YouTube/Vimeo link..." style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", color: C.text, fontSize: 13, outline: "none", fontFamily: FONTS, marginBottom: 8 }} />
@@ -2261,7 +2261,7 @@ function StudentChallenges({ token, profile, trialMode }) {
             <button onClick={submitVideo} disabled={!videoUrl || submitting} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12, fontWeight: 600, cursor: videoUrl ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrl ? 1 : 0.5 }}>{submitting ? "Posting..." : "Post"}</button>
           </div>
         )}
-        {(trialMode || profile?.trial_expires_at) && (
+        {(trialMode || (profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date())) && (
           <div style={{ background: `linear-gradient(135deg, ${C.accent}15, ${C.accent}08)`, borderRadius: 16, padding: 24, border: `1.5px solid ${C.accent}44`, marginBottom: 20, textAlign: "center" }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
             <p style={{ fontSize: 16, color: "#fff", fontWeight: 700, fontFamily: DISPLAY, marginBottom: 6 }}>Video Submissions Locked</p>
@@ -2269,14 +2269,14 @@ function StudentChallenges({ token, profile, trialMode }) {
             <a href="https://levelupballacademy.com" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: "10px 24px", fontSize: 13, fontWeight: 700, fontFamily: DISPLAY, textDecoration: "none", boxShadow: `0 4px 12px ${C.accentGlow}` }}>Sign Up for Full Access</a>
           </div>
         )}
-        {!trialMode && !isExpired && submissions.find(s => s.student_id === profile.id) && (
+        {!trialMode && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && !isExpired && submissions.find(s => s.student_id === profile.id) && (
           <div style={{ background: C.successGlow, borderRadius: 12, padding: "12px 16px", marginBottom: 16, border: `1px solid ${C.success}33`, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ color: C.success, fontWeight: 700 }}>✓</span>
             <span style={{ fontSize: 13, color: C.success }}>You've submitted your video!</span>
           </div>
         )}
         {/* Feed */}
-        {(trialMode || profile?.trial_expires_at) ? null : submissions.length === 0 ? (
+        {(trialMode || (profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date())) ? null : submissions.length === 0 ? (
           <div style={{ textAlign: "center", padding: 24, color: C.textDim }}><p>No submissions yet. Be the first! 🏀</p></div>
         ) : submissions.map(sub => {
           const author = allProfiles[sub.student_id];
@@ -2790,10 +2790,10 @@ function Admin({ token }) {
   const startEditArt = (a) => { setArtEditing(a); setArtNew(false); setArtForm({ title: a.title, content: a.content, video_url: a.video_url || "", belt_id: a.belt_id || "all", published: a.published }); };
   const startNewArt = () => { setArtNew(true); setArtEditing(null); setArtForm({ title: "", content: "", video_url: "", belt_id: "all", published: true }); };
   // Challenges CRUD
-  const saveChallenge = async () => { if(!chalForm.title){ flash("Title required."); return; } setSaving(true); try { if(chalForm.active){ try { const beltToDeactivate = chalForm.belt_id || "all"; await supabase.from("challenges")._token(token).update({ active: false }, { active: true, belt_id: beltToDeactivate }); } catch(e){} } const cleanForm = { ...chalForm, deadline: chalForm.deadline || null };
+  const saveChallenge = async () => { if(!chalForm.title){ flash("Title required."); return; } setSaving(true); try { if(chalForm.active){ try { const beltToDeactivate = chalForm.belt_id || "all"; await supabase.from("challenges")._token(token).update({ active: false }, { active: true, belt_id: beltToDeactivate }); } catch(e){} } const cleanForm = { ...chalForm, deadline: chalForm.deadline || null, prize_description: (chalForm.prize_description || "").trim() || null, prize_image_url: (chalForm.prize_image_url || "").trim() || null };
     if(chalEditing){ await supabase.from("challenges")._token(token).update(cleanForm, { id: chalEditing.id }); } else { await supabase.from("challenges")._token(token).insert(cleanForm); } setChalEditing(null); setChalNew(false); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", belt_id: "all", active: false, prize_description: "", prize_image_url: "" }); await loadChallenges(); flash("Saved!"); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
   const deleteChallenge = async (id) => { setSaving(true); try { await supabase.from("challenges")._token(token).delete({ id }); await loadChallenges(); flash("Removed."); } catch(e){ flash("Error: "+e.message); } setSaving(false); };
-  const startEditChal = (c) => { setChalEditing(c); setChalNew(false); setChalForm({ title: c.title, description: c.description||"", video_url: c.video_url||"", submission_email: c.submission_email||SUBMISSION_EMAIL, deadline: c.deadline||"", belt_id: c.belt_id||"all", active: c.active }); };
+  const startEditChal = (c) => { setChalEditing(c); setChalNew(false); setChalForm({ title: c.title, description: c.description||"", video_url: c.video_url||"", submission_email: c.submission_email||SUBMISSION_EMAIL, deadline: c.deadline||"", belt_id: c.belt_id||"all", active: c.active, prize_description: c.prize_description||"", prize_image_url: c.prize_image_url||"" }); };
   const startNewChal = () => { setChalNew(true); setChalEditing(null); setChalForm({ title: "", description: "", video_url: "", submission_email: SUBMISSION_EMAIL, deadline: "", belt_id: "all", active: false, prize_description: "", prize_image_url: "" }); };
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24 }}>
@@ -3036,7 +3036,18 @@ function Admin({ token }) {
             <div style={{ marginBottom: 10 }}><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DESCRIPTION</label><textarea value={chalForm.description} onChange={e=>setChalForm({...chalForm,description:e.target.value})} style={{ ...inp, minHeight: 100, resize: "vertical" }} placeholder="Explain the challenge..." /></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEMO VIDEO URL</label><input value={chalForm.video_url} onChange={e=>setChalForm({...chalForm,video_url:e.target.value})} style={inp} placeholder="https://youtube.com/..." /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>DEADLINE</label><input type="date" value={chalForm.deadline} onChange={e=>setChalForm({...chalForm,deadline:e.target.value})} style={inp} /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>BELT LEVEL</label><select value={chalForm.belt_id} onChange={e=>setChalForm({...chalForm,belt_id:e.target.value})} style={{...inp,cursor:"pointer"}}><option value="all">All Belts</option>{BELT_LEVELS.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div></div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>SUBMISSION EMAIL</label><input value={chalForm.submission_email} onChange={e=>setChalForm({...chalForm,submission_email:e.target.value})} style={inp} /></div><div style={{ display: "flex", alignItems: "center", gap: 10, paddingTop: 18 }}><label style={{ color: "#555", fontSize: 11, fontFamily: F, letterSpacing: 1 }}>ACTIVE</label><input type="checkbox" checked={chalForm.active} onChange={e=>setChalForm({...chalForm,active:e.target.checked})} style={{ width: 18, height: 18, cursor: "pointer" }} /><span style={{ fontSize: 10, color: "#FF6D00" }}>{chalForm.active ? "Students see this" : "Hidden"}</span></div></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>MONTHLY PRIZE DESCRIPTION</label><input value={chalForm.prize_description||""} onChange={e=>setChalForm({...chalForm,prize_description:e.target.value})} style={inp} placeholder="e.g. LevelUpBall T-Shirt + Wristband" /></div><div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>PRIZE IMAGE URL</label><input value={chalForm.prize_image_url||""} onChange={e=>setChalForm({...chalForm,prize_image_url:e.target.value})} style={inp} placeholder="https://i.imgur.com/..." /></div></div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#aaa", fontSize: 12, cursor: "pointer", marginBottom: 10 }}>
+                <input type="checkbox" checked={!!(chalForm.prize_description || chalForm.prize_image_url)} onChange={e => { if (!e.target.checked) { setChalForm({...chalForm, prize_description: "", prize_image_url: ""}); } else { setChalForm({...chalForm, prize_description: chalForm.prize_description || " "}); } }} style={{ width: 18, height: 18 }} />
+                <span style={{ fontFamily: F, fontSize: 11, letterSpacing: 1 }}>INCLUDE A PRIZE FOR THIS CHALLENGE</span>
+              </label>
+              {(chalForm.prize_description || chalForm.prize_image_url) && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>PRIZE DESCRIPTION</label><input value={chalForm.prize_description||""} onChange={e=>setChalForm({...chalForm,prize_description:e.target.value})} style={inp} placeholder="e.g. LevelUpBall T-Shirt + Wristband" /></div>
+                  <div><label style={{ display: "block", color: "#555", fontSize: 9, fontFamily: F, letterSpacing: 1, marginBottom: 3 }}>PRIZE IMAGE URL</label><input value={chalForm.prize_image_url||""} onChange={e=>setChalForm({...chalForm,prize_image_url:e.target.value})} style={inp} placeholder="https://i.imgur.com/..." /></div>
+                </div>
+              )}
+            </div>
             <div style={{ display: "flex", gap: 6 }}><button onClick={saveChallenge} disabled={saving} style={{ background: "#00C853", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>SAVE</button><button onClick={()=>{setChalEditing(null);setChalNew(false);}} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "9px 18px", color: "#888", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>CANCEL</button></div>
           </div>
         )}
@@ -3843,7 +3854,7 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
     <div className="fade-in">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>Level Up Test</h1>
-        {!trialMode && !profile?.trial_expires_at && (
+        {!trialMode && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
           <button onClick={() => setShowUploadGuide(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
             <span style={{ fontSize: 15 }}>🎬</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>How to Submit</span>
@@ -3851,6 +3862,15 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
         )}
       </div>
       {showUploadGuide && <VideoUploadGuide onClose={() => setShowUploadGuide(false)} />}
+      {/* Trial lockout */}
+      {(trialMode || (profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date())) && (
+        <div style={{ background: `linear-gradient(135deg, ${C.accent}15, ${C.accent}08)`, borderRadius: 16, padding: 24, border: `1.5px solid ${C.accent}44`, marginBottom: 20, textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+          <p style={{ fontSize: 16, color: "#fff", fontWeight: 700, fontFamily: DISPLAY, marginBottom: 6 }}>Level Up Submissions Locked</p>
+          <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, marginBottom: 14 }}>Free trial members can preview the Level Up Test but cannot submit videos. Sign up for full access to submit your drill videos and level up to the next belt!</p>
+          <a href="https://levelupballacademy.com" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: "10px 24px", fontSize: 13, fontWeight: 700, fontFamily: DISPLAY, textDecoration: "none", boxShadow: `0 4px 12px ${C.accentGlow}` }}>Sign Up for Full Access</a>
+        </div>
+      )}
       <p style={{ color: C.textDim, fontSize: 14, marginBottom: 16 }}>
         {nextBelt ? `Complete these drills to earn your ${nextBelt.name}` : "You've reached the highest belt!"}
       </p>
@@ -3928,13 +3948,13 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
                 {drill.image_url && <div style={{ marginBottom: 10 }}><img src={fixImgurUrl(drill.image_url)} alt="" style={{ width: "100%", borderRadius: 12, border: `1px solid ${C.border}` }} /></div>}
                 {sub?.video_url && <div style={{ marginBottom: 10 }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, marginBottom: 6 }}>YOUR SUBMISSION</p><VideoPlayer url={sub.video_url} /></div>}
                 {isRejected && sub?.admin_note && <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: `1px solid ${C.danger}22` }}><p style={{ fontSize: 12, color: C.danger }}>Coach: {sub.admin_note}</p></div>}
-                {!isApproved && xpUnlocked && !profile?.trial_expires_at && (
+                {!isApproved && xpUnlocked && !(profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={videoUrls[drill.id] || ""} onChange={e => setVideoUrls({ ...videoUrls, [drill.id]: e.target.value })} placeholder="Paste your YouTube/Vimeo link..." style={{ flex: 1, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 14px", color: C.text, fontSize: 12, outline: "none", fontFamily: FONTS }} />
                     <button onClick={() => submitVideo(drill.id)} disabled={!videoUrls[drill.id] || submitting === drill.id} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 16px", fontSize: 12, fontWeight: 600, cursor: videoUrls[drill.id] ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrls[drill.id] ? 1 : 0.5, whiteSpace: "nowrap" }}>{sub ? "Resubmit" : "Submit"}</button>
                   </div>
                 )}
-                {!isApproved && xpUnlocked && profile?.trial_expires_at && (
+                {!isApproved && xpUnlocked && (profile?.trial_expires_at && new Date(profile.trial_expires_at) > new Date()) && (
                   <div style={{ background: C.bg, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
                     <p style={{ fontSize: 12, color: C.textDim }}>🔒 Enroll in the full program to submit Level Up videos</p>
                   </div>
