@@ -112,7 +112,7 @@ const QUOTES = [
   { text: "I've missed more than 9,000 shots. I've lost almost 300 games. I've failed over and over. That is why I succeed.", author: "Michael Jordan" },
   { text: "Hard work beats talent when talent fails to work hard.", author: "Kevin Durant" },
   { text: "Everything negative — pressure, challenges — is all an opportunity for me to rise.", author: "Kobe Bryant" },
-  { text: "I'm not the next Usain Bolt or Michael Phelps. I'm the first Simone Biles.", author: "Simone Biles" },
+  { text: "The separation is in the preparation.", author: "Russell Wilson" },
   { text: "Rest at the end, not in the middle.", author: "Kobe Bryant" },
   { text: "If you quit once it becomes a habit. Never quit.", author: "Michael Jordan" },
   { text: "Never say never, because limits, like fears, are often just an illusion.", author: "Michael Jordan" },
@@ -122,21 +122,21 @@ const QUOTES = [
   { text: "I've never been afraid of big moments. I get butterflies. But I think that's the sign of something big about to happen.", author: "Stephen Curry" },
   { text: "Excellence is not a singular act, but a habit. You are what you repeatedly do.", author: "Shaquille O'Neal" },
   { text: "I don't count my sit-ups. I only start counting when it starts hurting because they're the only ones that count.", author: "Muhammad Ali" },
-  { text: "The only way to prove you are a good sport is to lose.", author: "Ernie Banks" },
+  { text: "I have no fear of anyone, but respect for everyone. Every day I work to get better.", author: "Lionel Messi" },
   { text: "It's not about the shoes. It's about what you do in them.", author: "Michael Jordan" },
   { text: "I never tried to hide the fact that my only goal is to be the best.", author: "Cristiano Ronaldo" },
-  { text: "Do you know what my favorite part of the game is? The opportunity to play.", author: "Mike Singletary" },
+  { text: "Every morning you have two choices: continue to sleep with your dreams, or wake up and chase them.", author: "Kobe Bryant" },
   { text: "Set your goals high, and don't stop till you get there.", author: "Bo Jackson" },
   { text: "The principle is competing against yourself. It's about self-improvement, about being better than you were the day before.", author: "Steve Young" },
   { text: "Talent is God-given. Be humble. Fame is man-given. Be grateful. Conceit is self-given. Be careful.", author: "John Wooden" },
   { text: "You miss 100% of the shots you don't take.", author: "Wayne Gretzky" },
   { text: "It's not whether you get knocked down. It's whether you get up.", author: "Vince Lombardi" },
-  { text: "The harder the battle, the sweeter the victory.", author: "Les Brown" },
+  { text: "I never lost a game. I just ran out of time.", author: "Michael Jordan" },
   { text: "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice.", author: "Pele" },
   { text: "I hated every minute of training, but I said, don't quit. Suffer now and live the rest of your life as a champion.", author: "Muhammad Ali" },
   { text: "There may be people that have more talent than you, but there is no excuse for anyone to work harder than you.", author: "Derek Jeter" },
-  { text: "Age is no barrier. It's a limitation you put on your mind.", author: "Jackie Joyner-Kersee" },
-  { text: "The five S's of sports training are stamina, speed, strength, skill, and spirit. But the greatest of these is spirit.", author: "Ken Doherty" },
+  { text: "Push yourself again and again. Don't give an inch until the final buzzer sounds.", author: "Larry Bird" },
+  { text: "Everybody has talent, but ability takes hard work.", author: "Michael Jordan" },
   { text: "Champions keep playing until they get it right.", author: "Billie Jean King" },
   { text: "The best never rest.", author: "Mia Hamm" }
 ]
@@ -2175,9 +2175,11 @@ function StudentChallenges({ token, profile, trialMode }) {
           </div>
         )}
         {(trialMode || profile?.trial_expires_at) && !isExpired && (
-          <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20, textAlign: "center" }}>
-            <span style={{ fontSize: 20 }}>🔒</span>
-            <p style={{ fontSize: 15, color: "#fff", marginTop: 6, fontWeight: 700, fontFamily: DISPLAY }}>Enroll in the full program to submit challenge videos</p>
+          <div style={{ background: `linear-gradient(135deg, ${C.accent}15, ${C.accent}08)`, borderRadius: 16, padding: 24, border: `1.5px solid ${C.accent}44`, marginBottom: 20, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+            <p style={{ fontSize: 16, color: "#fff", fontWeight: 700, fontFamily: DISPLAY, marginBottom: 6 }}>Video Submissions Locked</p>
+            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, marginBottom: 14 }}>Free trial members can view challenges but cannot submit videos. Sign up for full access to submit your challenge videos and compete with other players!</p>
+            <a href="https://levelupballacademy.com" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", background: `linear-gradient(135deg, ${C.accent}, #EA580C)`, color: "#fff", border: "none", borderRadius: 12, padding: "10px 24px", fontSize: 13, fontWeight: 700, fontFamily: DISPLAY, textDecoration: "none", boxShadow: `0 4px 12px ${C.accentGlow}` }}>Sign Up for Full Access</a>
           </div>
         )}
         {!trialMode && !isExpired && submissions.find(s => s.student_id === profile.id) && (
