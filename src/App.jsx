@@ -2095,6 +2095,82 @@ function AdminQuickSessions({ token }) {
 // ============================================================
 // #11 CHALLENGES — with social submissions feed
 // ============================================================
+// ============================================================
+// VIDEO UPLOAD GUIDE — standalone component
+// ============================================================
+function VideoUploadGuide({ onClose }) {
+  const sectionStyle = { background: "#f5f5f5", borderRadius: 14, padding: 18, border: "1px solid #e0e0e0" };
+  const headingStyle = { fontFamily: DISPLAY, fontSize: 15, fontWeight: 700, color: "#F97316", marginBottom: 8 };
+  const textStyle = { fontSize: 13, color: "#444", lineHeight: 1.7 };
+  const stepStyle = { display: "flex", gap: 12, marginBottom: 12 };
+  const numStyle = { width: 28, height: 28, borderRadius: "50%", background: "#F97316", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, fontFamily: DISPLAY, flexShrink: 0 };
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
+      <div style={{ width: "100%", maxWidth: 560, maxHeight: "85vh", overflowY: "auto", background: "#ffffff", borderRadius: 24, padding: 28, boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }} onClick={function(e) { e.stopPropagation(); }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800, color: "#111" }}>🎬 How to Submit a Video</h2>
+          <button onClick={onClose} style={{ background: "#eee", border: "none", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 18, cursor: "pointer" }}>✕</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>Step 1: Record Your Video</h3>
+            <div style={stepStyle}>
+              <div style={numStyle}>1</div>
+              <p style={textStyle}>Open your phone camera and record yourself doing the challenge drill or your Level Up submission. Edit your video before uploading so we only see you performing the drill — cut out any extra footage from the beginning or end.</p>
+            </div>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>Step 2: Upload to YouTube</h3>
+            <div style={stepStyle}>
+              <div style={numStyle}>2</div>
+              <div>
+                <p style={textStyle}>Open the <span style={{ fontWeight: 700, color: "#111" }}>YouTube app</span> on your phone and tap the <span style={{ fontWeight: 700, color: "#111" }}>+ button</span> at the bottom of the screen, then tap <span style={{ fontWeight: 700, color: "#111" }}>"Upload a video"</span>.</p>
+                <p style={{ ...textStyle, marginTop: 8 }}>Select the video you just recorded from your camera roll.</p>
+              </div>
+            </div>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>Step 3: Set It to Unlisted</h3>
+            <div style={stepStyle}>
+              <div style={numStyle}>3</div>
+              <div>
+                <p style={textStyle}>Give your video a title (like "Reverse Mikan Challenge" or "Level 2 Level Up Test").</p>
+                <p style={{ ...textStyle, marginTop: 8 }}>Under the <span style={{ fontWeight: 700, color: "#111" }}>Visibility</span> setting, change it from "Public" to <span style={{ fontWeight: 700, color: "#111" }}>"Unlisted"</span>. This means only people with the link can watch it — it won't show up on YouTube for anyone else.</p>
+                <p style={{ ...textStyle, marginTop: 8 }}>Tap <span style={{ fontWeight: 700, color: "#111" }}>"Upload"</span> and wait for it to finish.</p>
+              </div>
+            </div>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>Step 4: Copy the Link</h3>
+            <div style={stepStyle}>
+              <div style={numStyle}>4</div>
+              <div>
+                <p style={textStyle}>Once the upload is done, tap the <span style={{ fontWeight: 700, color: "#111" }}>Share button</span> on your video and tap <span style={{ fontWeight: 700, color: "#111" }}>"Copy link"</span>.</p>
+              </div>
+            </div>
+          </div>
+          <div style={sectionStyle}>
+            <h3 style={headingStyle}>Step 5: Paste It Here</h3>
+            <div style={stepStyle}>
+              <div style={numStyle}>5</div>
+              <div>
+                <p style={textStyle}>Come back to the LevelUpBall app and paste the YouTube link into the submission box. For challenges, paste it in the <span style={{ fontWeight: 700, color: "#111" }}>Challenge Submissions</span> area. For Level Up tests, paste it in the <span style={{ fontWeight: 700, color: "#111" }}>Level Up</span> tab.</p>
+                <p style={{ ...textStyle, marginTop: 8 }}>That's it — your coach will review your video!</p>
+              </div>
+            </div>
+          </div>
+          <div style={{ background: "#FFF7ED", borderRadius: 14, padding: 18, border: "1px solid #FDBA74" }}>
+            <h3 style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: "#EA580C", marginBottom: 6 }}>💡 Quick Tip</h3>
+            <p style={textStyle}>If you don't have a YouTube account, ask a parent to help you set one up. It only takes a minute and you'll use it for all your video submissions going forward.</p>
+          </div>
+        </div>
+        <button onClick={onClose} style={{ width: "100%", background: "linear-gradient(135deg, #F97316, #EA580C)", color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: DISPLAY, marginTop: 20 }}>Got It!</button>
+      </div>
+    </div>
+  );
+}
+
 function StudentChallenges({ token, profile, trialMode }) {
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2103,6 +2179,7 @@ function StudentChallenges({ token, profile, trialMode }) {
   const [caption, setCaption] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [allProfiles, setAllProfiles] = useState({});
+  const [showUploadGuide, setShowUploadGuide] = useState(false);
   useEffect(() => {
     (async () => {
       try {
@@ -2137,7 +2214,17 @@ function StudentChallenges({ token, profile, trialMode }) {
   const isExpired = challenge.deadline ? new Date(challenge.deadline + "T23:59:59") < new Date() : false;
   return (
     <div className="fade-in">
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 24 }}>Monthly Challenge</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>Monthly Challenge</h1>
+        {!trialMode && !profile?.trial_expires_at && (
+          <button onClick={() => setShowUploadGuide(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
+            <span style={{ fontSize: 15 }}>🎬</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>How to Submit</span>
+          </button>
+        )}
+      </div>
+      {/* Upload Guide Modal */}
+      {showUploadGuide && <VideoUploadGuide onClose={() => setShowUploadGuide(false)} />}
       {/* Challenge banner */}
       <div style={{ background: `linear-gradient(135deg, ${C.accent}, #EA580C, #DC2626)`, borderRadius: 20, padding: 28, marginBottom: 20, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -30, fontSize: 100, opacity: 0.1 }}>🏆</div>
@@ -2164,7 +2251,7 @@ function StudentChallenges({ token, profile, trialMode }) {
       )}
       {/* #11 Social submissions */}
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24, marginTop: 8 }}>
-        {!trialMode && <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>}
+        {!trialMode && !profile?.trial_expires_at && <h2 style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Submissions 🔥</h2>}
         {/* Submit form */}
         {!isExpired && !trialMode && !profile?.trial_expires_at && !submissions.find(s => s.student_id === profile.id) && (
           <div style={{ background: C.surface, borderRadius: 16, padding: 18, border: `1px solid ${C.border}`, marginBottom: 20 }}>
@@ -2174,7 +2261,7 @@ function StudentChallenges({ token, profile, trialMode }) {
             <button onClick={submitVideo} disabled={!videoUrl || submitting} style={{ background: C.accent, color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 12, fontWeight: 600, cursor: videoUrl ? "pointer" : "default", fontFamily: FONTS, opacity: videoUrl ? 1 : 0.5 }}>{submitting ? "Posting..." : "Post"}</button>
           </div>
         )}
-        {(trialMode || profile?.trial_expires_at) && !isExpired && (
+        {(trialMode || profile?.trial_expires_at) && (
           <div style={{ background: `linear-gradient(135deg, ${C.accent}15, ${C.accent}08)`, borderRadius: 16, padding: 24, border: `1.5px solid ${C.accent}44`, marginBottom: 20, textAlign: "center" }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
             <p style={{ fontSize: 16, color: "#fff", fontWeight: 700, fontFamily: DISPLAY, marginBottom: 6 }}>Video Submissions Locked</p>
@@ -2189,7 +2276,7 @@ function StudentChallenges({ token, profile, trialMode }) {
           </div>
         )}
         {/* Feed */}
-        {trialMode ? null : submissions.length === 0 ? (
+        {(trialMode || profile?.trial_expires_at) ? null : submissions.length === 0 ? (
           <div style={{ textAlign: "center", padding: 24, color: C.textDim }}><p>No submissions yet. Be the first! 🏀</p></div>
         ) : submissions.map(sub => {
           const author = allProfiles[sub.student_id];
@@ -3711,6 +3798,7 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
   const [loading, setLoading] = useState(true);
   const [videoUrls, setVideoUrls] = useState({});
   const [submitting, setSubmitting] = useState(null);
+  const [showUploadGuide, setShowUploadGuide] = useState(false);
   const belt = BELT_LEVELS.find(b => b.id === profile.belt_id) || BELT_LEVELS[0];
   const nextBelt = BELT_LEVELS.find(b => b.level === belt.level + 1);
   const wDone = totalWeekCompletions;
@@ -3753,7 +3841,16 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
   const allApproved = drills.length > 0 && drills.every(d => submissions[d.id]?.status === "approved");
   return (
     <div className="fade-in">
-      <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>Level Up Test</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>Level Up Test</h1>
+        {!trialMode && !profile?.trial_expires_at && (
+          <button onClick={() => setShowUploadGuide(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #EF4444, #DC2626)", border: "none", borderRadius: 12, padding: "10px 20px", cursor: "pointer", fontFamily: DISPLAY, boxShadow: "0 4px 12px rgba(239,68,68,0.3)" }}>
+            <span style={{ fontSize: 15 }}>🎬</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: 0.5 }}>How to Submit</span>
+          </button>
+        )}
+      </div>
+      {showUploadGuide && <VideoUploadGuide onClose={() => setShowUploadGuide(false)} />}
       <p style={{ color: C.textDim, fontSize: 14, marginBottom: 16 }}>
         {nextBelt ? `Complete these drills to earn your ${nextBelt.name}` : "You've reached the highest belt!"}
       </p>
