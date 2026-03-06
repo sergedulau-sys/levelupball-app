@@ -791,6 +791,12 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
   const currentXp = wDone * xpPerWorkout;
   const xpPct = xpGoal > 0 ? Math.min(100, Math.round((currentXp / xpGoal) * 100)) : 100;
   const xpUnlocked = currentXp >= xpGoal;
+  // Resubmit XP tracking
+  const denialWorkoutCount = profile?.denial_workout_count;
+  const wasDenied = denialWorkoutCount !== null && denialWorkoutCount !== undefined;
+  const resubmitXpNeeded = belt.resubmitXp || 600;
+  const xpSinceDenial = wasDenied ? Math.max(0, (wDone - denialWorkoutCount)) * xpPerWorkout : 0;
+  const resubmitUnlocked = !wasDenied || xpSinceDenial >= resubmitXpNeeded;
   // #10 Next workout = first incomplete
   const nextSlot = (weekSlots || []).find(s => !s.isWeekCompleted);
   const nextWorkout = nextSlot || null;
@@ -836,8 +842,18 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: xpUnlocked ? C.successGlow : C.accentGlow, filter: "blur(30px)" }} />
           <div style={{ position: "relative" }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>XP to Level Up Test</p>
-            {xpUnlocked ? (
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>{wasDenied && !resubmitUnlocked ? "XP to Resubmit" : "XP to Level Up Test"}</p>
+            {wasDenied && !resubmitUnlocked ? (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <p style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, lineHeight: 1, color: C.accent }}>{xpSinceDenial}<span style={{ fontSize: 14, color: C.accent }}>/{resubmitXpNeeded} XP</span></p>
+                    <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}><span style={{ color: C.accent, fontWeight: 700 }}>{resubmitXpNeeded - xpSinceDenial} XP</span> until you can resubmit</p>
+                  </div>
+                  <ProgressRing percent={Math.min(100, Math.round((xpSinceDenial / resubmitXpNeeded) * 100))} size={52} color={C.accent} />
+                </div>
+              </div>
+            ) : xpUnlocked ? (
               <div><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.success, lineHeight: 1.2 }}>UNLOCKED! 🔥</p><p style={{ fontSize: 11, color: C.success, marginTop: 4 }}>You can now apply to level up</p></div>
             ) : (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -848,7 +864,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
                 <ProgressRing percent={xpPct} size={52} color="#22C55E" />
               </div>
             )}
-            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 14 }}><div style={{ height: "100%", width: `${xpPct}%`, background: `linear-gradient(90deg, #22C55E, #4ADE80)`, borderRadius: 3, transition: "width 0.8s" }} /></div>
+            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 14 }}><div style={{ height: "100%", width: `${wasDenied && !resubmitUnlocked ? Math.min(100, Math.round((xpSinceDenial / resubmitXpNeeded) * 100)) : xpPct}%`, background: wasDenied && !resubmitUnlocked ? `linear-gradient(90deg, ${C.accent}, ${C.accentLight})` : `linear-gradient(90deg, #22C55E, #4ADE80)`, borderRadius: 3, transition: "width 0.8s" }} /></div>
             <p style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>{wDone} workouts completed · {xpPerWorkout} XP each</p>
           </div>
         </div>
@@ -1654,6 +1670,7 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 800 }}>{ex.name}</h2>
                 {ex.is_challenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
+                {ex.full_court && <span style={{ fontSize: 9, fontWeight: 700, background: "rgba(59,130,246,0.12)", color: "#3B82F6", padding: "4px 8px", borderRadius: 6, border: "1px solid rgba(59,130,246,0.3)", letterSpacing: 0.5 }}>FULL COURT & BACK</span>}
                 {totalRounds > 1 && <span style={{ background: `${C.accent}15`, border: `1px solid ${C.accent}30`, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: C.accent, flexShrink: 0 }}>Round {currentRound + 1}/{totalRounds}</span>}
               </div>
               {/* Drill timer */}
@@ -1750,6 +1767,7 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <span style={{ fontFamily: DISPLAY, fontSize: 13, fontWeight: 600, color: done ? C.success : C.text, textDecoration: done ? "line-through" : "none" }}>{ex.name}</span>
                             {ex.is_challenge && <span style={{ fontSize: 9, fontWeight: 700, background: C.challengeGlow, color: C.challenge, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.challenge}33`, letterSpacing: 0.5 }}>CHALLENGE</span>}
+                            {ex.full_court && <span style={{ fontSize: 9, fontWeight: 700, background: "rgba(59,130,246,0.12)", color: "#3B82F6", padding: "2px 6px", borderRadius: 4, border: "1px solid rgba(59,130,246,0.3)", letterSpacing: 0.5 }}>FULL COURT</span>}
                           </div>
                           <p style={{ fontSize: 11, color: C.textDim, marginTop: 1 }}>{[ex.sets > 0 && `${ex.sets} sets`, ex.reps > 0 && `${ex.reps} reps`, ex.time_seconds > 0 && `${ex.time_seconds}s`, ex.rest_seconds > 0 && `${ex.rest_seconds}s rest`].filter(Boolean).join(" · ")}</p>
                         </div>
@@ -2064,6 +2082,7 @@ function AdminQuickSessions({ token }) {
               <input defaultValue={ex.image_url || ""} onBlur={e => updateExercise(ex.id, "image_url", e.target.value)} style={inp} placeholder="https://i.imgur.com/... or any image URL" />
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer", marginTop: 6 }}><input type="checkbox" defaultChecked={ex.is_challenge} onChange={e => updateExercise(ex.id, "is_challenge", e.target.checked)} style={{ width: 16, height: 16 }} /> Challenge Drill (player logs reps)</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#aaa", fontSize: 11, cursor: "pointer", marginTop: 6 }}><input type="checkbox" defaultChecked={ex.full_court} onChange={e => updateExercise(ex.id, "full_court", e.target.checked)} style={{ width: 16, height: 16 }} /> Full Court and Back</label>
           </div>
         ))}
         <button onClick={addExercise} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 10, padding: "14px 20px", width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 12, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>+ ADD DRILL</button>
@@ -2071,22 +2090,57 @@ function AdminQuickSessions({ token }) {
     );
   }
 
+  // Group sessions by belt
+  const groupedByBelt = {};
+  const noBelt = [];
+  sessions.forEach(s => {
+    if (s.belt_id) {
+      if (!groupedByBelt[s.belt_id]) groupedByBelt[s.belt_id] = [];
+      groupedByBelt[s.belt_id].push(s);
+    } else {
+      noBelt.push(s);
+    }
+  });
+
+  const renderSession = (s) => (
+    <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div>
+        <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600, marginBottom: 2 }}>{s.title}</p>
+        <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills</p>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={() => setEditing(s)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
+        <button onClick={() => deleteSession(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 12px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      <p style={{ color: "#888", fontSize: 11, fontFamily: F, letterSpacing: 2, marginBottom: 16 }}>QUICK SESSIONS ({sessions.length})</p>
-      {sessions.length === 0 && <p style={{ color: "#555", fontSize: 13, fontFamily: F, marginBottom: 16 }}>No quick sessions yet. Create one below.</p>}
-      {sessions.map(s => (
-        <div key={s.id} style={{ background: "#141414", borderRadius: 12, padding: 18, border: "1px solid #222", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <p style={{ fontFamily: F, fontSize: 15, color: "#fff", fontWeight: 600, marginBottom: 2 }}>{s.title}</p>
-            <p style={{ color: "#555", fontSize: 12 }}>⚡ {s.duration_min || "?"} min · 🏀 {(s.exercises || []).length} drills {s.belt_id ? `· ${BELT_LEVELS.find(b=>b.id===s.belt_id)?.name||""}` : ""}</p>
+      <p style={{ color: "#888", fontSize: 11, fontFamily: F, letterSpacing: 2, marginBottom: 16 }}>SKILL SESSIONS ({sessions.length})</p>
+      {sessions.length === 0 && <p style={{ color: "#555", fontSize: 13, fontFamily: F, marginBottom: 16 }}>No skill sessions yet. Create one below.</p>}
+      {BELT_LEVELS.map(b => {
+        const beltSessions = groupedByBelt[b.id] || [];
+        if (beltSessions.length === 0) return null;
+        return (
+          <div key={b.id} style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <BeltBadge beltId={b.id} size="sm" />
+              <span style={{ fontSize: 11, color: "#888" }}>{beltSessions.length} session{beltSessions.length !== 1 ? "s" : ""}</span>
+            </div>
+            {beltSessions.map(renderSession)}
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => setEditing(s)} style={{ background: "#FF6D00", border: "none", borderRadius: 8, padding: "7px 16px", color: "#fff", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer", fontWeight: 600 }}>EDIT</button>
-            <button onClick={() => deleteSession(s.id)} style={{ background: "none", border: "1px solid #333", borderRadius: 8, padding: "7px 12px", color: "#ff4444", fontFamily: F, fontSize: 11, letterSpacing: 1, cursor: "pointer" }}>DELETE</button>
+        );
+      })}
+      {noBelt.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: "#888", fontFamily: F, fontWeight: 600, letterSpacing: 1 }}>ALL BELTS</span>
+            <span style={{ fontSize: 11, color: "#888" }}>{noBelt.length} session{noBelt.length !== 1 ? "s" : ""}</span>
           </div>
+          {noBelt.map(renderSession)}
         </div>
-      ))}
+      )}
       <button onClick={addSession} disabled={saving} style={{ background: "#1a1a1a", border: "2px dashed #333", borderRadius: 12, padding: 18, width: "100%", color: "#FF6D00", fontFamily: F, fontSize: 13, letterSpacing: 1, cursor: "pointer", fontWeight: 600, marginTop: 6 }}>+ ADD QUICK SESSION</button>
     </div>
   );
@@ -3910,13 +3964,26 @@ function StudentLevelUp({ token, profile, completedWorkoutIds = new Set(), worko
       {nextBelt && !xpUnlocked && (
         <div style={{ background: `linear-gradient(135deg, #F59E0B15, #F59E0B05)`, borderRadius: 16, padding: 18, marginBottom: 20, border: "1px solid #F59E0B33", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ fontSize: 28, flexShrink: 0 }}>🔒</div>
-          <div>
+          <div style={{ flex: 1 }}>
             <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>Earn {xpGoal} XP to unlock your Level Up Test</p>
-            <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Complete workouts to earn XP. Once you reach <span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal} XP</span>, you can submit videos of each drill below for coach approval. You currently have <span style={{ color: "#22C55E", fontWeight: 700 }}>{currentXp} XP</span>.</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Complete workouts to earn XP. You currently have <span style={{ color: "#22C55E", fontWeight: 700 }}>{currentXp} XP</span> — you need <span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal - currentXp} more XP</span> to unlock.</p>
+            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 10 }}><div style={{ height: "100%", width: `${xpPct}%`, background: "linear-gradient(90deg, #22C55E, #4ADE80)", borderRadius: 3, transition: "width 0.8s" }} /></div>
+            <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{currentXp}/{xpGoal} XP</p>
           </div>
         </div>
       )}
-      {nextBelt && xpUnlocked && !allApproved && (
+      {nextBelt && xpUnlocked && wasDenied && !resubmitUnlocked && (
+        <div style={{ background: `linear-gradient(135deg, ${C.accent}15, ${C.accent}05)`, borderRadius: 16, padding: 18, marginBottom: 20, border: `1px solid ${C.accent}33`, display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 28, flexShrink: 0 }}>🔒</div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, color: C.text }}>Earn {resubmitXpNeeded} XP to Resubmit</p>
+            <p style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Your Level Up submission was denied. Complete more workouts to earn <span style={{ color: C.accent, fontWeight: 700 }}>{resubmitXpNeeded - xpSinceDenial} more XP</span> before you can resubmit.</p>
+            <div style={{ height: 6, background: C.border, borderRadius: 3, marginTop: 10 }}><div style={{ height: "100%", width: `${Math.min(100, Math.round((xpSinceDenial / resubmitXpNeeded) * 100))}%`, background: `linear-gradient(90deg, ${C.accent}, ${C.accentLight})`, borderRadius: 3, transition: "width 0.8s" }} /></div>
+            <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}>{xpSinceDenial}/{resubmitXpNeeded} XP</p>
+          </div>
+        </div>
+      )}
+      {nextBelt && canSubmit && !allApproved && (
         <div style={{ background: `linear-gradient(135deg, #22C55E15, #22C55E05)`, borderRadius: 16, padding: 18, marginBottom: 20, border: "1px solid #22C55E33", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ fontSize: 28, flexShrink: 0 }}>✅</div>
           <div>
@@ -4120,7 +4187,7 @@ function AdminLevelUp({ token }) {
     } catch(e) { showFlash("Error updating"); }
     setSaving(false);
   };
-  const pendingSubs = submissions.filter(s => s.status !== "approved");
+  const pendingSubs = submissions.filter(s => s.status === "pending");
   // Group pending by student
   const pendingByStudent = {};
   pendingSubs.forEach(sub => {
