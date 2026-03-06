@@ -1691,6 +1691,7 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
                 </div>
               )}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+                {ex.full_court && <div style={{ background: "rgba(59,130,246,0.12)", borderRadius: 10, padding: "8px 16px", border: "1px solid rgba(59,130,246,0.3)" }}><p style={{ fontSize: 10, color: "#3B82F6", textTransform: "uppercase", letterSpacing: 1 }}>Distance</p><p style={{ fontSize: 16, fontWeight: 800, color: "#3B82F6" }}>Full Court & Back</p></div>}
                 {ex.sets > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Sets</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.sets}</p></div>}
                 {ex.reps > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Reps</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.reps}</p></div>}
                 {ex.time_seconds > 0 && <div style={{ background: C.accentGlow, borderRadius: 10, padding: "8px 16px", border: `1px solid ${belt.color}30` }}><p style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Time</p><p style={{ fontSize: 18, fontWeight: 800, color: belt.color }}>{ex.time_seconds}s</p></div>}
@@ -1780,6 +1781,7 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
                       const prevResult = allRes.length > 0 ? allRes.reduce((best, r) => (!best || r.reps_completed > best.reps_completed) ? r : best, null) : null;
                       return (
                       <div style={{ padding: "0 16px 14px" }} className="fade-in">
+                        {ex.full_court && <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(59,130,246,0.12)", borderRadius: 8, padding: "6px 12px", marginBottom: 10, border: "1px solid rgba(59,130,246,0.3)" }}><span style={{ fontSize: 11, fontWeight: 700, color: "#3B82F6", letterSpacing: 0.5 }}>🏃 FULL COURT AND BACK</span></div>}
                         {ex.video_url && <VideoPlayer url={ex.video_url} />}
                         {ex.image_url && <img src={fixImgurUrl(ex.image_url)} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10, border: `1px solid ${C.border}` }} />}
                         {ex.notes && <div style={{ background: C.bg, borderRadius: 10, padding: 14, marginTop: 10, border: `1px solid ${C.border}` }}><p style={{ fontSize: 10, fontWeight: 600, color: C.textDim, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Notes</p><p style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.7 }}>{ex.notes}</p></div>}
