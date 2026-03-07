@@ -290,7 +290,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
         "https://youtu.be/2JrrrFtUrzY",
         "https://youtu.be/9jGcwJqKrqk",
         "https://youtu.be/aeS91-6SrRA",
-        "https://youtu.be/2euD9OIQvwo",
+        "https://youtu.be/9aWyoJIJJEo",
       ],
     },
     {
