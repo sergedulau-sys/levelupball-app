@@ -286,7 +286,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
       options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
       scores: [1, 2, 3, 4, 5],
       videos: [
-        "https://youtu.be/Zg-knUYZZJc",
+        "https://youtu.be/6h6NLKpfSt4",
         "https://youtu.be/2JrrrFtUrzY",
         "https://youtu.be/9jGcwJqKrqk",
         "https://youtu.be/aeS91-6SrRA",
@@ -298,7 +298,7 @@ function BeltQuiz({ onStartTrial, quiz30Mode, coachCode }) {
       options: ["Example A – Level 1", "Example B – Level 2", "Example C – Level 3", "Example D – Level 4", "Example E – Level 5"],
       scores: [1, 2, 3, 4, 5],
       videos: [
-        "https://youtu.be/IswbFmpOR7E",
+        "https://youtu.be/33Luz0FA9m0",
         "https://youtu.be/8WDtkeqWy-k",
         "https://youtu.be/3UtDlQGitLY",
         "https://youtu.be/o0W766tkNqU",
