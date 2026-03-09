@@ -93,7 +93,7 @@ const BELT_LEVELS = [
     { start: 4, count: 4, fill: 50, label: "Level 4B" },    // 4B: workouts 5-8, repeat until 50
   ], code: "BROWN2026" },
   // Level 5: 10 DB workouts → 5A(1-5 x8=40) + 5B(6-10 x8=40) = 80
-  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 0, totalWorkouts: 80, repeatMap: [
+  { id: "black", name: "Black Belt", color: "#A3A3A3", bg: "rgba(163,163,163,0.08)", tc: "#fff", level: 5, xpPerWorkout: 200, xpGoal: 10000, totalWorkouts: 80, repeatMap: [
     { start: 0, count: 5, repeat: 8, label: "Level 5A" },  // 5A: workouts 1-5, 8 times = 40
     { start: 5, count: 5, repeat: 8, label: "Level 5B" },  // 5B: workouts 6-10, 8 times = 40
   ], code: "BLACK2026" },
@@ -840,7 +840,7 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
         <div style={{ background: C.surface, borderRadius: 20, padding: 24, border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: xpUnlocked ? C.successGlow : C.accentGlow, filter: "blur(30px)" }} />
           <div style={{ position: "relative" }}>
-            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>{wasDenied && !resubmitUnlocked ? "XP to Resubmit" : "XP to Level Up Test"}</p>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4, fontFamily: DISPLAY }}>{wasDenied && !resubmitUnlocked ? "XP to Resubmit" : belt.id === "black" ? "XP to Mastery" : "XP to Level Up Test"}</p>
             {wasDenied && !resubmitUnlocked ? (
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -852,12 +852,12 @@ function DashboardView({ profile, workoutsData, completedIds, completedWorkoutId
                 </div>
               </div>
             ) : xpUnlocked ? (
-              <div><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.success, lineHeight: 1.2 }}>UNLOCKED! 🔥</p><p style={{ fontSize: 11, color: C.success, marginTop: 4 }}>You can now apply to level up</p></div>
+              <div><p style={{ fontFamily: DISPLAY, fontSize: 20, fontWeight: 800, color: C.success, lineHeight: 1.2 }}>{belt.id === "black" ? "MASTERY! 🏆" : "UNLOCKED! 🔥"}</p><p style={{ fontSize: 11, color: C.success, marginTop: 4 }}>{belt.id === "black" ? "You've reached mastery level" : "You can now apply to level up"}</p></div>
             ) : (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                   <p style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, lineHeight: 1, color: "#22C55E" }}>{currentXp}<span style={{ fontSize: 14, color: "#22C55E" }}>/{xpGoal} XP</span></p>
-                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}><span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal - currentXp} XP</span> until Level Up Test</p>
+                  <p style={{ fontSize: 11, color: C.textDim, marginTop: 4 }}><span style={{ color: "#22C55E", fontWeight: 700 }}>{xpGoal - currentXp} XP</span> {belt.id === "black" ? "until Mastery" : "until Level Up Test"}</p>
                 </div>
                 <ProgressRing percent={xpPct} size={52} color="#22C55E" />
               </div>
