@@ -1453,6 +1453,13 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
   const [xpAwarded, setXpAwarded] = useState(0);
   const [doneSession, setDoneSession] = useState(null);
 
+  const [sessionCategory, setSessionCategory] = useState("ball_handling");
+  const SKILL_CATEGORIES = [
+    { id: "ball_handling", label: "Ball Handling", icon: "🏀" },
+    { id: "finishing", label: "Finishing", icon: "🎯" },
+    { id: "shooting", label: "Shooting", icon: "🔥" },
+  ];
+
   useEffect(() => {
     loadData();
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
@@ -1873,22 +1880,31 @@ function QuickSessions({ token, profile, trialMode, challengeResults = [], onSav
   }
 
   // ---- SESSION LIST ----
+  const filteredSessions = sessions.filter(s => s.category === sessionCategory);
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 4 }}>⚡ Quick Sessions</h1>
-        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime — 5 to 15 minutes.</p>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: DISPLAY, fontSize: 28, fontWeight: 800, marginBottom: 4 }}>⚡ Skill Sessions</h1>
+        <p style={{ color: C.textDim, fontSize: 15 }}>Short focused drills you can do anytime.</p>
+      </div>
+      {/* Category tabs */}
+      <div style={{ display: "flex", background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 3, marginBottom: 24 }}>
+        {SKILL_CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setSessionCategory(cat.id)} style={{ flex: 1, padding: "12px 0", borderRadius: 11, border: "none", background: sessionCategory === cat.id ? C.accent : "transparent", color: sessionCategory === cat.id ? "#fff" : C.textDim, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: FONTS, transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <span style={{ fontSize: 15 }}>{cat.icon}</span> {cat.label}
+          </button>
+        ))}
       </div>
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.textDim }}>Loading sessions...</div>
-      ) : sessions.length === 0 ? (
+      ) : filteredSessions.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
-          <p style={{ color: C.textDim, fontSize: 15 }}>No quick sessions yet. Your coach will add some soon!</p>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>{SKILL_CATEGORIES.find(c => c.id === sessionCategory)?.icon || "⚡"}</div>
+          <p style={{ color: C.textDim, fontSize: 15 }}>No {SKILL_CATEGORIES.find(c => c.id === sessionCategory)?.label || ""} sessions yet. Your coach will add some soon!</p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-          {sessions.map((s, si) => {
+          {filteredSessions.map((s, si) => {
             const count = completions[s.id] || 0;
             const exCount = (s.exercises || []).length;
             const targetBelt = s.belt_id ? BELT_LEVELS.find(b => b.id === s.belt_id) : null;
@@ -2046,6 +2062,15 @@ function AdminQuickSessions({ token }) {
             <select defaultValue={editing.belt_id || ""} onChange={e => saveSession(editing.id, "belt_id", e.target.value || null)} style={{ ...inp, cursor: "pointer" }}>
               <option value="">All Belts</option>
               {BELT_LEVELS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", color: "#666", fontSize: 10, fontFamily: F, letterSpacing: 1, marginBottom: 5 }}>CATEGORY</label>
+            <select defaultValue={editing.category || ""} onChange={e => saveSession(editing.id, "category", e.target.value || null)} style={{ ...inp, cursor: "pointer" }}>
+              <option value="">No Category</option>
+              <option value="ball_handling">Ball Handling</option>
+              <option value="finishing">Finishing</option>
+              <option value="shooting">Shooting</option>
             </select>
           </div>
         </div>
